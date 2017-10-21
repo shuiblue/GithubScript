@@ -1,46 +1,48 @@
+import org.json.JSONObject;
+
 import java.io.*;
 
 /**
  * Created by shuruiz on 10/19/17.
  */
 public class IO_Process {
-        static String current_OS = System.getProperty("os.name").toLowerCase();
+    static String current_OS = System.getProperty("os.name").toLowerCase();
 
-        public void writeTofile(String content, String filepath) {
+    public void writeTofile(String content, String filepath) {
 
 
-            try {
-                File file = new File(filepath);
-                // if file doesnt exists, then create it
-                if (!file.exists()) {
-                    file.getParentFile().mkdir();
-                    file.createNewFile();
-                }
-                FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
-                BufferedWriter bw = new BufferedWriter(fw);
-                bw.write(content);
-                bw.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+        try {
+            File file = new File(filepath);
+            // if file doesnt exists, then create it
+            if (!file.exists()) {
+                file.getParentFile().mkdir();
+                file.createNewFile();
             }
+            FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write(content);
+            bw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }
 
-        public void rewriteFile(String content, String filepath) {
+    public void rewriteFile(String content, String filepath) {
 
-            try {
-                File file = new File(filepath);
-                // if file doesnt exists, then create it
-                if (!file.exists()) {
-                    file.getParentFile().mkdirs();
-                    file.createNewFile();
-                }
-                FileWriter fw = new FileWriter(file.getAbsoluteFile(), false);
-                BufferedWriter bw = new BufferedWriter(fw);
-                bw.write(content);
-                bw.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+        try {
+            File file = new File(filepath);
+            // if file doesnt exists, then create it
+            if (!file.exists()) {
+                file.getParentFile().mkdirs();
+                file.createNewFile();
             }
+            FileWriter fw = new FileWriter(file.getAbsoluteFile(), false);
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write(content);
+            bw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -71,4 +73,6 @@ public class IO_Process {
         }
         return result;
     }
+
+
 }
