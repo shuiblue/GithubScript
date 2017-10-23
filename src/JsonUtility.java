@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 public class JsonUtility {
@@ -37,7 +38,9 @@ public class JsonUtility {
         }
     }
 
-    public static String readUrl(String urlString) throws Exception {
+    public static ArrayList<String> readUrl(String urlString) throws Exception {
+        System.out.println(urlString);
+        ArrayList<String> json_block_array = new ArrayList<>();
         BufferedReader reader = null;
         try {
             URL url = new URL(urlString);
@@ -49,11 +52,23 @@ public class JsonUtility {
                 buffer.append(chars, 0, read);
 
             String json_string = buffer.toString();
-            if(json_string.startsWith("[")&&!json_string.replace("[","").replace("]","").equals("")){
-                json_string=json_string.substring(1,json_string.lastIndexOf(']')-2);
-            }
+            if (!json_string.equals("[]")) {
+                if (json_string.startsWith("[")) {
+                    if (json_string.contains(",{")) {
+                        JSONArray jsonArray = new JSONArray(json_string);
 
-            return json_string;
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            JSONObject jsonObj = jsonArray.getJSONObject(i);
+                            json_block_array.add(String.valueOf(jsonObj));
+                        }
+                    } else {
+                        json_block_array.add(json_string.substring(1, json_string.lastIndexOf("]")));
+                    }
+                } else {
+                    json_block_array.add(json_string);
+                }
+            }
+            return json_block_array;
         } finally {
             if (reader != null)
                 reader.close();
