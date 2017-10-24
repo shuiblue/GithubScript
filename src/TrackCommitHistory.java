@@ -360,9 +360,16 @@ public class TrackCommitHistory {
                         JSONObject issue_jsonObj = new JSONObject(issue);
                         int num_issue = (int) issue_jsonObj.get("total_count");
                         if (num_issue > 0) {
-                            JSONObject pr_json = (JSONObject) issue_jsonObj.getJSONArray("items").getJSONObject(0).get("pull_request");
-                            sb.append(pr_json.get("url") + "\n");
-                            System.out.println();
+                            for (int i = 0; i < num_issue; i++) {
+                                JSONObject pr_json = (JSONObject) issue_jsonObj.getJSONArray("items").getJSONObject(i).get("pull_request");
+                                String pr_url = (String) pr_json.get("url");
+                                sb.append(pr_url + ",");
+
+                                /** get commit of this PR **/
+                                ArrayList<String> pr_commitList = getPRcommits(pr_url);
+                                sb.append(pr_commitList.toString()+"\n");
+                            }
+
                         } else {
                             break;
                         }
@@ -371,6 +378,30 @@ public class TrackCommitHistory {
             }
         }
         io.rewriteFile(sb.toString(), result_dir + upstream_url + "/pr_fork.txt");
+    }
+
+    /**
+     * This function get commits of a Pull Request
+     * @param pr_url Pull request url
+     * @return  a list of commit sha
+     */
+    private ArrayList<String> getPRcommits(String pr_url) {
+        ArrayList<String> commitList = new ArrayList<>();
+
+        String commitsUrl = pr_url+"/commits?"+ "access_token=" + token;
+        JsonUtility jsonUtility = new JsonUtility();
+        ArrayList<String> commits_array_json = null;
+        try {
+            commits_array_json = jsonUtility.readUrl(commitsUrl);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+            for (String commit : commits_array_json) {
+                JSONObject commit_jsonObj = new JSONObject(commit);
+                commitList.add((String) commit_jsonObj.get("sha"));
+            }
+        return commitList;
     }
 
 
