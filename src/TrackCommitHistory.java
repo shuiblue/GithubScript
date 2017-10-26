@@ -1,14 +1,12 @@
 import jdk.nashorn.internal.parser.JSONParser;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 /**
  * Created by shuruiz on 10/8/17.
@@ -118,11 +116,10 @@ public class TrackCommitHistory {
             HashSet<String> email_set = new HashSet<>();
             String fork_url = fork.split(",")[0];
             String forkName = fork_url.split("/")[0];
-            String email;
-
-
+            String email, user_name, created_at;
             JsonUtility jsonUtility = new JsonUtility();
-            /* get email from user profile */
+
+            /** get email from user profile */
             String profile_url = github_api_user + forkName + "?access_token=" + token;
             ArrayList<String> profile_array_json = null;
             try {
@@ -139,12 +136,40 @@ public class TrackCommitHistory {
                     email_set.add(email);
                 }
             }
-            /*  get email from commit history */
+            user_name = (String) profile_jsonObj.get("name");
 
 
-            String commit_Url = github_api_repo + fork_url + "/commits?access_token=" + token + "&author=" + forkName + "&page=";
-            String commitList = null;
+            /**  get email from commit history when author= forkname */
+            String commit_Url = github_api_repo + fork_url + "/commits?access_token=" + token +"&page=";
 
+            for (int page = 1; page <= 300; page++) {
+                ArrayList<String> commit_array_json = null;
+                try {
+                    commit_array_json = jsonUtility.readUrl(commit_Url + page + "&author=" + forkName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                if (commit_array_json.size() > 0) {
+                    for (String commit : commit_array_json) {
+                        JSONObject commit_jsonObj = new JSONObject(commit);
+                        JSONObject commit_block = (JSONObject) commit_jsonObj.get("commit");
+                        JSONObject author = commit_block.getJSONObject("author");
+                        email = (String) author.get("email");
+                        if (email.contains("@")) {
+                            email_set.add(email);
+                        }
+                    }
+                } else {
+                    if (page == 1 && !sb.toString().contains(forkName + ",")) {
+                        sb.append(forkName + ",");
+                    }
+                    break;
+                }
+            }
+
+
+            /** get email from commit history without author constraint, check user name **/
             for (int page = 1; page <= 300; page++) {
 
                 ArrayList<String> commit_array_json = null;
@@ -156,23 +181,26 @@ public class TrackCommitHistory {
 
                 if (commit_array_json.size() > 0) {
                     for (String commit : commit_array_json) {
-
-
                         JSONObject commit_jsonObj = new JSONObject(commit);
                         JSONObject commit_block = (JSONObject) commit_jsonObj.get("commit");
-
                         JSONObject author = commit_block.getJSONObject("author");
-                        email = (String) author.get("email");
-                        if (email.contains("@")) {
-                            email_set.add(email);
+                        if (author.get("name").equals(user_name)) {
+                            email_set.add((String) author.get("email"));
                         }
                     }
                 } else {
+                    if (page == 1 && !sb.toString().contains(forkName + ",")) {
+                        sb.append(forkName + ",");
+                    }
                     break;
                 }
             }
+            if (!sb.toString().contains(forkName + ",")) {
+                sb.append(forkName + "," + email_set.toString() + "\n");
+            } else {
+                sb.append(email_set.toString() + "\n");
 
-            sb.append(forkName + "," + email_set.toString() + "\n");
+            }
         }
         io.rewriteFile(sb.toString(), result_dir + repo_url + "/EmailList.txt");
 
@@ -190,7 +218,7 @@ public class TrackCommitHistory {
         for (String fork_contact_info : forkowner_Array) {
             ArrayList<String> email_arrayList = new ArrayList<>();
             String owner_id = fork_contact_info.split(",\\[")[0];
-            String[] emailarray = fork_contact_info.split(",\\[")[1].replace("]", "").split(",");
+            String[] emailarray = removeBrackets(fork_contact_info.split(",\\[")[1]).split(",");
             for (String email : emailarray) {
                 if (!email.equals("")) {
                     email_arrayList.add(email.trim());
@@ -361,13 +389,16 @@ public class TrackCommitHistory {
                         int num_issue = (int) issue_jsonObj.get("total_count");
                         if (num_issue > 0) {
                             for (int i = 0; i < num_issue; i++) {
-                                JSONObject pr_json = (JSONObject) issue_jsonObj.getJSONArray("items").getJSONObject(i).get("pull_request");
+                                JSONArray items_json = issue_jsonObj.getJSONArray("items");
+                                JSONObject pr_json = (JSONObject) items_json.getJSONObject(i).get("pull_request");
                                 String pr_url = (String) pr_json.get("url");
-                                sb.append(pr_url + ",");
+
+                                String merge_state = getPRstate(pr_url);
+                                sb.append(pr_url + "," + merge_state + ",");
 
                                 /** get commit of this PR **/
                                 ArrayList<String> pr_commitList = getPRcommits(pr_url);
-                                sb.append(pr_commitList.toString()+"\n");
+                                sb.append(pr_commitList.toString() + "\n");
                             }
 
                         } else {
@@ -381,14 +412,47 @@ public class TrackCommitHistory {
     }
 
     /**
+     * This function get PR state: open, close, merged
+     *
+     * @param pr_url
+     * @return string-- pr state
+     */
+    private String getPRstate(String pr_url) {
+
+        JsonUtility jsonUtility = new JsonUtility();
+        ArrayList<String> pr_array_json = null;
+        try {
+            pr_array_json = jsonUtility.readUrl(pr_url + "?access_token=" + token);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        JSONObject pr_json = new JSONObject(pr_array_json.get(0));
+        String merged_at = pr_json.get("merged_at").toString();
+        String closed_at = pr_json.get("closed_at").toString();
+
+        if (closed_at.equals("null")) {
+            return "open";
+        } else {
+            if (merged_at.equals("null")) {
+                return "closed";
+            } else {
+                return "merged";
+            }
+        }
+
+    }
+
+    /**
      * This function get commits of a Pull Request
+     *
      * @param pr_url Pull request url
-     * @return  a list of commit sha
+     * @return a list of commit sha
      */
     private ArrayList<String> getPRcommits(String pr_url) {
         ArrayList<String> commitList = new ArrayList<>();
 
-        String commitsUrl = pr_url+"/commits?"+ "access_token=" + token;
+        String commitsUrl = pr_url + "/commits?" + "access_token=" + token;
         JsonUtility jsonUtility = new JsonUtility();
         ArrayList<String> commits_array_json = null;
         try {
@@ -397,37 +461,83 @@ public class TrackCommitHistory {
             e.printStackTrace();
         }
 
-            for (String commit : commits_array_json) {
-                JSONObject commit_jsonObj = new JSONObject(commit);
-                commitList.add((String) commit_jsonObj.get("sha"));
-            }
+        for (String commit : commits_array_json) {
+            JSONObject commit_jsonObj = new JSONObject(commit);
+            commitList.add((String) commit_jsonObj.get("sha"));
+        }
         return commitList;
     }
 
+    private void analyzeContribution(String upstream_url) {
+        IO_Process io = new IO_Process();
+        String[] commits_in_fork = null, commits_in_PR = null;
+        StringBuilder sb = new StringBuilder();
+        try {
+            commits_in_fork = io.readResult(result_dir + upstream_url + "/fork_contribution.csv").split("\n");
+            commits_in_PR = io.readResult(result_dir + upstream_url + "/pr_fork.txt").split("fork:");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        commits_in_fork[0] += ",#commits of unmerged PRs\n";
+        sb.append(commits_in_fork[0]);
+        for (int i = 1; i < commits_in_fork.length; i++) {
+            List<String> commits_only_in_fork = Arrays.asList(removeBrackets(commits_in_fork[i].split(",")[3].split(",")[0]).split("/ "));
+            List<String> commits_in_PR_from_fork = new ArrayList<>();
+            String[] pr_array = commits_in_PR[i].split("\n");
+            String forkName = pr_array[0].trim();
+
+            if (pr_array.length > 1) {
+                for (int j = 1; j < pr_array.length; j++) {
+                    String[] pr_info = pr_array[j].split("\\[");
+                    String pr_state = pr_info[0].split(",")[1];
+                    if (!pr_state.equals("merged")) {
+                        String[] rejected_commits = removeBrackets(pr_info[1]).split(", ");
+                        for (String rej_commit : rejected_commits) {
+                            if (commits_only_in_fork.contains(rej_commit)) {
+                                commits_in_PR_from_fork.add(rej_commit);
+                            }
+                        }
+                    }
+                }
+            }
+
+            sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size() + "\n");
+        }
+
+        io.rewriteFile(sb.toString(), result_dir + upstream_url + "/summary.csv");
+    }
 
     public static void main(String[] args) {
         TrackCommitHistory tch = new TrackCommitHistory();
         IO_Process io = new IO_Process();
-        String upstream_url = "timscaffidi/ofxVideoRecorder";
+//        String[] upstream_array = {"Smoothieware/Smoothieware", "traverseda/pycraft", "timscaffidi/ofxVideoRecorder"};
+        String[] upstream_array = {"timscaffidi/ofxVideoRecorder"};
+        for (String upstream_url : upstream_array) {
 
-        try {
-            token = io.readResult(result_dir + "/token.txt").trim();
-        } catch (IOException e) {
-            e.printStackTrace();
+            try {
+                token = io.readResult(result_dir + "/token.txt").trim();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            /** get active fork list for given repository **/
+            tch.getActiveForkList(upstream_url);
+            /** analyze each fork owner's emails  **/
+            tch.getForkMemberContactInfo(upstream_url);
+
+            /** analyze each fork commit history **/
+            tch.analyzeCommitHistory(upstream_url);
+
+            /** analyze each fork issue and PR history **/
+            tch.getForkRelatedIssue(upstream_url);
+
+            tch.analyzeContribution(upstream_url);
         }
-
-        /** get active fork list for given repository **/
-        tch.getActiveForkList(upstream_url);
-        /** analyze each fork owner's emails  **/
-        tch.getForkMemberContactInfo(upstream_url);
-
-        /** analyze each fork commit history **/
-        tch.analyzeCommitHistory(upstream_url);
-
-        /** analyze each fork issue and PR history **/
-        tch.getForkRelatedIssue(upstream_url);
 
     }
 
 
+    public String removeBrackets(String str) {
+        return str.replace("[", "").replace("]", "");
+    }
 }

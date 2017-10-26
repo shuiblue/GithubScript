@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 public class JsonUtility {
 
@@ -39,7 +40,8 @@ public class JsonUtility {
     }
 
     public static ArrayList<String> readUrl(String urlString) throws Exception {
-        System.out.println(urlString);
+        TimeUnit.SECONDS.sleep(2);
+        System.out.println(urlString );
         ArrayList<String> json_block_array = new ArrayList<>();
         BufferedReader reader = null;
         try {
