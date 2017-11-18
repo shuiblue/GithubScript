@@ -74,10 +74,6 @@ public class TrackCommitHistory {
         for (String fork : forks_has_forks) {
             sb.append(getActiveForkList(fork));
         }
-        IO_Process io = new IO_Process();
-          /*  active fork list:          fork, created_at, pushed_at    */
-        io.rewriteFile(sb.toString(), result_dir + repo_url + "/all_ActiveForklist.txt");
-
 
         return sb.toString();
     }
@@ -125,8 +121,9 @@ public class TrackCommitHistory {
 
 
         for (String fork : forkArray) {
+
             HashSet<String> email_set = new HashSet<>();
-            String fork_url = fork.split(",")[0];
+            String fork_url = fork.split(",")[0].replace("+", "%2B");
             String forkName = fork_url.split("/")[0];
             String email, user_name = null, created_at;
             JsonUtility jsonUtility = new JsonUtility();
@@ -275,14 +272,20 @@ public class TrackCommitHistory {
     public void analyzeCommitHistory(String upstream_url) {
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
-        StringBuilder sb_commit_origin = new StringBuilder();
-        StringBuilder sb_removed_commits = new StringBuilder();
-        io.rewriteFile("", result_dir + upstream_url + "/removed_commits.txt");
-
-        StringBuilder sb_branch_list = new StringBuilder();
         sb.append("fork_id, upstream, #commits in fork, #commits merged to upstream, " +
                 " #sync_upstream commits, #branch_merge commits, #PullRequest commits, #other, " +
                 "commits only in fork, commits only in upstream,merged commits\n");
+        StringBuilder sb_commit_origin = new StringBuilder();
+        StringBuilder sb_removed_commits = new StringBuilder();
+        StringBuilder sb_branch_list = new StringBuilder();
+
+        io.rewriteFile("", result_dir + upstream_url + "/removed_commits.txt");
+        io.rewriteFile(sb.toString(), result_dir + upstream_url + "/fork_contribution.csv");
+        sb = new StringBuilder();
+        io.rewriteFile(sb_commit_origin.toString(), result_dir + upstream_url + "/commits_origin_info.txt");
+        io.rewriteFile(sb_branch_list.toString(), result_dir + upstream_url + "/commits_in_branch.txt");
+
+
         HashMap<String, ArrayList<String>> forkid_email = getForkIdMap(upstream_url);
         String[] forkArray = null;
         String upstreamName = upstream_url.split("/")[0];
@@ -294,7 +297,7 @@ public class TrackCommitHistory {
         for (String fork : forkArray) {
 //        String fork = "danzeeeman/ofxVideoRecorder,timscaffidi/ofxVideoRecorder";
             sb.append(fork + ",");
-            String fork_url = fork.split(",")[0];
+            String fork_url = fork.split(",")[0].replace("+", "%2B");
             String parent_url = fork.split(",")[1];
 
             String parent_id = parent_url.split("/")[0];
@@ -320,7 +323,7 @@ public class TrackCommitHistory {
             /** remove commit that are not from this fork  */
 
             HashMap<CommitType, HashSet<String>> commit_map = new HashMap<>();
-            CommitType[] commitTypes = {CommitType.origin, CommitType.sync_upstream, CommitType.branch_merge, CommitType.PullRequest, CommitType.other};
+            CommitType[] commitTypes = {CommitType.origin, CommitType.sync_upstream, CommitType.merge_commit, CommitType.PullRequest, CommitType.other};
             for (CommitType c : commitTypes) {
                 commit_map.put(c, new HashSet<>());
             }
@@ -333,11 +336,9 @@ public class TrackCommitHistory {
                     copy_commit_in_fork_set.remove(commit);
                 }
 
-
                 HashSet<String> tmp_commits = commit_map.get(commitType);
                 tmp_commits.add(commit);
                 commit_map.put(commitType, tmp_commits);
-
 
             }
             HashSet<String> updated_commit_in_fork_set = new HashSet<>();
@@ -370,8 +371,8 @@ public class TrackCommitHistory {
 //    "commits only in fork, commits only in upstream,merged commits\n");
 
             sb.append(updated_commit_in_fork_set.size() + "," + commit_in_upstream_set.size()
-                     + "," + commit_map.get(CommitType.sync_upstream).size() + ","
-                    + commit_map.get(CommitType.branch_merge).size() + "," + commit_map.get(CommitType.PullRequest).size() + "," + commit_map.get(CommitType.other).size() + ","
+                    + "," + commit_map.get(CommitType.sync_upstream).size() + ","
+                    + commit_map.get(CommitType.merge_commit).size() + "," + commit_map.get(CommitType.PullRequest).size() + "," + commit_map.get(CommitType.other).size() + ","
                     + copy_commit_in_fork_set.toString().replace(",", "/") + "," + copy_commit_in_upstream_set.toString().replace(",", "/") + "," + merged_commit_set.toString().replace(",", "/") + "\n");
 
             sb_removed_commits.append(fork_url + "," + parent_url + "----\n");
@@ -384,12 +385,11 @@ public class TrackCommitHistory {
                 sb_removed_commits.append("\n");
             });
             io.writeTofile(sb_removed_commits.toString(), result_dir + upstream_url + "/removed_commits.txt");
+            io.writeTofile(sb.toString(), result_dir + upstream_url + "/fork_contribution.csv");
+            io.writeTofile(sb_commit_origin.toString(), result_dir + upstream_url + "/commits_origin_info.txt");
 
+            io.writeTofile(sb_branch_list.toString(), result_dir + upstream_url + "/commits_in_branch.txt");
         }
-        io.rewriteFile(sb.toString(), result_dir + upstream_url + "/fork_contribution.csv");
-        io.rewriteFile(sb_commit_origin.toString(), result_dir + upstream_url + "/commits_origin_info.txt");
-
-        io.rewriteFile(sb_branch_list.toString(), result_dir + upstream_url + "/commits_in_branch.txt");
 
 
     }
@@ -422,7 +422,7 @@ public class TrackCommitHistory {
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
-                            if (commit_in_repo_json.size() > 0) {
+                            if (commit_in_repo_json != null && commit_in_repo_json.size() > 0) {
                                 for (String commit : commit_in_repo_json) {
                                     String sha = (String) new JSONObject(commit).get("sha");
 
@@ -462,7 +462,6 @@ public class TrackCommitHistory {
      */
 
     public CommitType checkCommitType(String sha, String repo_url, ArrayList<String> contact_info, String upstream_id) {
-        HashSet<CommitType> commitType_set = new HashSet<>();
         JsonUtility jsonUtility = new JsonUtility();
         String commit_url = github_api_repo + repo_url + "/commits/" + sha + "?access_token=" + token;
         String userID = repo_url.split("/")[0];
@@ -489,7 +488,7 @@ public class TrackCommitHistory {
 
         String commit_msg = (String) commit.get("message");
 
-        if (commit_msg.contains("Merge remote-tracking branch")) {
+        if (commit_msg.contains("Merge remote-tracking branch") || commit_msg.contains("Merge branch")) {
             return CommitType.sync_upstream;
         }
 
@@ -498,7 +497,7 @@ public class TrackCommitHistory {
         }
 
         if (commit_msg.contains("Merge branch")) {
-            return CommitType.branch_merge;
+            return CommitType.merge_commit;
         }
 
         JSONArray parents_json = (JSONArray) commit_jsonObj.get("parents");
@@ -510,10 +509,18 @@ public class TrackCommitHistory {
             }
 
         } else {
-//            String parent_sha_1 = (String) ((JSONObject) parents_json.get(0)).get("sha");
+            String parent_sha_1 = (String) ((JSONObject) parents_json.get(0)).get("sha");
             String parent_sha_2 = (String) ((JSONObject) parents_json.get(1)).get("sha");
-//            commitType_set.addAll(checkCommitType(parent_sha_1, repo_url, contact_info, upstream_id));
-            return checkCommitType(parent_sha_2, repo_url, contact_info, upstream_id);
+            CommitType parent1 = checkCommitType(parent_sha_1, repo_url, contact_info, upstream_id);
+            CommitType parent2 = checkCommitType(parent_sha_2, repo_url, contact_info, upstream_id);
+
+            if (parent1.equals(CommitType.origin)) {
+                return parent2;
+            } else if (parent2.equals(CommitType.origin)) {
+                return parent1;
+            }else{
+                return CommitType.other;
+            }
         }
     }
 
@@ -526,6 +533,7 @@ public class TrackCommitHistory {
         String[] forkArray = null;
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
+        io.rewriteFile("", result_dir + upstream_url + "/pr_fork.txt");
         String upstreamName = upstream_url.split("/")[0];
         try {
             forkArray = io.readResult(result_dir + upstream_url + "/ActiveForklist.txt").split("\n");
@@ -538,7 +546,7 @@ public class TrackCommitHistory {
         for (String str : issue_PR) {
             for (String fork : forkArray) {
                 sb.append("fork: " + fork + "\n");
-                String forkName = fork.split("/")[0];
+                String forkName = fork.split("/")[0].replace("+", "%2B");
                 //https://api.github.com/search/issues?q=author%3AJobLeonard+user%3Atimscaffidi+type%3Aissue
                 String issueUrl = github_api_search + "issues?q=author%3A" + forkName + "+user%3A" + upstreamName + "+type%3A" + str + "&access_token=" + token;
                 JsonUtility jsonUtility = new JsonUtility();
@@ -565,7 +573,7 @@ public class TrackCommitHistory {
                                 ArrayList<String> pr_commitList = getPRcommits(pr_url);
                                 sb.append(pr_commitList.toString() + "\n");
                             }
-
+                            io.writeTofile(sb.toString(), result_dir + upstream_url + "/pr_fork.txt");
                         } else {
                             break;
                         }
@@ -573,7 +581,7 @@ public class TrackCommitHistory {
                 }
             }
         }
-        io.rewriteFile(sb.toString(), result_dir + upstream_url + "/pr_fork.txt");
+
     }
 
     /**
@@ -646,7 +654,7 @@ public class TrackCommitHistory {
         commits_in_fork[0] += ", #commits of unmerged PRs\n";
         sb.append(commits_in_fork[0]);
         for (int i = 1; i < commits_in_fork.length; i++) {
-            List<String> commits_only_in_fork = Arrays.asList(removeBrackets(commits_in_fork[i].split(",")[5].split(",")[0]).split("/ "));
+            List<String> commits_only_in_fork = Arrays.asList(removeBrackets(commits_in_fork[i].split(",")[8].split(",")[0]).split("/ "));
             List<String> commits_in_PR_from_fork = new ArrayList<>();
             String[] pr_array = commits_in_PR[i].split("\n");
             String forkName = pr_array[0].trim();
@@ -683,7 +691,7 @@ public class TrackCommitHistory {
             e.printStackTrace();
         }
         HashSet<Integer> random_index = new HashSet<>();
-        while (random_index.size() < 20) {
+        while (random_index.size() < 30) {
             int rnd = new Random().nextInt(forkArray.length);
             if (!random_index.contains(rnd)) {
                 random_index.add(rnd);
@@ -700,13 +708,12 @@ public class TrackCommitHistory {
     }
 
 
-
     public static void main(String[] args) {
         TrackCommitHistory tch = new TrackCommitHistory();
         IO_Process io = new IO_Process();
-        String[] upstream_array = {"Smoothieware/Smoothieware"};
-//        String[] upstream_array = { "traverseda/pycraft"};
-//        String[] upstream_array = {"timscaffidi/ofxVideoRecorder"};
+//        String[] upstream_array = {"traverseda/pycraft,Smoothieware/Smoothieware,MarlinFirmware/Marlin","timscaffidi/ofxVideoRecorder"};
+//        String[] upstream_array = {};
+        String[] upstream_array = {"timscaffidi/ofxVideoRecorder"};
         for (String upstream_url : upstream_array) {
 
             try {
@@ -716,19 +723,27 @@ public class TrackCommitHistory {
             }
 
             /** get active fork list for given repository **/
-            tch.getActiveForkList(upstream_url);
+//            System.out.println("get all active forks...");
+//            String activeForkList = tch.getActiveForkList(upstream_url);
+//            io.rewriteFile(activeForkList, result_dir + upstream_url + "/all_ActiveForklist.txt");
+//
+//            System.out.println("randomly pick 30 active forks...");
+//            tch.getRamdomForks(upstream_url);
+////
+//            System.out.println("get fork member contact information...");
+//            /** analyze each fork owner's emails  **/
+//            tch.getForkMemberContactInfo(upstream_url);
 
-            tch.getRamdomForks(upstream_url);
-
-            /** analyze each fork owner's emails  **/
-            tch.getForkMemberContactInfo(upstream_url);
-
+            System.out.println("analyzing commit history...");
             /** analyze each fork commit history **/
             tch.analyzeCommitHistory(upstream_url);
 
+
+            System.out.println("get pull request information...");
             /** analyze each fork issue and PR history **/
             tch.getForkRelatedIssue(upstream_url);
 
+            System.out.println("analyzing contribution of each fork..");
             tch.analyzeContribution(upstream_url);
         }
 

@@ -7,13 +7,25 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 public class JsonUtility {
+    static String[] token;
+    JsonUtility(){
+        IO_Process io = new IO_Process();
+        String result_dir = "/Users/shuruiz/Box Sync/GithubScript-New/result/";
+        try {
+            token = io.readResult(result_dir + "/tokenArray.txt").split("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static String json = "{ \"id\": 01, \"language\": \"Java\", \"edition\": \"third\", \"author\": \"Herbert Schildt\", \"chapters\": [\"chapter 1\",\"chapter 2\",\"chapter 3\"] }";
 
@@ -39,8 +51,13 @@ public class JsonUtility {
         }
     }
 
-    public static ArrayList<String> readUrl(String urlString) throws Exception {
-        TimeUnit.SECONDS.sleep(2);
+    public static ArrayList<String> readUrl(String urlString) {
+
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         System.out.println(urlString );
         ArrayList<String> json_block_array = new ArrayList<>();
         BufferedReader reader = null;
@@ -71,10 +88,19 @@ public class JsonUtility {
                 }
             }
             return json_block_array;
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             if (reader != null)
-                reader.close();
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
         }
+        return null;
     }
 
 

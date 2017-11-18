@@ -2,6 +2,6 @@
  * Created by shuruiz on 10/30/17.
  */
 public enum CommitType {
-    origin, sync_upstream, branch_merge, PullRequest,other;
+    origin, sync_upstream, merge_commit, PullRequest,other;
 
 }
