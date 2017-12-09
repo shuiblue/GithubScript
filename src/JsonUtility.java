@@ -16,16 +16,16 @@ import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 public class JsonUtility {
-    static String[] token;
-    JsonUtility(){
-        IO_Process io = new IO_Process();
-        String result_dir = "/Users/shuruiz/Box Sync/GithubScript-New/result/";
-        try {
-            token = io.readResult(result_dir + "/tokenArray.txt").split("\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    static String[] token;
+//    JsonUtility(){
+//        IO_Process io = new IO_Process();
+//        String result_dir = "/Users/shuruiz/Box Sync/GithubScript-New/result/";
+//        try {
+//            token = io.readResult(result_dir + "/tokenArray.txt").split("\n");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     public static String json = "{ \"id\": 01, \"language\": \"Java\", \"edition\": \"third\", \"author\": \"Herbert Schildt\", \"chapters\": [\"chapter 1\",\"chapter 2\",\"chapter 3\"] }";
 

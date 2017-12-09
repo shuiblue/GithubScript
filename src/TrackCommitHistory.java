@@ -11,11 +11,22 @@ import java.util.*;
  */
 public class TrackCommitHistory {
     static String token;
-    static String github_page = "https://github.com/";
     static String github_api_repo = "https://api.github.com/repos/";
     static String github_api_user = "https://api.github.com/users/";
     static String github_api_search = "https://api.github.com/search/";
-    static String result_dir = "/Users/shuruiz/Box Sync/GithubScript-New/result/";
+    static String result_dir ;
+
+    TrackCommitHistory() {
+        final String current_dir = System.getProperty("user.dir");
+        System.out.println("current dir = " + current_dir);
+        result_dir = current_dir+"/result/";
+
+        try {
+            token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * This function gets a list of forks of a repository
@@ -25,6 +36,7 @@ public class TrackCommitHistory {
      * @param repo_url e.g. 'shuiblue/INFOX'
      */
     public String getActiveForkList(String repo_url) {
+
         String repo = repo_url.split("/")[1];
         String forkUrl = github_api_repo + repo_url + "/forks?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
@@ -58,7 +70,7 @@ public class TrackCommitHistory {
                         Date pushed_time = formatter.parse(pushed_at.replaceAll("Z$", "+0000"));
                         if (created_time.before(pushed_time)) {
                             if (name.length() > 0) {
-                                sb.append(name + "," + repo_url + "\n");
+                                sb.append(name + "," + repo_url + "," + created_at + "\n");
                             }
                         }
                     } catch (ParseException e) {
@@ -78,7 +90,8 @@ public class TrackCommitHistory {
         return sb.toString();
     }
 
-    private ArrayList<String> getBranches(String forkUrl) {
+
+    public ArrayList<String> getBranches(String forkUrl) {
         ArrayList<String> branchList = new ArrayList<>();
         String branches_Url = github_api_repo + forkUrl + "/branches?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
@@ -91,7 +104,7 @@ public class TrackCommitHistory {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            if (branch_array_json.size() > 0) {
+            if (branch_array_json != null & branch_array_json.size() > 0) {
                 for (String branch : branch_array_json) {
                     JSONObject branch_list_jsonObj = new JSONObject(branch);
                     branchList.add((String) branch_list_jsonObj.get("name"));
@@ -130,48 +143,10 @@ public class TrackCommitHistory {
 
             /** get fork point date */
 
-            ArrayList<String> fork_array_json = null;
-            try {
-                fork_array_json = jsonUtility.readUrl(github_api_repo + fork_url + "?access_token=" + token);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            String fork_info = fork_array_json.get(0);
-            JSONObject fork_jsonObj = new JSONObject(fork_info);
-            created_at = (String) fork_jsonObj.get("created_at");
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-            String three_month_ago = "";
-            try {
-                Date created_time = sdf.parse(created_at.replaceAll("Z$", "+0000"));
-                Calendar calendar = Calendar.getInstance();
-                calendar.setTime(created_time); // parsed date and setting to calendar
-                calendar.add(Calendar.MONTH, -3);  // number of days to add
-                three_month_ago = sdf.format(calendar.getTime());  // End date
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
+            String three_month_ago = getThreeMonthBeforeForkTime(fork_url, jsonUtility);
 
             /** get email from user profile */
-            String profile_url = github_api_user + forkName + "?access_token=" + token;
-            ArrayList<String> profile_array_json = null;
-            try {
-                profile_array_json = jsonUtility.readUrl(profile_url);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            String profile = profile_array_json.get(0);
-            JSONObject profile_jsonObj = new JSONObject(profile);
-            if (!profile.contains("\"email\":null")) {
-                email = profile_jsonObj.getString("email").toString();
-                if (email.contains("@")) {
-                    email_set.add(email);
-                }
-            }
-            if (!profile_jsonObj.get("name").toString().equals("null")) {
-                user_name = (String) profile_jsonObj.get("name");
-            }
+            ForkInfo fork_owner_info = getForkOwnerInfo(forkName);
 
 
             /**  get email from commit history when author= forkname */
@@ -243,6 +218,33 @@ public class TrackCommitHistory {
 
     }
 
+    public String getThreeMonthBeforeForkTime(String fork_url, JsonUtility jsonUtility) {
+        String created_at;
+        ArrayList<String> fork_array_json = null;
+        try {
+            fork_array_json = jsonUtility.readUrl(github_api_repo + fork_url + "?access_token=" + token);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        String fork_info = fork_array_json.get(0);
+        JSONObject fork_jsonObj = new JSONObject(fork_info);
+        created_at = (String) fork_jsonObj.get("created_at");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+        String three_month_ago = "";
+        try {
+            Date created_time = sdf.parse(created_at.replaceAll("Z$", "+0000"));
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(created_time); // parsed date and setting to calendar
+            calendar.add(Calendar.MONTH, -3);  // number of days to add
+            three_month_ago = sdf.format(calendar.getTime());  // End date
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        return three_month_ago;
+    }
+
     public HashMap<String, ArrayList<String>> getForkIdMap(String repo_url) {
         HashMap<String, ArrayList<String>> forkid_email = new HashMap<>();
         IO_Process io = new IO_Process();
@@ -296,6 +298,7 @@ public class TrackCommitHistory {
         }
         for (String fork : forkArray) {
 //        String fork = "danzeeeman/ofxVideoRecorder,timscaffidi/ofxVideoRecorder";
+            sb = new StringBuilder();
             sb.append(fork + ",");
             String fork_url = fork.split(",")[0].replace("+", "%2B");
             String parent_url = fork.split(",")[1];
@@ -463,23 +466,24 @@ public class TrackCommitHistory {
 
     public CommitType checkCommitType(String sha, String repo_url, ArrayList<String> contact_info, String upstream_id) {
         JsonUtility jsonUtility = new JsonUtility();
-        String commit_url = github_api_repo + repo_url + "/commits/" + sha + "?access_token=" + token;
-        String userID = repo_url.split("/")[0];
-        String commit_json = "";
-        try {
-            commit_json = jsonUtility.readUrl(commit_url).get(0);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        JSONObject commit_jsonObj = new JSONObject(commit_json);
-        String userid = "";
-        if (!commit_jsonObj.get("author").toString().equals("null")) {
-            userid = (String) ((JSONObject) commit_jsonObj.get("author")).get("login");
-        }
+        String userID = repo_url.split("/")[0];
+
+        JSONObject commit_jsonObj = getJsonObject(sha, repo_url, jsonUtility);
+        String userid = getAuthorID(commit_jsonObj);
+
         JSONObject commit = (JSONObject) commit_jsonObj.get("commit");
         String email = (String) ((JSONObject) commit.get("author")).get("email");
         String author = (String) ((JSONObject) commit.get("author")).get("name");
+
+        HashSet<String> email_set = new HashSet<>();
+        email_set.add(email);
+        ForkInfo fork_Owner = new ForkInfo(userID, author, email_set);
+        ForkInfo upstream_Owner = getForkOwnerInfo(upstream_id);
+
+        if (fork_Owner.isSameAuthor(fork_Owner, upstream_Owner)) {
+            return CommitType.sync_upstream;
+        }
 
         if (userid.equals(upstream_id)) {
             return CommitType.sync_upstream;
@@ -488,17 +492,17 @@ public class TrackCommitHistory {
 
         String commit_msg = (String) commit.get("message");
 
-        if (commit_msg.contains("Merge remote-tracking branch") || commit_msg.contains("Merge branch")) {
-            return CommitType.sync_upstream;
-        }
-
-        if (commit_msg.contains("Merge pull request")) {
-            return CommitType.PullRequest;
-        }
-
-        if (commit_msg.contains("Merge branch")) {
-            return CommitType.merge_commit;
-        }
+//        if (commit_msg.contains("Merge remote-tracking branch") || commit_msg.contains("Merge branch")) {
+//            return CommitType.sync_upstream;
+//        }
+//
+//        if (commit_msg.contains("Merge pull request")) {
+//            return CommitType.PullRequest;
+//        }
+//
+//        if (commit_msg.contains("Merge branch")) {
+//            return CommitType.merge_commit;
+//        }
 
         JSONArray parents_json = (JSONArray) commit_jsonObj.get("parents");
         if (parents_json.length() == 1) {
@@ -511,17 +515,70 @@ public class TrackCommitHistory {
         } else {
             String parent_sha_1 = (String) ((JSONObject) parents_json.get(0)).get("sha");
             String parent_sha_2 = (String) ((JSONObject) parents_json.get(1)).get("sha");
-            CommitType parent1 = checkCommitType(parent_sha_1, repo_url, contact_info, upstream_id);
-            CommitType parent2 = checkCommitType(parent_sha_2, repo_url, contact_info, upstream_id);
+            ForkInfo parent_1 = getParentInfo(parent_sha_1, repo_url);
+            ForkInfo parent_2 = getParentInfo(parent_sha_2, repo_url);
 
-            if (parent1.equals(CommitType.origin)) {
-                return parent2;
-            } else if (parent2.equals(CommitType.origin)) {
-                return parent1;
-            }else{
+            parent_1.setOwnerID(getAuthorID(getJsonObject(parent_sha_1, repo_url, jsonUtility)));
+            parent_2.setOwnerID(getAuthorID(getJsonObject(parent_sha_2, repo_url, jsonUtility)));
+
+            if (upstream_Owner.isSameAuthor(parent_1, upstream_Owner) || upstream_Owner.isSameAuthor(parent_2, upstream_Owner)) {
+                return CommitType.sync_upstream;
+            } else if (upstream_Owner.isSameAuthor(parent_1, fork_Owner) && upstream_Owner.isSameAuthor(parent_2, fork_Owner)) {
+                return CommitType.merge_commit;
+            } else {
                 return CommitType.other;
             }
+
+//            CommitType parent1 = checkCommitType(parent_sha_1, repo_url, contact_info, upstream_id);
+//            CommitType parent2 = checkCommitType(parent_sha_2, repo_url, contact_info, upstream_id);
+//
+//            if (parent1.equals(CommitType.origin) && parent2.equals(CommitType.origin)) {
+//                return CommitType.merge_commit;
+//            } else if (parent1.equals(CommitType.origin)) {
+//                return parent2;
+//            } else if (parent2.equals(CommitType.origin)) {
+//                return parent1;
+//            } else {
+//                return CommitType.other;
+//            }
         }
+    }
+
+    private ForkInfo getParentInfo(String parent_sha_2, String repo_url) {
+        ForkInfo parentInfo = new ForkInfo();
+        JSONObject commit_jsonObj = getJsonObject(parent_sha_2, repo_url, new JsonUtility());
+        if (!((JSONObject) commit_jsonObj.get("commit")).get("author").equals("null")) {
+            parentInfo.setOwnerID("");
+            JSONObject author = (JSONObject) ((JSONObject) commit_jsonObj.get("commit")).get("author");
+            parentInfo.setFull_name((String) author.get("name"));
+            String email = (String) author.get("email");
+            HashSet<String> emails = new HashSet<>();
+            emails.add(email);
+            parentInfo.setEmails(emails);
+        }
+        return parentInfo;
+    }
+
+    public JSONObject getJsonObject(String sha, String repo_url, JsonUtility jsonUtility) {
+        String commit_json = "";
+
+        String commit_url = github_api_repo + repo_url + "/commits/" + sha.trim() + "?access_token=" + token;
+
+        try {
+            commit_json = jsonUtility.readUrl(commit_url).get(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return new JSONObject(commit_json);
+    }
+
+    private String getAuthorID(JSONObject commit_jsonObj) {
+        String userid = "";
+        if (!commit_jsonObj.get("author").toString().equals("null")) {
+            userid = (String) ((JSONObject) commit_jsonObj.get("author")).get("login");
+        }
+        return userid;
     }
 
     /**
@@ -573,11 +630,14 @@ public class TrackCommitHistory {
                                 ArrayList<String> pr_commitList = getPRcommits(pr_url);
                                 sb.append(pr_commitList.toString() + "\n");
                             }
-                            io.writeTofile(sb.toString(), result_dir + upstream_url + "/pr_fork.txt");
+
                         } else {
                             break;
                         }
+
                     }
+                    io.writeTofile(sb.toString(), result_dir + upstream_url + "/pr_fork.txt");
+                    sb = new StringBuilder();
                 }
             }
         }
@@ -656,8 +716,8 @@ public class TrackCommitHistory {
         for (int i = 1; i < commits_in_fork.length; i++) {
             List<String> commits_only_in_fork = Arrays.asList(removeBrackets(commits_in_fork[i].split(",")[8].split(",")[0]).split("/ "));
             List<String> commits_in_PR_from_fork = new ArrayList<>();
-            String[] pr_array = commits_in_PR[i].split("\n");
-            String forkName = pr_array[0].trim();
+            String[] pr_array = {};
+            pr_array = commits_in_PR[i].split("\n");
 
             if (pr_array.length > 1) {
                 for (int j = 1; j < pr_array.length; j++) {
@@ -681,7 +741,7 @@ public class TrackCommitHistory {
     }
 
 
-    public void getRamdomForks(String repo_url) {
+    public void getRamdomForks(String repo_url, int randomNum) {
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
         String[] forkArray = {};
@@ -691,7 +751,7 @@ public class TrackCommitHistory {
             e.printStackTrace();
         }
         HashSet<Integer> random_index = new HashSet<>();
-        while (random_index.size() < 30) {
+        while (random_index.size() < randomNum) {
             int rnd = new Random().nextInt(forkArray.length);
             if (!random_index.contains(rnd)) {
                 random_index.add(rnd);
@@ -708,38 +768,32 @@ public class TrackCommitHistory {
     }
 
 
-    public static void main(String[] args) {
+    public void classifyCommitsByAuthor_local() {
         TrackCommitHistory tch = new TrackCommitHistory();
-        IO_Process io = new IO_Process();
 //        String[] upstream_array = {"traverseda/pycraft,Smoothieware/Smoothieware,MarlinFirmware/Marlin","timscaffidi/ofxVideoRecorder"};
 //        String[] upstream_array = {};
         String[] upstream_array = {"timscaffidi/ofxVideoRecorder"};
         for (String upstream_url : upstream_array) {
 
-            try {
-                token = io.readResult(result_dir + "/token.txt").trim();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
 
-            /** get active fork list for given repository **/
+//            /** get active fork list for given repository **/
 //            System.out.println("get all active forks...");
 //            String activeForkList = tch.getActiveForkList(upstream_url);
 //            io.rewriteFile(activeForkList, result_dir + upstream_url + "/all_ActiveForklist.txt");
 //
 //            System.out.println("randomly pick 30 active forks...");
 //            tch.getRamdomForks(upstream_url);
-////
-//            System.out.println("get fork member contact information...");
-//            /** analyze each fork owner's emails  **/
-//            tch.getForkMemberContactInfo(upstream_url);
+
+            System.out.println("get fork member contact information...");
+            /** analyze each fork owner's emails  **/
+            tch.getForkMemberContactInfo(upstream_url);
 
             System.out.println("analyzing commit history...");
             /** analyze each fork commit history **/
             tch.analyzeCommitHistory(upstream_url);
 
 
-            System.out.println("get pull request information...");
+//            System.out.println("get pull request information...");
             /** analyze each fork issue and PR history **/
             tch.getForkRelatedIssue(upstream_url);
 
@@ -750,4 +804,57 @@ public class TrackCommitHistory {
     }
 
 
+    public void classifyCommitsByAuthor(String upstream_url) {
+        TrackCommitHistory tch = new TrackCommitHistory();
+
+        System.out.println("get fork member contact information...");
+        /** analyze each fork owner's emails  **/
+        tch.getForkMemberContactInfo(upstream_url);
+
+        System.out.println("analyzing commit history...");
+        /** analyze each fork commit history **/
+        tch.analyzeCommitHistory(upstream_url);
+
+
+//            System.out.println("get pull request information...");
+        /** analyze each fork issue and PR history **/
+        tch.getForkRelatedIssue(upstream_url);
+
+        System.out.println("analyzing contribution of each fork..");
+        tch.analyzeContribution(upstream_url);
+
+    }
+
+    public static void main(String[] args) {
+        TrackCommitHistory trackCommitHistory = new TrackCommitHistory();
+        trackCommitHistory.classifyCommitsByAuthor_local();
+    }
+
+
+    public ForkInfo getForkOwnerInfo(String forkName) {
+        HashSet<String> email_set = new HashSet<>();
+        JsonUtility jsonUtility = new JsonUtility();
+        String email, user_name = null;
+        String profile_url = github_api_user + forkName + "?access_token=" + token;
+        ArrayList<String> profile_array_json = null;
+        try {
+            profile_array_json = jsonUtility.readUrl(profile_url);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        String profile = profile_array_json.get(0);
+        JSONObject profile_jsonObj = new JSONObject(profile);
+        if (!profile.contains("\"email\":null")) {
+            email = profile_jsonObj.getString("email").toString();
+            if (email.contains("@")) {
+                email_set.add(email);
+            }
+        }
+        if (!profile_jsonObj.get("name").toString().equals("null")) {
+            user_name = (String) profile_jsonObj.get("name");
+        }
+
+        return new ForkInfo(forkName, user_name, email_set);
+    }
 }

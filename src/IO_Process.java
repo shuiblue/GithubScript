@@ -75,4 +75,75 @@ public class IO_Process {
     }
 
 
+    public String exeCmd(String[] cmd,String pathname) {
+
+        ProcessBuilder process = new ProcessBuilder(cmd);
+
+        String result="";
+        try {
+            process.directory(new File(pathname));
+            Process p = process.start();
+            BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(p.getInputStream()));
+            StringBuilder builder = new StringBuilder();
+            String line = null;
+            try {
+                while ((line = reader.readLine()) != null) {
+                    builder.append(line);
+                    builder.append(System.getProperty("line.separator"));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            result = builder.toString();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return result.replace("\"","");
+    }
+
+
+    public String removeBrackets(String str) {
+        return str.replace("[", "").replace("]", "");
+    }
+    public void deleteDir(File file) throws IOException {
+
+        if (file.isDirectory()) {
+
+            //directory is empty, then delete it
+            if (file.list().length == 0) {
+
+                file.delete();
+//                System.out.println("Directory is deleted : "
+//                        + file.getAbsolutePath());
+
+            } else {
+
+                //list all the directory contents
+                String files[] = file.list();
+
+                for (String temp : files) {
+                    //construct the file structure
+                    File fileDelete = new File(file, temp);
+
+                    //recursive delete
+                    deleteDir(fileDelete);
+                }
+
+                //check the directory again, if empty then delete it
+                if (file.list().length == 0) {
+                    file.delete();
+//                    System.out.println("Directory is deleted : "
+//                            + file.getAbsolutePath());
+                }
+            }
+
+        } else {
+            //if file, then delete it
+            file.delete();
+//            System.out.println("File is deleted : " + file.getAbsolutePath());
+        }
+    }
 }
