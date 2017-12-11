@@ -21,14 +21,12 @@ import java.util.List;
 public class JgitUtility {
     static String github_url = "https://github.com/";
     static String token;
-    static String result_dir;
     static String localDirPath;
-
+    static String current_dir;
 
     JgitUtility() {
-        final String current_dir = System.getProperty("user.dir");
+        current_dir = System.getProperty("user.dir");
         System.out.println("current dir = " + current_dir);
-        result_dir = current_dir + "/result/";
 
         try {
             token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
@@ -40,7 +38,7 @@ public class JgitUtility {
 
     public void cloneRepo(String repo_uri) {
         IO_Process io = new IO_Process();
-        localDirPath = result_dir + "/cloneRepos/";
+        localDirPath = current_dir + "/cloneRepos/";
         String clone_url = github_url + repo_uri + ".git";
 
         String repoName = repo_uri.split("/")[0];

@@ -585,10 +585,8 @@ public class ClassifyCommit {
         String pathname = tmpDirPath + repo_uri + "/";
         String repoName = repo_uri.split("/")[0];
         String[] branchArray = {};
-        String default_branch = "";
         try {
             branchArray = io.readResult(pathname + repoName + "_branchList.txt").split("\n");
-            default_branch = io.readResult(pathname + "defaultBranch.txt").trim();
         } catch (IOException e) {
             e.printStackTrace();
         }
