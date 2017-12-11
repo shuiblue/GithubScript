@@ -274,9 +274,8 @@ public class TrackCommitHistory {
     public void analyzeCommitHistory(String upstream_url) {
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
-        sb.append("fork_id, upstream, #commits in fork, #commits merged to upstream, " +
-                " #sync_upstream commits, #branch_merge commits, #PullRequest commits, #other, " +
-                "commits only in fork, commits only in upstream,merged commits\n");
+        sb.append("forkURL,upstreamURL,only_F,F->U," +
+                "U->F,Only_F_commits,F->U_commits\n");
         StringBuilder sb_commit_origin = new StringBuilder();
         StringBuilder sb_removed_commits = new StringBuilder();
         StringBuilder sb_branch_list = new StringBuilder();
@@ -299,10 +298,10 @@ public class TrackCommitHistory {
         for (String fork : forkArray) {
 //        String fork = "danzeeeman/ofxVideoRecorder,timscaffidi/ofxVideoRecorder";
             sb = new StringBuilder();
-            sb.append(fork + ",");
             String fork_url = fork.split(",")[0].replace("+", "%2B");
             String parent_url = fork.split(",")[1];
-
+            sb.append(fork_url + ",");
+            sb.append(parent_url + ",");
             String parent_id = parent_url.split("/")[0];
             String fork_owner_id = fork_url.split("/")[0];
             ArrayList<String> email_list = forkid_email.get(fork_owner_id);
@@ -326,7 +325,7 @@ public class TrackCommitHistory {
             /** remove commit that are not from this fork  */
 
             HashMap<CommitType, HashSet<String>> commit_map = new HashMap<>();
-            CommitType[] commitTypes = {CommitType.origin, CommitType.sync_upstream, CommitType.merge_commit, CommitType.PullRequest, CommitType.other};
+            CommitType[] commitTypes = {CommitType.origin, CommitType.sync_upstream, CommitType.merge_commit, CommitType.other};
             for (CommitType c : commitTypes) {
                 commit_map.put(c, new HashSet<>());
             }
@@ -373,10 +372,9 @@ public class TrackCommitHistory {
 //    #original commits, #sync_upstream commits, #branch_merge commits, #PullRequest commits, #other, " +
 //    "commits only in fork, commits only in upstream,merged commits\n");
 
-            sb.append(updated_commit_in_fork_set.size() + "," + commit_in_upstream_set.size()
+            sb.append(updated_commit_in_fork_set.size()-commit_in_upstream_set.size() + "," + commit_in_upstream_set.size()
                     + "," + commit_map.get(CommitType.sync_upstream).size() + ","
-                    + commit_map.get(CommitType.merge_commit).size() + "," + commit_map.get(CommitType.PullRequest).size() + "," + commit_map.get(CommitType.other).size() + ","
-                    + copy_commit_in_fork_set.toString().replace(",", "/") + "," + copy_commit_in_upstream_set.toString().replace(",", "/") + "," + merged_commit_set.toString().replace(",", "/") + "\n");
+                    + copy_commit_in_fork_set.toString().replace(",", "/") + "," + merged_commit_set.toString().replace(",", "/") + "\n");
 
             sb_removed_commits.append(fork_url + "," + parent_url + "----\n");
             commit_map.forEach((k, v) ->
@@ -523,9 +521,11 @@ public class TrackCommitHistory {
 
             if (upstream_Owner.isSameAuthor(parent_1, upstream_Owner) || upstream_Owner.isSameAuthor(parent_2, upstream_Owner)) {
                 return CommitType.sync_upstream;
-            } else if (upstream_Owner.isSameAuthor(parent_1, fork_Owner) && upstream_Owner.isSameAuthor(parent_2, fork_Owner)) {
-                return CommitType.merge_commit;
-            } else {
+            }
+//            else if (upstream_Owner.isSameAuthor(parent_1, fork_Owner) && upstream_Owner.isSameAuthor(parent_2, fork_Owner)) {
+//                return CommitType.merge_commit;
+//            }
+            else {
                 return CommitType.other;
             }
 
@@ -714,7 +714,7 @@ public class TrackCommitHistory {
         commits_in_fork[0] += ", #commits of unmerged PRs\n";
         sb.append(commits_in_fork[0]);
         for (int i = 1; i < commits_in_fork.length; i++) {
-            List<String> commits_only_in_fork = Arrays.asList(removeBrackets(commits_in_fork[i].split(",")[8].split(",")[0]).split("/ "));
+            List<String> commits_only_in_fork = Arrays.asList(removeBrackets(commits_in_fork[i].split(",")[5].split(",")[0]).split("/ "));
             List<String> commits_in_PR_from_fork = new ArrayList<>();
             String[] pr_array = {};
             pr_array = commits_in_PR[i].split("\n");
@@ -737,7 +737,7 @@ public class TrackCommitHistory {
             sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size() + "\n");
         }
 
-        io.rewriteFile(sb.toString(), result_dir + upstream_url + "/summary.csv");
+        io.rewriteFile(sb.toString(), result_dir + upstream_url + "/authorName_result.csv");
     }
 
 

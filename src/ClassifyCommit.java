@@ -88,7 +88,7 @@ public class ClassifyCommit {
                 }
 
                 StringBuilder sb_result = new StringBuilder();
-                sb_result.append("fork,only F,only U,only U (including PRs),F -> U,U -> F,U -> F (including PRs), #Times sync with U\n");
+                sb_result.append("fork,upstream，only_F,only_U,only_U_including_PRs,F->U,U->F,U->F_including_PRs,sync_with_U,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
 
                 io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
                 for (String forkInfo : activeForkList) {
@@ -158,9 +158,6 @@ public class ClassifyCommit {
             System.out.println("getting fork branch commit list..");
             String fork_branchStr = io.readResult(tmpDirPath + forkUrl + "/" + forkUrl.split("/")[0] + "_branch_commitList.txt");
             fork_branch_History_map = getHistory(io.readResult(tmpDirPath + forkUrl + "/" + forkUrl.split("/")[0] + "_CommitHistory.txt").split("\n"));
-
-//            String fork_branchRemovedCommits = "removedBranch," + io.readResult(tmpDirPath + forkUrl + "/" + forkUrl.split("/")[0] + "_removedBranchCommits.txt").trim() + ",[]";
-//            fork_branchStr += fork_branchRemovedCommits;
             fork_branchArray = fork_branchStr.split("\n");
 
             if (compareForkWithUpstream) {
@@ -168,9 +165,6 @@ public class ClassifyCommit {
                 String upstream_branchStr = io.readResult(tmpDirPath + upstreamUrl + "/" + upstreamUrl.split("/")[0] + "_branch_commitList.txt");
                 upstream_withMeged_branchArray = io.readResult(tmpDirPath + upstreamUrl + "/" + upstreamUrl.split("/")[0] + "_CommitHistory.txt").split("\n");
                 upstream_branch_History_map = getHistory(upstream_withMeged_branchArray);
-
-//                String upstream_branchRemovedCommits = "removedBranch," + io.readResult(tmpDirPath + upstreamUrl + "/" + upstreamUrl.split("/")[0] + "_removedBranchCommits.txt").trim() + ",[]";
-//                upstream_branchStr += upstream_branchRemovedCommits;
                 upstream_branchArray = upstream_branchStr.split("\n");
 
             }
@@ -332,6 +326,8 @@ public class ClassifyCommit {
             allCommitsInUpstream.removeAll(upstream2Fork);
             allCommitsInUpstream.removeAll(upstream2Fork_includePRMerge);
 
+            parent2Set.removeAll(upstream2Fork_includePRMerge);
+            parent2Set.removeAll(allCommitsInUpstream);
 
             StringBuilder sb = new StringBuilder();
             sb.append("only in fork: " + commits_in_fork.size() + " commits, " + commits_in_fork + "\n");
@@ -341,13 +337,17 @@ public class ClassifyCommit {
             sb.append("upstream --> fork: " + upstream2Fork.size() + " commits, " + upstream2Fork + "\n");
             sb.append("upstream --> fork (with PR merge): " + upstream2Fork_includePRMerge.size() + " commits, " + upstream2Fork_includePRMerge + "\n");
             sb.append("sync with upstream (times) " + parent2Set.size() + " commits, " + parent2Set + "\n");
-            io.rewriteFile(sb.toString(), tmpDirPath + forkName + "_result.txt");
+            io.rewriteFile(sb.toString(), current_dir + "/result/" + repoURL +"/" + forkName + "_result.txt");
 
 
 
 
             StringBuilder sb_result = new StringBuilder();
-            sb_result.append(forkUrl+","+upstreamUrl+ "," + commits_in_fork.size() + "," + commits_in_upstream.size() + "," + allCommitsInUpstream.size() + "," + fork2Upstream.size() + "," + upstream2Fork.size() + "," + upstream2Fork_includePRMerge.size() + "," + parent2Set.size() + "\n");
+            sb_result.append(forkUrl+","+upstreamUrl+ "," + commits_in_fork.size() + "," + commits_in_upstream.size() + ","
+                    + allCommitsInUpstream.size() + "," + fork2Upstream.size() + "," + upstream2Fork.size() + ","
+                    + upstream2Fork_includePRMerge.size() + "," + parent2Set.size()+ ","
+                    +commits_in_fork.toString().replace(",","/")+","+ commits_in_upstream.toString().replace(",","/") + ","
+                    + fork2Upstream.toString().replace(",","/")  + "," + upstream2Fork .toString().replace(",","/") + "\n");
             io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.csv");
 
 

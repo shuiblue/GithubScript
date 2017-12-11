@@ -1,6 +1,12 @@
 import org.json.JSONObject;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by shuruiz on 10/19/17.
@@ -55,7 +61,7 @@ public class IO_Process {
      */
     public String readResult(String filePath) throws IOException {
         BufferedReader result_br = new BufferedReader(new FileReader(filePath));
-        String result = "";
+        String result ;
         try {
             StringBuilder sb = new StringBuilder();
             String line = result_br.readLine();
@@ -145,5 +151,18 @@ public class IO_Process {
             file.delete();
 //            System.out.println("File is deleted : " + file.getAbsolutePath());
         }
+    }
+
+
+
+    public  List<List<String>>  readCSV(String filePath){
+        List<List<String>> values=null;
+        try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
+            values = lines.map(line -> Arrays.asList(line.split(","))).collect(Collectors.toList());
+            values.forEach(value -> System.out.println(value));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return values;
     }
 }
