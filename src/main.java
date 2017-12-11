@@ -59,11 +59,11 @@ public class main {
                 trackCommitHistory.classifyCommitsByAuthor(repoUrl);
 
 
-                GithubApiParser githubApiParser = new GithubApiParser();
-                for (String forkInfo : activeForkList) {
-                    System.out.println("get fork infor: "+forkInfo);
-                    githubApiParser. getForkInfo(forkInfo);
-                }
+//                GithubApiParser githubApiParser = new GithubApiParser();
+//                for (String forkInfo : activeForkList) {
+//                    System.out.println("get fork infor: "+forkInfo);
+//                    githubApiParser. getForkInfo(forkInfo);
+//                }
 
 
 //                /**   combines results together **/
