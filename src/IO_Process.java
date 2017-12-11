@@ -60,6 +60,7 @@ public class IO_Process {
      * @throws IOException e
      */
     public String readResult(String filePath) throws IOException {
+        System.out.println(filePath);
         BufferedReader result_br = new BufferedReader(new FileReader(filePath));
         String result ;
         try {
