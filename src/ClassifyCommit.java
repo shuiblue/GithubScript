@@ -13,6 +13,9 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.*;
 
 import static java.util.Comparator.comparingInt;
@@ -658,7 +661,11 @@ public class ClassifyCommit {
                     String latestCommitDate =  commitDate_result[0];
 
                     try {
-                        Date latestCommitDated_time = formatter.parse(latestCommitDate.substring(0,latestCommitDate.lastIndexOf("-"))+"+0000");
+
+                        DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_DATE_TIME;
+                        TemporalAccessor accessor = timeFormatter.parse(latestCommitDate);
+
+                        Date latestCommitDated_time = Date.from(Instant.from(accessor));
                         Date  forkpointDate_time  = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
                         if (latestCommitDated_time.before(forkpointDate_time)) {
                            System.out.println("ignore branch:" +branch);

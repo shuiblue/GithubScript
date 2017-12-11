@@ -66,10 +66,10 @@ public class main {
 //                    System.out.println("get fork info: "+forkInfo);
 //                    githubApiParser. getForkInfo(forkURL);
 //                }
-
-
-//                /**   combines results together **/
-//                combineTwoApproaches(repoUrl);
+//
+//
+////                /**   combines results together **/
+////                combineTwoApproaches(repoUrl);
 
 
             }
