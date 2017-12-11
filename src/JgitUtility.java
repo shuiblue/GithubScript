@@ -19,14 +19,28 @@ import java.util.List;
  * Created by shuruiz on 4/7/17.
  */
 public class JgitUtility {
+    static String github_url = "https://github.com/";
+    static String token;
+    static String result_dir;
+    static String localDirPath;
 
-    String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
-    String github_url = "https://github.com/";
+
+    JgitUtility() {
+        final String current_dir = System.getProperty("user.dir");
+        System.out.println("current dir = " + current_dir);
+        result_dir = current_dir + "/result/";
+
+        try {
+            token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public void cloneRepo(String repo_uri) {
         IO_Process io = new IO_Process();
-        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
-        String github_url = "https://github.com/";
+        localDirPath = result_dir + "/cloneRepos/";
         String clone_url = github_url + repo_uri + ".git";
 
         String repoName = repo_uri.split("/")[0];
@@ -49,7 +63,7 @@ public class JgitUtility {
                 System.out.println("get all branches..");
                 List<Ref> call = git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
                 StringBuilder sb_branches = new StringBuilder();
-                String default_branch = call.get(0).getName().replace("refs/heads/","");
+                String default_branch = call.get(0).getName().replace("refs/heads/", "");
                 io.rewriteFile(default_branch, pathname + "defaultBranch.txt");
                 for (int i = 1; i < call.size(); i++) {
                     Ref ref = call.get(i);

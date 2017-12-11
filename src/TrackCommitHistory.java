@@ -37,7 +37,6 @@ public class TrackCommitHistory {
      */
     public String getActiveForkList(String repo_url) {
 
-        String repo = repo_url.split("/")[1];
         String forkUrl = github_api_repo + repo_url + "/forks?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
 

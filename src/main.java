@@ -59,6 +59,13 @@ public class main {
                 trackCommitHistory.classifyCommitsByAuthor(repoUrl);
 
 
+                GithubApiParser githubApiParser = new GithubApiParser();
+                for (String forkInfo : activeForkList) {
+                    System.out.println("get fork infor: "+forkInfo);
+                    githubApiParser. getForkInfo(forkInfo);
+                }
+
+
 //                /**   combines results together **/
 //                combineTwoApproaches(repoUrl);
 
@@ -67,6 +74,8 @@ public class main {
 
         }
     }
+
+
 
     private static void combineTwoApproaches(String repoUrl) {
         IO_Process io = new IO_Process();
@@ -79,6 +88,7 @@ public class main {
         for(int i=1;i<author_approach_result.size();i++){
 
         }
+
 
         System.out.println();
 
