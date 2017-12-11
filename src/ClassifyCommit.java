@@ -34,17 +34,15 @@ public class ClassifyCommit {
      * 7.  ForkToUpstream(mc) (for each branch) = S(mc)-S(p1(mc))
      * 8.  UpstreamToFork(mc) (for each branch) = S(mc)-S(p1(mc))
      */
-    static String tmpDirPath ;
+    static String tmpDirPath;
     static int maxAnalyzedForkNum = 50;
     static int randomAnalyzedForkNum = 5;
     static HashMap<String, HashSet<String>> reachable_map = new HashMap<>();
     static String current_dir;
 
-    ClassifyCommit (){
+    ClassifyCommit() {
         current_dir = System.getProperty("user.dir");
-        System.out.println("current dir = " + current_dir);
-
-        tmpDirPath = current_dir+"/cloneRepos/";
+        tmpDirPath = current_dir + "/cloneRepos/";
     }
 
     public static void main(String[] args) {
@@ -53,10 +51,9 @@ public class ClassifyCommit {
         String[] repoList = {};
         TrackCommitHistory trackCommitHistory = new TrackCommitHistory();
 
-       current_dir = System.getProperty("user.dir");
-        System.out.println("current dir = " + current_dir);
+        current_dir = System.getProperty("user.dir");
 
-        tmpDirPath = current_dir+"/cloneRepos/";
+        tmpDirPath = current_dir + "/cloneRepos/";
 
         /** get repo list **/
         try {
@@ -92,14 +89,13 @@ public class ClassifyCommit {
 
                 io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
                 for (String forkInfo : activeForkList) {
-                    cc.analyzeCommitHistory(forkInfo, true,repoUrl);
+                    cc.analyzeCommitHistory(forkInfo, true, repoUrl);
                 }
             }
 
         }
 
     }
-
 
 
     /***
@@ -113,7 +109,7 @@ public class ClassifyCommit {
      */
 
 
-    public void analyzeCommitHistory(String forkInfo, boolean compareForkWithUpstream,String repoURL) {
+    public void analyzeCommitHistory(String forkInfo, boolean compareForkWithUpstream, String repoURL) {
         HashSet<String> fork2Upstream = new HashSet<>();
         HashSet<String> upstream2Fork = new HashSet<>();
         HashSet<String> upstream2Fork_includePRMerge = new HashSet<>();
@@ -124,7 +120,9 @@ public class ClassifyCommit {
         ClassifyCommit cc = new ClassifyCommit();
         String forkUrl = forkInfo.split(",")[0];
         String forkName = forkUrl.split("/")[0];
+
         String upstreamUrl = forkInfo.split(",")[1];
+        String forkpointDate = forkInfo.split(",")[2];
 
         /**clone fork to local*/
         System.out.println("git clone " + forkUrl);
@@ -138,11 +136,11 @@ public class ClassifyCommit {
         /** get commit in branch**/
         /**----   in fork **/
         System.out.println("getting Commits In all Branches of fork: " + forkUrl);
-        cc.getCommitInBranch(forkUrl);
+        cc.getCommitInBranch(forkUrl, forkpointDate);
         /**----  in upstream **/
         if (compareForkWithUpstream) {
             System.out.println("getting Commits In all Branches of upstream: " + upstreamUrl);
-            cc.getCommitInBranch(upstreamUrl);
+            cc.getCommitInBranch(upstreamUrl, forkpointDate);
         }
 
 
@@ -168,7 +166,6 @@ public class ClassifyCommit {
                 upstream_branchArray = upstream_branchStr.split("\n");
 
             }
-            System.out.println();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -180,7 +177,7 @@ public class ClassifyCommit {
 
         HashSet<String> uselessBranches = null;
         if (fork_branch_History_map.keySet().size() >= 2) {
-            uselessBranches = RemoveBranchesBeforeForkPoint(fork_branch_History_map);
+            uselessBranches = RemoveBranchesBeforeForkPoint(fork_branch_History_map, forkInfo);
         }
 
         /** comparing branches **/
@@ -196,17 +193,17 @@ public class ClassifyCommit {
 
                         String up_nomerge_br = upstream_branchArray[i];
 
-                        String up_withMerged_br="";
+                        String up_withMerged_br = "";
                         if (i < upstream_branchArray.length - 1) {
                             up_withMerged_br = upstream_withMeged_branchArray[i];
                         }
 
-                        System.out.println(fork_br);
+                        System.out.println(fork_branchName);
                         System.out.println(" vs ");
-                        System.out.println(up_nomerge_br);
+                        System.out.println(up_nomerge_br.split(",\\[")[0]);
 
                         ArrayList<HashSet<String>> result_1 = cc.compareHistory(forkUrl, fork_br.split(",\\["), upstreamUrl, up_nomerge_br.split(",\\["), forkUrl.split("/")[0]);
-                        ArrayList<HashSet<String>> result_2=null;
+                        ArrayList<HashSet<String>> result_2 = null;
                         if (i < upstream_branchArray.length - 1) {
                             result_2 = cc.compareHistory(forkUrl, fork_br.split(",\\["), upstreamUrl, up_withMerged_br.split(",\\["), forkUrl.split("/")[0]);
                         }
@@ -337,17 +334,15 @@ public class ClassifyCommit {
             sb.append("upstream --> fork: " + upstream2Fork.size() + " commits, " + upstream2Fork + "\n");
             sb.append("upstream --> fork (with PR merge): " + upstream2Fork_includePRMerge.size() + " commits, " + upstream2Fork_includePRMerge + "\n");
             sb.append("sync with upstream (times) " + parent2Set.size() + " commits, " + parent2Set + "\n");
-            io.rewriteFile(sb.toString(), current_dir + "/result/" + repoURL +"/" + forkName + "_result.txt");
-
-
+            io.rewriteFile(sb.toString(), current_dir + "/result/" + repoURL + "/" + forkName + "_result.txt");
 
 
             StringBuilder sb_result = new StringBuilder();
-            sb_result.append(forkUrl+","+upstreamUrl+ "," + commits_in_fork.size() + "," + commits_in_upstream.size() + ","
+            sb_result.append(forkUrl + "," + upstreamUrl + "," + commits_in_fork.size() + "," + commits_in_upstream.size() + ","
                     + allCommitsInUpstream.size() + "," + fork2Upstream.size() + "," + upstream2Fork.size() + ","
-                    + upstream2Fork_includePRMerge.size() + "," + parent2Set.size()+ ","
-                    +commits_in_fork.toString().replace(",","/")+","+ commits_in_upstream.toString().replace(",","/") + ","
-                    + fork2Upstream.toString().replace(",","/")  + "," + upstream2Fork .toString().replace(",","/") + "\n");
+                    + upstream2Fork_includePRMerge.size() + "," + parent2Set.size() + ","
+                    + commits_in_fork.toString().replace(",", "/") + "," + commits_in_upstream.toString().replace(",", "/") + ","
+                    + fork2Upstream.toString().replace(",", "/") + "," + upstream2Fork.toString().replace(",", "/") + "\n");
             io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.csv");
 
 
@@ -367,10 +362,15 @@ public class ClassifyCommit {
 
     }
 
-    private HashSet<String> RemoveBranchesBeforeForkPoint(HashMap<String, List<String>> fork_branch_history_map) {
+    private HashSet<String> RemoveBranchesBeforeForkPoint(HashMap<String, List<String>> fork_branch_history_map, String forkInfo) {
+
+        String forkPointTime = forkInfo.split(",")[2];
+        String forkurl = forkInfo.split(",")[0];
+
         HashSet<String> uselessBranches = new HashSet<>();
         HashSet<List<String>> combination = getAllPairs(fork_branch_history_map.keySet());
 
+        /**  comparing one branch is a subset of another **/
         for (List<String> comb : combination) {
             String b1 = comb.get(0);
             String b2 = comb.get(1);
@@ -384,9 +384,9 @@ public class ClassifyCommit {
                 if (hasMerged(fork_branch_history_map.get(b2), fork_branch_history_map.get(b1)))
                     uselessBranches.add(b1);
             }
-
-
         }
+
+
         return uselessBranches;
     }
 
@@ -438,7 +438,6 @@ public class ClassifyCommit {
         List<String> list = new ArrayList<>(set);
         String first = list.remove(0);
         for (String node : list) {
-            System.out.println(allPairs.size());
             List<String> currentPair = new ArrayList<>();
             currentPair.add(first);
             currentPair.add(node);
@@ -576,11 +575,12 @@ public class ClassifyCommit {
      * This function get commits in each branch, removing merged commits
      */
 
-    public void getCommitInBranch(String repo_uri) {
+    public void getCommitInBranch(String repo_uri, String forkpointDate) {
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
         StringBuilder sb_parentTwo = new StringBuilder();
         StringBuilder sb_commitHistory = new StringBuilder();
+        StringBuilder sb_branchCommitDate = new StringBuilder();
         HashMap<String, String> parentTwoCommitMap = new HashMap<>();
         String pathname = tmpDirPath + repo_uri + "/";
         String repoName = repo_uri.split("/")[0];
@@ -651,6 +651,23 @@ public class ClassifyCommit {
                             setStartPoint("origin/" + branch).
                             call();
                 }
+                /**   get Merge Commit **/
+                    String[] get_latest_CommitCMD = {"git", "log", branch, "--pretty=format:\"%aI\""};
+                    String[] commitDate_result = io.exeCmd(get_latest_CommitCMD, pathname + ".git").split("\n");
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+                    String latestCommitDate =  commitDate_result[0];
+
+                    try {
+                        Date latestCommitDated_time = formatter.parse(latestCommitDate.substring(0,latestCommitDate.lastIndexOf("-"))+"+0000");
+                        Date  forkpointDate_time  = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
+                        if (latestCommitDated_time.before(forkpointDate_time)) {
+                           System.out.println("ignore branch:" +branch);
+                            continue;
+                        }
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+
 
                 /**   get Merge Commit **/
                 String[] mergedIn_result = io.exeCmd(getMergeCommitCMD, pathname + ".git").split("\n");

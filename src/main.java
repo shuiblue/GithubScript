@@ -59,10 +59,12 @@ public class main {
                 trackCommitHistory.classifyCommitsByAuthor(repoUrl);
 
 
+//                /** get fork info  **/
 //                GithubApiParser githubApiParser = new GithubApiParser();
 //                for (String forkInfo : activeForkList) {
-//                    System.out.println("get fork infor: "+forkInfo);
-//                    githubApiParser. getForkInfo(forkInfo);
+//                    String forkURL = forkInfo.split(",")[0];
+//                    System.out.println("get fork info: "+forkInfo);
+//                    githubApiParser. getForkInfo(forkURL);
 //                }
 
 
