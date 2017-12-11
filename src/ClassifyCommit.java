@@ -486,11 +486,12 @@ public class ClassifyCommit {
         System.out.println("get upstream merge commits info..");
         HashMap<String, String> upstream_commitTwoParentMap = getParents(upstreamURL);
 
-
+        System.out.println(" get B1 To B2 Contribution..");
         ArrayList<HashSet<String>> contribution = getB1ToB2ContributionSet(branch1_merged_commitList, fork_commitTwoParentMap, branch1_commitList, branch2_commitList, branch2_merged_commitList);
         b2_to_b1 = contribution.get(0);
         HashSet<String> parent2Set = contribution.get(1);
 
+        System.out.println(" get B2 To B1 Contribution..");
         contribution = getB1ToB2ContributionSet(branch2_merged_commitList, upstream_commitTwoParentMap, branch2_commitList, branch1_commitList, branch1_merged_commitList);
         b1_to_b2 = contribution.get(0);
 
@@ -517,6 +518,7 @@ public class ClassifyCommit {
         Set<String> branch2MergeCommits = new HashSet<String>(Arrays.asList(branch2_merged_commitList));
         for (String mergedCommit : branch1_merged_commitList) {
             if (!mergedCommit.equals("")) {
+                System.out.println("get reachable commit of "+ mergedCommit);
                 getReachableCommits(mergedCommit, commitTwoParentMap, branch1_commitList, branch2_commitList);
                 String[] parents = commitTwoParentMap.get(mergedCommit).split(",");
                 String parent1 = parents[0];
