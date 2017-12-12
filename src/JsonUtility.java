@@ -100,13 +100,14 @@ public class JsonUtility {
                     e.printStackTrace();
                 }
         }
-        return null;
+        return new ArrayList<>();
     }
 
 
     public static void main(String args[]) {
         JsonUtility utility = new JsonUtility();
         //read
+        readUrl("https://api.github.com/repos/icarus1966/tensorflow/forks?access_token=904838378e141f62ba12e8d824666f2fee27c7b9&page=1");
         utility.readJson(json);
     }
 
