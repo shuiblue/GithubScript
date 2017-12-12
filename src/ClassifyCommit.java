@@ -129,23 +129,23 @@ public class ClassifyCommit {
         String forkpointDate = forkInfo.split(",")[2];
 
         /**clone fork to local*/
-//        System.out.println("git clone " + forkUrl);
-//        jg.cloneRepo(forkUrl);
-//
-//        if (compareForkWithUpstream) {
-//            System.out.println("git clone " + upstreamUrl);
-//            jg.cloneRepo(upstreamUrl);
-//        }
-//
-//        /** get commit in branch**/
-//        /**----   in fork **/
-//        System.out.println("getting Commits In all Branches of fork: " + forkUrl);
-//        cc.getCommitInBranch(forkUrl, forkpointDate);
-//        /**----  in upstream **/
-//        if (compareForkWithUpstream) {
-//            System.out.println("getting Commits In all Branches of upstream: " + upstreamUrl);
-//            cc.getCommitInBranch(upstreamUrl, "");
-//        }
+        System.out.println("git clone " + forkUrl);
+        jg.cloneRepo(forkUrl);
+
+        if (compareForkWithUpstream) {
+            System.out.println("git clone " + upstreamUrl);
+            jg.cloneRepo(upstreamUrl);
+        }
+
+        /** get commit in branch**/
+        /**----   in fork **/
+        System.out.println("getting Commits In all Branches of fork: " + forkUrl);
+        cc.getCommitInBranch(forkUrl, forkpointDate);
+        /**----  in upstream **/
+        if (compareForkWithUpstream) {
+            System.out.println("getting Commits In all Branches of upstream: " + upstreamUrl);
+            cc.getCommitInBranch(upstreamUrl, "");
+        }
 
 
         IO_Process io = new IO_Process();
