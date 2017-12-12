@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.*;
@@ -663,24 +664,27 @@ public class ClassifyCommit {
                     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
                     String latestCommitDate = commitDate_result[0];
 
-                    try {
 
-                        DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_DATE_TIME;
-                        TemporalAccessor accessor = timeFormatter.parse(latestCommitDate);
+//                        DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_DATE_TIME;
+//                        TemporalAccessor accessor = timeFormatter.parse(latestCommitDate);
+//                        Date latestCommitDated_time = Date.from(Instant.from(accessor));
+//                        Date forkpointDate_time = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
 
-                        Date latestCommitDated_time = Date.from(Instant.from(accessor));
-                        Date forkpointDate_time = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
+                        ZonedDateTime forkpointDate_time = ZonedDateTime.parse(forkpointDate);
+                        ZonedDateTime   latestCommitDated_time =ZonedDateTime.parse(latestCommitDate);
+
+
+
                         System.out.println("forkpointDate_time:" + forkpointDate_time);
                         System.out.println("latestCommitDated_time:" + latestCommitDated_time);
 
-                        if (latestCommitDated_time.before(forkpointDate_time)) {
+//                        if (latestCommitDated_time.before(forkpointDate_time)) {
+                        if (latestCommitDated_time.isBefore(forkpointDate_time)) {
 
                             System.out.println("ignore branch:" + branch);
                             continue;
                         }
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
+
                 }
 
                 /**   get Merge Commit **/
