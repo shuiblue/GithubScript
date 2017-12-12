@@ -649,6 +649,7 @@ public class ClassifyCommit {
                 /**only checkout remote branch**/
                 if (!existBranches.contains(branch)) {
                     //https://stackoverflow.com/questions/12927163/jgit-checkout-a-remote-branch
+                    System.out.println("check out branch: " +branch);
                     git.checkout().
                             setCreateBranch(true).
                             setName(branch).
@@ -663,6 +664,8 @@ public class ClassifyCommit {
                     String[] commitDate_result = io.exeCmd(get_latest_CommitCMD, pathname + ".git").split("\n");
                     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
                     String latestCommitDate = commitDate_result[0];
+                    System.out.println("forkpointDate ...:" + forkpointDate);
+                    System.out.println("latestCommitDated..." + latestCommitDate);
 
 
 //                        DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_DATE_TIME;
