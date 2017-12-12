@@ -129,23 +129,23 @@ public class ClassifyCommit {
         String forkpointDate = forkInfo.split(",")[2];
 
         /**clone fork to local*/
-        System.out.println("git clone " + forkUrl);
-        jg.cloneRepo(forkUrl);
-
-        if (compareForkWithUpstream) {
-            System.out.println("git clone " + upstreamUrl);
-            jg.cloneRepo(upstreamUrl);
-        }
-
-        /** get commit in branch**/
-        /**----   in fork **/
-        System.out.println("getting Commits In all Branches of fork: " + forkUrl);
-        cc.getCommitInBranch(forkUrl, forkpointDate);
-        /**----  in upstream **/
-        if (compareForkWithUpstream) {
-            System.out.println("getting Commits In all Branches of upstream: " + upstreamUrl);
-            cc.getCommitInBranch(upstreamUrl, "");
-        }
+//        System.out.println("git clone " + forkUrl);
+//        jg.cloneRepo(forkUrl);
+//
+//        if (compareForkWithUpstream) {
+//            System.out.println("git clone " + upstreamUrl);
+//            jg.cloneRepo(upstreamUrl);
+//        }
+//
+//        /** get commit in branch**/
+//        /**----   in fork **/
+//        System.out.println("getting Commits In all Branches of fork: " + forkUrl);
+//        cc.getCommitInBranch(forkUrl, forkpointDate);
+//        /**----  in upstream **/
+//        if (compareForkWithUpstream) {
+//            System.out.println("getting Commits In all Branches of upstream: " + upstreamUrl);
+//            cc.getCommitInBranch(upstreamUrl, "");
+//        }
 
 
         IO_Process io = new IO_Process();
@@ -159,6 +159,13 @@ public class ClassifyCommit {
         try {
             System.out.println("getting fork branch commit list..");
             String fork_branchStr = io.readResult(tmpDirPath + forkUrl + "/" + forkUrl.split("/")[0] + "_branch_commitList.txt");
+            if (fork_branchStr.equals("")) {
+                StringBuilder sb_result = new StringBuilder();
+                sb_result.append(forkUrl + ",\n");
+                io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.csv");
+                return;
+
+            }
             fork_branch_History_map = getHistory(io.readResult(tmpDirPath + forkUrl + "/" + forkUrl.split("/")[0] + "_CommitHistory.txt").split("\n"));
             fork_branchArray = fork_branchStr.split("\n");
 
@@ -362,7 +369,6 @@ public class ClassifyCommit {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
 
     }
 
@@ -649,7 +655,7 @@ public class ClassifyCommit {
                 /**only checkout remote branch**/
                 if (!existBranches.contains(branch)) {
                     //https://stackoverflow.com/questions/12927163/jgit-checkout-a-remote-branch
-                    System.out.println("check out branch: " +branch);
+                    System.out.println("check out branch: " + branch);
                     git.checkout().
                             setCreateBranch(true).
                             setName(branch).
@@ -658,7 +664,7 @@ public class ClassifyCommit {
                             call();
                 }
 
-                if(!forkpointDate.equals("")) {
+                if (!forkpointDate.equals("")) {
                     /**   get Merge Commit **/
                     String[] get_latest_CommitCMD = {"git", "log", branch, "--pretty=format:\"%aI\""};
                     String[] commitDate_result = io.exeCmd(get_latest_CommitCMD, pathname + ".git").split("\n");
@@ -673,20 +679,19 @@ public class ClassifyCommit {
 //                        Date latestCommitDated_time = Date.from(Instant.from(accessor));
 //                        Date forkpointDate_time = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
 
-                        ZonedDateTime forkpointDate_time = ZonedDateTime.parse(forkpointDate);
-                        ZonedDateTime   latestCommitDated_time =ZonedDateTime.parse(latestCommitDate);
+                    ZonedDateTime forkpointDate_time = ZonedDateTime.parse(forkpointDate);
+                    ZonedDateTime latestCommitDated_time = ZonedDateTime.parse(latestCommitDate);
 
 
-
-                        System.out.println("forkpointDate_time:" + forkpointDate_time);
-                        System.out.println("latestCommitDated_time:" + latestCommitDated_time);
+                    System.out.println("forkpointDate_time:" + forkpointDate_time);
+                    System.out.println("latestCommitDated_time:" + latestCommitDated_time);
 
 //                        if (latestCommitDated_time.before(forkpointDate_time)) {
-                        if (latestCommitDated_time.isBefore(forkpointDate_time)) {
+                    if (latestCommitDated_time.isBefore(forkpointDate_time)) {
 
-                            System.out.println("ignore branch:" + branch);
-                            continue;
-                        }
+                        System.out.println("ignore branch:" + branch);
+                        continue;
+                    }
 
                 }
 
