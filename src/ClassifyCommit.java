@@ -656,11 +656,13 @@ public class ClassifyCommit {
                             setStartPoint("origin/" + branch).
                             call();
                 }
-                /**   get Merge Commit **/
+
+//                if(!forkpointDate.equals("")) {
+                    /**   get Merge Commit **/
                     String[] get_latest_CommitCMD = {"git", "log", branch, "--pretty=format:\"%aI\""};
                     String[] commitDate_result = io.exeCmd(get_latest_CommitCMD, pathname + ".git").split("\n");
                     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-                    String latestCommitDate =  commitDate_result[0];
+                    String latestCommitDate = commitDate_result[0];
 
                     try {
 
@@ -668,15 +670,18 @@ public class ClassifyCommit {
                         TemporalAccessor accessor = timeFormatter.parse(latestCommitDate);
 
                         Date latestCommitDated_time = Date.from(Instant.from(accessor));
-                        Date  forkpointDate_time  = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
+                        Date forkpointDate_time = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
                         if (latestCommitDated_time.before(forkpointDate_time)) {
-                           System.out.println("ignore branch:" +branch);
+
+                            System.out.println("forkpointDate_time:" + forkpointDate_time);
+                            System.out.println("latestCommitDated_time:" + latestCommitDated_time);
+                            System.out.println("ignore branch:" + branch);
                             continue;
                         }
                     } catch (ParseException e) {
                         e.printStackTrace();
                     }
-
+//                }
 
                 /**   get Merge Commit **/
                 String[] mergedIn_result = io.exeCmd(getMergeCommitCMD, pathname + ".git").split("\n");
