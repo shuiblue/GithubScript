@@ -27,9 +27,9 @@ public class main {
             if (repoUrl.trim().length() > 0) {
                 String repoName = repoUrl.split("/")[0];
                 /** get active fork list for given repository **/
-//                System.out.println("get all active forks of repo: " + repoName);
-//                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl);
-//                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+                System.out.println("get all active forks of repo: " + repoName);
+                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl);
+                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 
                 /** analyze commit history **/
                 String[] activeForkList = {};
@@ -60,16 +60,19 @@ public class main {
 
 
                 /** get fork info  **/
-//                GithubApiParser githubApiParser = new GithubApiParser();
-//                for (String forkInfo : activeForkList) {
-//                    String forkURL = forkInfo.split(",")[0];
-//                    System.out.println("get fork info: "+forkInfo);
-//                    githubApiParser. getForkInfo(forkURL);
-//                }
-//
-//
-////                /**   combines results together **/
-////                combineTwoApproaches(repoUrl);
+                GithubApiParser githubApiParser = new GithubApiParser();
+                StringBuilder sb = new StringBuilder();
+                sb.append("forkUrl,fork_num,created_at,pushed_at,size,language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type\n");
+                for (String forkInfo : activeForkList) {
+                    String forkURL = forkInfo.split(",")[0];
+                    System.out.println("get fork info: "+forkInfo);
+                   sb.append(forkURL+","+ githubApiParser. getForkInfo(forkURL));
+                }
+
+                io.rewriteFile(sb.toString(),current_dir+ "/result/" + repoUrl+"/forkInfo.csv" );
+
+//                /**   combines results together **/
+//                combineTwoApproaches(repoUrl);
 
 
             }

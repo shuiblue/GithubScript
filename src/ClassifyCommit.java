@@ -143,7 +143,7 @@ public class ClassifyCommit {
         /**----  in upstream **/
         if (compareForkWithUpstream) {
             System.out.println("getting Commits In all Branches of upstream: " + upstreamUrl);
-            cc.getCommitInBranch(upstreamUrl, forkpointDate);
+            cc.getCommitInBranch(upstreamUrl, "");
         }
 
 
@@ -518,7 +518,6 @@ public class ClassifyCommit {
         Set<String> branch2MergeCommits = new HashSet<String>(Arrays.asList(branch2_merged_commitList));
         for (String mergedCommit : branch1_merged_commitList) {
             if (!mergedCommit.equals("")) {
-                System.out.println("get reachable commit of "+ mergedCommit);
                 getReachableCommits(mergedCommit, commitTwoParentMap, branch1_commitList, branch2_commitList);
                 String[] parents = commitTwoParentMap.get(mergedCommit).split(",");
                 String parent1 = parents[0];
@@ -657,7 +656,7 @@ public class ClassifyCommit {
                             call();
                 }
 
-//                if(!forkpointDate.equals("")) {
+                if(!forkpointDate.equals("")) {
                     /**   get Merge Commit **/
                     String[] get_latest_CommitCMD = {"git", "log", branch, "--pretty=format:\"%aI\""};
                     String[] commitDate_result = io.exeCmd(get_latest_CommitCMD, pathname + ".git").split("\n");
@@ -682,7 +681,7 @@ public class ClassifyCommit {
                     } catch (ParseException e) {
                         e.printStackTrace();
                     }
-//                }
+                }
 
                 /**   get Merge Commit **/
                 String[] mergedIn_result = io.exeCmd(getMergeCommitCMD, pathname + ".git").split("\n");
