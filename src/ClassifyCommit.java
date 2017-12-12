@@ -671,10 +671,11 @@ public class ClassifyCommit {
 
                         Date latestCommitDated_time = Date.from(Instant.from(accessor));
                         Date forkpointDate_time = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
+                        System.out.println("forkpointDate_time:" + forkpointDate_time);
+                        System.out.println("latestCommitDated_time:" + latestCommitDated_time);
+
                         if (latestCommitDated_time.before(forkpointDate_time)) {
 
-                            System.out.println("forkpointDate_time:" + forkpointDate_time);
-                            System.out.println("latestCommitDated_time:" + latestCommitDated_time);
                             System.out.println("ignore branch:" + branch);
                             continue;
                         }
