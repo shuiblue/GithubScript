@@ -52,7 +52,7 @@ public class main {
                     System.out.println("FORK: "+forkInfo);
                     cc.analyzeCommitHistory(forkInfo, true, repoUrl);
 
-//                }
+                }
 
                          /**  by author id  **/
                 System.out.println("authorID-based...");
