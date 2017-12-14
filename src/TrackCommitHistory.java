@@ -14,12 +14,12 @@ public class TrackCommitHistory {
     static String github_api_repo = "https://api.github.com/repos/";
     static String github_api_user = "https://api.github.com/users/";
     static String github_api_search = "https://api.github.com/search/";
-    static String result_dir ;
+    static String result_dir;
 
     TrackCommitHistory() {
         final String current_dir = System.getProperty("user.dir");
         System.out.println("current dir = " + current_dir);
-        result_dir = current_dir+"/result/";
+        result_dir = current_dir + "/result/";
 
         try {
             token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
@@ -35,11 +35,11 @@ public class TrackCommitHistory {
      *
      * @param repo_url e.g. 'shuiblue/INFOX'
      */
-    public String getActiveForkList(String repo_url,int activeForkNum) {
+    public String getActiveForkList(String repo_url, int activeForkNum) {
 
         String forkUrl = github_api_repo + repo_url + "/forks?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
-int fork_count=0;
+        int fork_count = 0;
         StringBuilder sb = new StringBuilder();
         ArrayList<String> forks_has_forks = new ArrayList<>();
 
@@ -72,7 +72,7 @@ int fork_count=0;
                                 fork_count++;
                                 sb.append(name + "," + repo_url + "," + created_at + "\n");
 
-                                if(fork_count==activeForkNum){
+                                if (fork_count == activeForkNum) {
                                     break;
                                 }
                             }
@@ -88,9 +88,9 @@ int fork_count=0;
         }
 
 
-        if(fork_count<100) {
+        if (fork_count < 100) {
             for (String fork : forks_has_forks) {
-                sb.append(getActiveForkList(fork, activeForkNum-fork_count));
+                sb.append(getActiveForkList(fork, activeForkNum - fork_count));
             }
         }
 
@@ -152,7 +152,7 @@ int fork_count=0;
 
             String three_month_ago = getThreeMonthBeforeForkTime(fork_url, jsonUtility);
 
-            if(three_month_ago.equals("")){
+            if (three_month_ago.equals("")) {
                 continue;
             }
 
@@ -225,7 +225,7 @@ int fork_count=0;
             }
 
         }
-     io.rewriteFile(sb.toString(), result_dir + repo_url + "/EmailList.txt");
+        io.rewriteFile(sb.toString(), result_dir + repo_url + "/EmailList.txt");
 
     }
 
@@ -237,7 +237,7 @@ int fork_count=0;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        if(fork_array_json.size()>0) {
+        if (fork_array_json.size() > 0) {
 
             String fork_info = fork_array_json.get(0);
             JSONObject fork_jsonObj = new JSONObject(fork_info);
@@ -256,7 +256,7 @@ int fork_count=0;
 
 
             return three_month_ago;
-        }else{
+        } else {
             return "";
         }
     }
@@ -320,9 +320,9 @@ int fork_count=0;
             sb.append(parent_url + ",");
             String parent_id = parent_url.split("/")[0];
             String fork_owner_id = fork_url.split("/")[0];
-            ArrayList<String> email_list=new ArrayList<>();
-            if( forkid_email.get(fork_owner_id)!=null) {
-              email_list = forkid_email.get(fork_owner_id);
+            ArrayList<String> email_list = new ArrayList<>();
+            if (forkid_email.get(fork_owner_id) != null) {
+                email_list = forkid_email.get(fork_owner_id);
             }
             email_list.add(fork_owner_id);
 
@@ -391,7 +391,7 @@ int fork_count=0;
 //    #original commits, #sync_upstream commits, #branch_merge commits, #PullRequest commits, #other, " +
 //    "commits only in fork, commits only in upstream,merged commits\n");
 
-            sb.append(updated_commit_in_fork_set.size()-commit_in_upstream_set.size() + "," + commit_in_upstream_set.size()
+            sb.append(updated_commit_in_fork_set.size() - commit_in_upstream_set.size() + "," + commit_in_upstream_set.size()
                     + "," + commit_map.get(CommitType.sync_upstream).size() + ","
                     + copy_commit_in_fork_set.toString().replace(",", "/") + "," + merged_commit_set.toString().replace(",", "/") + "\n");
 
@@ -638,18 +638,35 @@ int fork_count=0;
                         JSONObject issue_jsonObj = new JSONObject(issue);
                         int num_issue = (int) issue_jsonObj.get("total_count");
                         if (num_issue > 0) {
-                            for (int i = 0; i < num_issue; i++) {
-                                JSONArray items_json = issue_jsonObj.getJSONArray("items");
-                                JSONObject pr_json = (JSONObject) items_json.getJSONObject(i).get("pull_request");
-                                String pr_url = (String) pr_json.get("url");
+                            int page = num_issue / 30 + 1;
 
-                                String merge_state = getPRstate(pr_url);
-                                sb.append(pr_url + "," + merge_state + ",");
+                            for (int p = 1; p <= page; p++) {
+                                try {
+                                    issue_array_json = jsonUtility.readUrl(issueUrl + "&page=" + page);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
 
-                                /** get commit of this PR **/
-                                ArrayList<String> pr_commitList = getPRcommits(pr_url);
-                                sb.append(pr_commitList.toString() + "\n");
+                                if (issue_array_json.size() > 0) {
+                                    for (String iss : issue_array_json) {
+                                        JSONObject iss_jsonObj = new JSONObject(issue);
+                                        for (int i = 0; i < 30; i++) {
+                                            JSONArray items_json = iss_jsonObj.getJSONArray("items");
+                                            JSONObject pr_json = (JSONObject) items_json.getJSONObject(i).get("pull_request");
+                                            String pr_url = (String) pr_json.get("url");
+
+                                            String merge_state = getPRstate(pr_url);
+                                            sb.append(pr_url + "," + merge_state + ",");
+
+                                            /** get commit of this PR **/
+                                            ArrayList<String> pr_commitList = getPRcommits(pr_url);
+                                            sb.append(pr_commitList.toString() + "\n");
+                                        }
+
+                                    }
+                                }
                             }
+
 
                         } else {
                             break;
@@ -659,6 +676,8 @@ int fork_count=0;
                     io.writeTofile(sb.toString(), result_dir + upstream_url + "/pr_fork.txt");
                     sb = new StringBuilder();
                 }
+
+
             }
         }
 
@@ -826,14 +845,14 @@ int fork_count=0;
 
     public void classifyCommitsByAuthor(String upstream_url) {
         TrackCommitHistory tch = new TrackCommitHistory();
-//
-//        System.out.println("get fork member contact information...");
-//        /** analyze each fork owner's emails  **/
-//        tch.getForkMemberContactInfo(upstream_url);
-//
-//        System.out.println("analyzing commit history...");
-//        /** analyze each fork commit history **/
-//        tch.analyzeCommitHistory(upstream_url);
+
+        System.out.println("get fork member contact information...");
+        /** analyze each fork owner's emails  **/
+        tch.getForkMemberContactInfo(upstream_url);
+
+        System.out.println("analyzing commit history...");
+        /** analyze each fork commit history **/
+        tch.analyzeCommitHistory(upstream_url);
 
 
 //            System.out.println("get pull request information...");
