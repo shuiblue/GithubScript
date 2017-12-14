@@ -224,6 +224,7 @@ public class ClassifyCommit {
                         if (i < upstream_branchArray.length - 1) {
                             upstream2Fork_includePRMerge.addAll(result_2.get(0));
                         }
+
                     }
                 }
             }
@@ -360,15 +361,15 @@ public class ClassifyCommit {
         }
 
         /** remove local copy of fork**/
-        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
-        try {
-            if (compareForkWithUpstream) {
-                io.deleteDir(new File(localDirPath + upstreamUrl));
-            }
-            io.deleteDir(new File(localDirPath + forkUrl));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
+//        try {
+//            if (compareForkWithUpstream) {
+//                io.deleteDir(new File(localDirPath + upstreamUrl));
+//            }
+//            io.deleteDir(new File(localDirPath + forkUrl));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
     }
 
@@ -503,6 +504,7 @@ public class ClassifyCommit {
         b1_to_b2 = contribution.get(0);
 
 
+
         result.add(b2_to_b1);
         result.add(b1_to_b2);
         result.add(parent2Set);
@@ -544,8 +546,10 @@ public class ClassifyCommit {
                 if (branch2_commitList.contains(parent2)) {
                     b2_to_b1.addAll(getB1ToB2Contribution(mergedCommit, parent1, mergeCommmitSet));
                 }
+                b2_to_b1.removeAll(commitTwoParentMap.keySet());
             }
         }
+
 
 
         result.add(b2_to_b1);
@@ -674,20 +678,20 @@ public class ClassifyCommit {
                     System.out.println("latestCommitDated..." + latestCommitDate);
 
 
-//                        DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_DATE_TIME;
-//                        TemporalAccessor accessor = timeFormatter.parse(latestCommitDate);
-//                        Date latestCommitDated_time = Date.from(Instant.from(accessor));
-//                        Date forkpointDate_time = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
+                        DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_DATE_TIME;
+                        TemporalAccessor accessor = timeFormatter.parse(latestCommitDate);
+                        Date latestCommitDated_time = Date.from(Instant.from(accessor));
+                        Date forkpointDate_time = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
 
-                    ZonedDateTime forkpointDate_time = ZonedDateTime.parse(forkpointDate);
-                    ZonedDateTime latestCommitDated_time = ZonedDateTime.parse(latestCommitDate);
+//                    ZonedDateTime forkpointDate_time = ZonedDateTime.parse(forkpointDate);
+//                    ZonedDateTime latestCommitDated_time = ZonedDateTime.parse(latestCommitDate);
 
 
                     System.out.println("forkpointDate_time:" + forkpointDate_time);
                     System.out.println("latestCommitDated_time:" + latestCommitDated_time);
 
 //                        if (latestCommitDated_time.before(forkpointDate_time)) {
-                    if (latestCommitDated_time.isBefore(forkpointDate_time)) {
+                    if (latestCommitDated_time.before(forkpointDate_time)) {
 
                         System.out.println("ignore branch:" + branch);
                         continue;
@@ -729,6 +733,8 @@ public class ClassifyCommit {
             } catch (NoHeadException e) {
                 e.printStackTrace();
             } catch (GitAPIException e) {
+                e.printStackTrace();
+            } catch (ParseException e) {
                 e.printStackTrace();
             }
 
