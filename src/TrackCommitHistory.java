@@ -650,19 +650,19 @@ public class TrackCommitHistory {
                                 if (issue_array_json.size() > 0) {
                                     for (String iss : issue_array_json) {
                                         JSONObject iss_jsonObj = new JSONObject(issue);
-                                        for (int i = 0; i < 30; i++) {
                                             JSONArray items_json = iss_jsonObj.getJSONArray("items");
-                                            JSONObject pr_json = (JSONObject) items_json.getJSONObject(i).get("pull_request");
-                                            String pr_url = (String) pr_json.get("url");
+                                            for (int index=0;index< items_json.toList().size();index++) {
+                                                ;
+                                                JSONObject pr_json = (JSONObject) ((JSONObject) items_json.get(index)).get("pull_request");
+                                                String pr_url = (String) pr_json.get("url");
 
-                                            String merge_state = getPRstate(pr_url);
-                                            sb.append(pr_url + "," + merge_state + ",");
+                                                String merge_state = getPRstate(pr_url);
+                                                sb.append(pr_url + "," + merge_state + ",");
 
-                                            /** get commit of this PR **/
-                                            ArrayList<String> pr_commitList = getPRcommits(pr_url);
-                                            sb.append(pr_commitList.toString() + "\n");
-                                        }
-
+                                                /** get commit of this PR **/
+                                                ArrayList<String> pr_commitList = getPRcommits(pr_url);
+                                                sb.append(pr_commitList.toString() + "\n");
+                                            }
                                     }
                                 }
                             }
@@ -832,7 +832,7 @@ public class TrackCommitHistory {
             tch.analyzeCommitHistory(upstream_url);
 
 
-//            System.out.println("get pull request information...");
+            System.out.println("get pull request information...");
             /** analyze each fork issue and PR history **/
             tch.getForkRelatedIssue(upstream_url);
 
@@ -847,12 +847,12 @@ public class TrackCommitHistory {
         TrackCommitHistory tch = new TrackCommitHistory();
 
         System.out.println("get fork member contact information...");
-        /** analyze each fork owner's emails  **/
-        tch.getForkMemberContactInfo(upstream_url);
-
-        System.out.println("analyzing commit history...");
-        /** analyze each fork commit history **/
-        tch.analyzeCommitHistory(upstream_url);
+//        /** analyze each fork owner's emails  **/
+//        tch.getForkMemberContactInfo(upstream_url);
+//
+//        System.out.println("analyzing commit history...");
+//        /** analyze each fork commit history **/
+//        tch.analyzeCommitHistory(upstream_url);
 
 
 //            System.out.println("get pull request information...");
