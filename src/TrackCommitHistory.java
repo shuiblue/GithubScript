@@ -73,7 +73,7 @@ public class TrackCommitHistory {
                                 sb.append(name + "," + repo_url + "," + created_at + "\n");
 
                                 if (fork_count == activeForkNum) {
-                                    break;
+                                    return sb.toString();
                                 }
                             }
                         }
@@ -847,15 +847,15 @@ public class TrackCommitHistory {
         TrackCommitHistory tch = new TrackCommitHistory();
 
         System.out.println("get fork member contact information...");
-//        /** analyze each fork owner's emails  **/
-//        tch.getForkMemberContactInfo(upstream_url);
-//
-//        System.out.println("analyzing commit history...");
-//        /** analyze each fork commit history **/
-//        tch.analyzeCommitHistory(upstream_url);
+        /** analyze each fork owner's emails  **/
+        tch.getForkMemberContactInfo(upstream_url);
+
+        System.out.println("analyzing commit history...");
+        /** analyze each fork commit history **/
+        tch.analyzeCommitHistory(upstream_url);
 
 
-//            System.out.println("get pull request information...");
+            System.out.println("get pull request information...");
         /** analyze each fork issue and PR history **/
         tch.getForkRelatedIssue(upstream_url);
 
