@@ -622,6 +622,7 @@ int fork_count=0;
         for (String str : issue_PR) {
             for (String fork : forkArray) {
                 sb.append("fork: " + fork + "\n");
+                System.out.println(fork);
                 String forkName = fork.split("/")[0].replace("+", "%2B");
                 //https://api.github.com/search/issues?q=author%3AJobLeonard+user%3Atimscaffidi+type%3Aissue
                 String issueUrl = github_api_search + "issues?q=author%3A" + forkName + "+user%3A" + upstreamName + "+type%3A" + str + "&access_token=" + token;
@@ -825,14 +826,14 @@ int fork_count=0;
 
     public void classifyCommitsByAuthor(String upstream_url) {
         TrackCommitHistory tch = new TrackCommitHistory();
-
-        System.out.println("get fork member contact information...");
-        /** analyze each fork owner's emails  **/
-        tch.getForkMemberContactInfo(upstream_url);
-
-        System.out.println("analyzing commit history...");
-        /** analyze each fork commit history **/
-        tch.analyzeCommitHistory(upstream_url);
+//
+//        System.out.println("get fork member contact information...");
+//        /** analyze each fork owner's emails  **/
+//        tch.getForkMemberContactInfo(upstream_url);
+//
+//        System.out.println("analyzing commit history...");
+//        /** analyze each fork commit history **/
+//        tch.analyzeCommitHistory(upstream_url);
 
 
 //            System.out.println("get pull request information...");
