@@ -19,7 +19,7 @@ public class main {
         String[] repoList = {};
         /** get repo list **/
         try {
-            repoList = io.readResult(current_dir + "/input/repoList_feature6_test1.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/repoList_feature6_test2git.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
