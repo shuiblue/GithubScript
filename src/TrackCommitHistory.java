@@ -320,7 +320,10 @@ int fork_count=0;
             sb.append(parent_url + ",");
             String parent_id = parent_url.split("/")[0];
             String fork_owner_id = fork_url.split("/")[0];
-            ArrayList<String> email_list = forkid_email.get(fork_owner_id);
+            ArrayList<String> email_list=new ArrayList<>();
+            if( forkid_email.get(fork_owner_id)!=null) {
+              email_list = forkid_email.get(fork_owner_id);
+            }
             email_list.add(fork_owner_id);
 
             /** analyze commits in fork and in upstream from the fork owner  **/
