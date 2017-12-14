@@ -152,6 +152,10 @@ int fork_count=0;
 
             String three_month_ago = getThreeMonthBeforeForkTime(fork_url, jsonUtility);
 
+            if(three_month_ago.equals("")){
+                continue;
+            }
+
             /** get email from user profile */
             ForkInfo fork_owner_info = getForkOwnerInfo(forkName);
 
@@ -221,7 +225,7 @@ int fork_count=0;
             }
 
         }
-        io.rewriteFile(sb.toString(), result_dir + repo_url + "/EmailList.txt");
+g        io.rewriteFile(sb.toString(), result_dir + repo_url + "/EmailList.txt");
 
     }
 
@@ -233,23 +237,28 @@ int fork_count=0;
         } catch (Exception e) {
             e.printStackTrace();
         }
+        if(fork_array_json.size()>0) {
 
-        String fork_info = fork_array_json.get(0);
-        JSONObject fork_jsonObj = new JSONObject(fork_info);
-        created_at = (String) fork_jsonObj.get("created_at");
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-        String three_month_ago = "";
-        try {
-            Date created_time = sdf.parse(created_at.replaceAll("Z$", "+0000"));
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(created_time); // parsed date and setting to calendar
-            calendar.add(Calendar.MONTH, -3);  // number of days to add
-            three_month_ago = sdf.format(calendar.getTime());  // End date
-        } catch (ParseException e) {
-            e.printStackTrace();
+            String fork_info = fork_array_json.get(0);
+            JSONObject fork_jsonObj = new JSONObject(fork_info);
+            created_at = (String) fork_jsonObj.get("created_at");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+            String three_month_ago = "";
+            try {
+                Date created_time = sdf.parse(created_at.replaceAll("Z$", "+0000"));
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(created_time); // parsed date and setting to calendar
+                calendar.add(Calendar.MONTH, -3);  // number of days to add
+                three_month_ago = sdf.format(calendar.getTime());  // End date
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+
+            return three_month_ago;
+        }else{
+            return "";
         }
-
-        return three_month_ago;
     }
 
     public HashMap<String, ArrayList<String>> getForkIdMap(String repo_url) {
