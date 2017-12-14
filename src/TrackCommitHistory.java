@@ -225,7 +225,7 @@ int fork_count=0;
             }
 
         }
-g        io.rewriteFile(sb.toString(), result_dir + repo_url + "/EmailList.txt");
+     io.rewriteFile(sb.toString(), result_dir + repo_url + "/EmailList.txt");
 
     }
 
