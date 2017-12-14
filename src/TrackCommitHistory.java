@@ -35,11 +35,11 @@ public class TrackCommitHistory {
      *
      * @param repo_url e.g. 'shuiblue/INFOX'
      */
-    public String getActiveForkList(String repo_url) {
+    public String getActiveForkList(String repo_url,int activeForkNum) {
 
         String forkUrl = github_api_repo + repo_url + "/forks?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
-
+int fork_count=0;
         StringBuilder sb = new StringBuilder();
         ArrayList<String> forks_has_forks = new ArrayList<>();
 
@@ -69,7 +69,12 @@ public class TrackCommitHistory {
                         Date pushed_time = formatter.parse(pushed_at.replaceAll("Z$", "+0000"));
                         if (created_time.before(pushed_time)) {
                             if (name.length() > 0) {
+                                fork_count++;
                                 sb.append(name + "," + repo_url + "," + created_at + "\n");
+
+                                if(fork_count==activeForkNum){
+                                    break;
+                                }
                             }
                         }
                     } catch (ParseException e) {
@@ -82,8 +87,11 @@ public class TrackCommitHistory {
             }
         }
 
-        for (String fork : forks_has_forks) {
-            sb.append(getActiveForkList(fork));
+
+        if(fork_count<100) {
+            for (String fork : forks_has_forks) {
+                sb.append(getActiveForkList(fork, activeForkNum-fork_count));
+            }
         }
 
         return sb.toString();

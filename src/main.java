@@ -6,6 +6,7 @@ import java.util.List;
  */
 public class main {
     static String current_dir;
+    static int activeForkNum = 100;
 
     public static void main(String[] args) {
         ClassifyCommit cc = new ClassifyCommit();
@@ -27,9 +28,9 @@ public class main {
             if (repoUrl.trim().length() > 0) {
                 String repoName = repoUrl.split("/")[0];
                 /** get active fork list for given repository **/
-//                System.out.println("get all active forks of repo: " + repoName);
-//                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl);
-//                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+                System.out.println("get all active forks of repo: " + repoName);
+                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl,activeForkNum);
+                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 
                 /** analyze commit history **/
                 String[] activeForkList = {};
@@ -42,15 +43,15 @@ public class main {
 
                 /**   classify commits **/
                         /**  by graph  **/
-//                System.out.println("graph-based...");
-//                StringBuilder sb_result = new StringBuilder();
-//                sb_result.append("fork,upstream,only_F,only_U,only_U_including_PRs,F->U,U->F,U->F_including_PRs,sync_with_U,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
-//
-//                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
-//                for (String forkInfo : activeForkList) {
-//                    System.out.println("FORK: "+forkInfo);
-//                    cc.analyzeCommitHistory(forkInfo, true, repoUrl);
-//
+                System.out.println("graph-based...");
+                StringBuilder sb_result = new StringBuilder();
+                sb_result.append("fork,upstream,only_F,only_U,only_U_including_PRs,F->U,U->F,U->F_including_PRs,sync_with_U,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
+
+                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
+                for (String forkInfo : activeForkList) {
+                    System.out.println("FORK: "+forkInfo);
+                    cc.analyzeCommitHistory(forkInfo, true, repoUrl);
+
 //                }
 
                          /**  by author id  **/
