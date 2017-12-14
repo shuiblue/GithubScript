@@ -19,7 +19,7 @@ public class main {
         String[] repoList = {};
         /** get repo list **/
         try {
-            repoList = io.readResult(current_dir + "/input/repoList_feature6_classify.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/repoList_feature6_test3.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -41,22 +41,22 @@ public class main {
                 }
 
 
-//                /**   classify commits **/
-//                        /**  by graph  **/
-//                System.out.println("graph-based...");
-//                StringBuilder sb_result = new StringBuilder();
-//                sb_result.append("fork,upstream,only_F,only_U,only_U_including_PRs,F->U,U->F,U->F_including_PRs,sync_with_U,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
-//
-//                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
-//                for (String forkInfo : activeForkList) {
-//                    System.out.println("FORK: "+forkInfo);
-//                    cc.analyzeCommitHistory(forkInfo, true, repoUrl);
-//                }
-//
-//                /**  by author id  **/
-//                System.out.println("authorID-based...");
-//                System.out.println("repo: "+repoUrl);
-//                trackCommitHistory.classifyCommitsByAuthor(repoUrl);
+                /**   classify commits **/
+                        /**  by graph  **/
+                System.out.println("graph-based...");
+                StringBuilder sb_result = new StringBuilder();
+                sb_result.append("fork,upstream,only_F,only_U,only_U_including_PRs,F->U,U->F,U->F_including_PRs,sync_with_U,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
+
+                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
+                for (String forkInfo : activeForkList) {
+                    System.out.println("FORK: "+forkInfo);
+                    cc.analyzeCommitHistory(forkInfo, true, repoUrl);
+                }
+
+                /**  by author id  **/
+                System.out.println("authorID-based...");
+                System.out.println("repo: "+repoUrl);
+                trackCommitHistory.classifyCommitsByAuthor(repoUrl);
 
 
                 /** get fork info  **/

@@ -54,7 +54,7 @@ public class JsonUtility {
     public static ArrayList<String> readUrl(String urlString) {
 
         try {
-            TimeUnit.SECONDS.sleep(2);
+            TimeUnit.SECONDS.sleep(3);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

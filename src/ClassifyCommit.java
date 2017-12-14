@@ -577,9 +577,12 @@ public class ClassifyCommit {
             e.printStackTrace();
         }
         for (String commitINFO : commitParentList) {
-            String[] info = commitINFO.split(",");
-            result.put(info[0], info[1] + "," + info[2]);
-
+           if(!commitINFO.equals("")) {
+               String[] info = commitINFO.split(",");
+               result.put(info[0], info[1] + "," + info[2]);
+           }else{
+               return result;
+           }
         }
         return result;
 
