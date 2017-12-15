@@ -847,12 +847,12 @@ public class TrackCommitHistory {
         TrackCommitHistory tch = new TrackCommitHistory();
 
         System.out.println("get fork member contact information...");
-//        /** analyze each fork owner's emails  **/
-//        tch.getForkMemberContactInfo(upstream_url);
-//
-//        System.out.println("analyzing commit history...");
-//        /** analyze each fork commit history **/
-//        tch.analyzeCommitHistory(upstream_url);
+        /** analyze each fork owner's emails  **/
+        tch.getForkMemberContactInfo(upstream_url);
+
+        System.out.println("analyzing commit history...");
+        /** analyze each fork commit history **/
+        tch.analyzeCommitHistory(upstream_url);
 
 
             System.out.println("get pull request information...");
