@@ -19,7 +19,7 @@ public class main {
         String[] repoList = {};
         /** get repo list **/
         try {
-            repoList = io.readResult(current_dir + "/input/repoList_feature6_test3.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/repoList_feature6_classify.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -54,9 +54,9 @@ public class main {
                 }
 
                 /**  by author id  **/
-                System.out.println("authorID-based...");
-                System.out.println("repo: "+repoUrl);
-                trackCommitHistory.classifyCommitsByAuthor(repoUrl);
+//                System.out.println("authorID-based...");
+//                System.out.println("repo: "+repoUrl);
+//                trackCommitHistory.classifyCommitsByAuthor(repoUrl);
 
 
                 /** get fork info  **/
