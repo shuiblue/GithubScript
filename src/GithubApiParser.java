@@ -53,7 +53,7 @@ public class GithubApiParser {
             String owner_url = (String) ((JSONObject) fork_jsonObj.get("owner")).get("url");
             ArrayList<String> owner_info_json = null;
             try {
-                owner_info_json = jsonUtility.readUrl(owner_url);
+                owner_info_json = jsonUtility.readUrl(owner_url+"?access_token=" + token);
             } catch (Exception e) {
                 e.printStackTrace();
             }
