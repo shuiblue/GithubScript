@@ -361,15 +361,15 @@ public class ClassifyCommit {
         }
 
         /** remove local copy of fork**/
-//        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
-//        try {
-//            if (compareForkWithUpstream) {
-//                io.deleteDir(new File(localDirPath + upstreamUrl));
-//            }
-//            io.deleteDir(new File(localDirPath + forkUrl));
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
+        try {
+            if (compareForkWithUpstream) {
+                io.deleteDir(new File(localDirPath + upstreamUrl));
+            }
+            io.deleteDir(new File(localDirPath + forkUrl));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
