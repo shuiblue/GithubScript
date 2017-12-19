@@ -276,6 +276,34 @@ public class ClassifyCommit {
         }
 
 
+        /**  get merged commits in fork and upstream***/
+        HashSet<String> get_mergeCommits_inForkHistory = new HashSet<>();
+        HashSet<String> get_mergeCommits_inUpstreamHistory = new HashSet<>();
+
+        try {
+            get_mergeCommits_inForkHistory = new HashSet<>(Arrays.asList(io.removeBrackets(io.readResult(tmpDirPath + forkUrl + "/" + forkName + "_all_mergedCommit.txt")).split(", ")));
+            get_mergeCommits_inUpstreamHistory = new HashSet<>(Arrays.asList(io.removeBrackets(io.readResult(tmpDirPath + upstreamUrl + "/" + upstreamUrl.split("/")[0] + "_all_mergedCommit.txt")).split(", ")));
+            System.out.println();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        /** get overlapped commits in forks and upstream  **/
+        HashSet<String> forkHistory = new HashSet<>();
+        HashSet<String> upstreamHistory = new HashSet<>();
+        HashSet<String> overlapCommits = new HashSet<>();
+
+        fork_branch_History_map.forEach((k, v) -> forkHistory.addAll(v));
+        upstream_branch_History_map.forEach((k, v) -> upstreamHistory.addAll(v));
+
+        for (String c : forkHistory) {
+            if (forkHistory.contains(c) && upstreamHistory.contains(c)) {
+                overlapCommits.add(c);
+            }
+        }
+
+
         HashSet<String> copy_fork2Up = new HashSet<>();
         copy_fork2Up.addAll(fork2Upstream);
         for (String commit : copy_fork2Up) {
@@ -322,11 +350,13 @@ public class ClassifyCommit {
             commits_in_fork.removeAll(commits_before_fork_point);
             commits_in_fork.removeAll(merge_points_in_fork);
             commits_in_fork.removeAll(fork2Upstream);
+            commits_in_fork.removeAll(get_mergeCommits_inForkHistory);
 
 
             commits_in_upstream.removeAll(commits_before_fork_point);
             commits_in_upstream.removeAll(merge_points_in_upstream);
             commits_in_upstream.removeAll(upstream2Fork);
+            commits_in_upstream.removeAll(get_mergeCommits_inUpstreamHistory);
 
 
             /**all the commits existing upstream**/
@@ -334,6 +364,8 @@ public class ClassifyCommit {
             allCommitsInUpstream.removeAll(merge_points_in_upstream);
             allCommitsInUpstream.removeAll(upstream2Fork);
             allCommitsInUpstream.removeAll(upstream2Fork_includePRMerge);
+            allCommitsInUpstream.removeAll(get_mergeCommits_inUpstreamHistory);
+            allCommitsInUpstream.removeAll(overlapCommits);
 
             parent2Set.removeAll(upstream2Fork_includePRMerge);
             parent2Set.removeAll(allCommitsInUpstream);
@@ -504,7 +536,6 @@ public class ClassifyCommit {
         b1_to_b2 = contribution.get(0);
 
 
-
         result.add(b2_to_b1);
         result.add(b1_to_b2);
         result.add(parent2Set);
@@ -551,7 +582,6 @@ public class ClassifyCommit {
         }
 
 
-
         result.add(b2_to_b1);
         result.add(parent2Set);
         return result;
@@ -577,12 +607,12 @@ public class ClassifyCommit {
             e.printStackTrace();
         }
         for (String commitINFO : commitParentList) {
-           if(!commitINFO.equals("")) {
-               String[] info = commitINFO.split(",");
-               result.put(info[0], info[1] + "," + info[2]);
-           }else{
-               return result;
-           }
+            if (!commitINFO.equals("")) {
+                String[] info = commitINFO.split(",");
+                result.put(info[0], info[1] + "," + info[2]);
+            } else {
+                return result;
+            }
         }
         return result;
 
@@ -612,6 +642,7 @@ public class ClassifyCommit {
         /** the pure commit list is [3,2,4,1]**/
 //        HashSet<String> branchedRemoved_CommitSet = new HashSet<>();
         HashSet<String> noMergeFirstParent_CommitSet = new HashSet<>();
+        HashSet<String> all_mergeCommitList = new HashSet<>();
 
 
         for (String branch : branchArray) {
@@ -628,8 +659,6 @@ public class ClassifyCommit {
             /** the pure commit list is [3, 4,1]**/
             ArrayList<String> pureCommitList = new ArrayList<>();
 
-            /**  [2 ]**/
-            ArrayList<String> all_mergeCommitList = new ArrayList<>();
 
             /**  [4]**/
             ArrayList<String> mergeCommmits_into_branch_List = new ArrayList<>();
@@ -681,10 +710,10 @@ public class ClassifyCommit {
                     System.out.println("latestCommitDated..." + latestCommitDate);
 
 
-                        DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_DATE_TIME;
-                        TemporalAccessor accessor = timeFormatter.parse(latestCommitDate);
-                        Date latestCommitDated_time = Date.from(Instant.from(accessor));
-                        Date forkpointDate_time = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
+                    DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_DATE_TIME;
+                    TemporalAccessor accessor = timeFormatter.parse(latestCommitDate);
+                    Date latestCommitDated_time = Date.from(Instant.from(accessor));
+                    Date forkpointDate_time = formatter.parse(forkpointDate.replaceAll("Z$", "+0000"));
 
 //                    ZonedDateTime forkpointDate_time = ZonedDateTime.parse(forkpointDate);
 //                    ZonedDateTime latestCommitDated_time = ZonedDateTime.parse(latestCommitDate);
@@ -763,6 +792,7 @@ public class ClassifyCommit {
         io.rewriteFile(sb.toString(), pathname + repoName + "_branch_commitList.txt");
         io.rewriteFile(sb_parentTwo.toString(), pathname + repoName + "_twoParentCommit.txt");
         io.rewriteFile(sb_commitHistory.toString(), pathname + repoName + "_CommitHistory.txt");
+        io.rewriteFile(all_mergeCommitList.toString(), pathname + repoName + "_all_mergedCommit.txt");
 //        io.rewriteFile(branchedRemoved_CommitSet.toString(), pathname + repoName + "_removedBranchCommits.txt");
     }
 

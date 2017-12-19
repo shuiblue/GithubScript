@@ -35,7 +35,7 @@ public class TrackCommitHistory {
      *
      * @param repo_url e.g. 'shuiblue/INFOX'
      */
-    public String getActiveForkList(String repo_url, int activeForkNum) {
+    public String getActiveForkList(String repo_url) {
 
         String forkUrl = github_api_repo + repo_url + "/forks?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
@@ -72,9 +72,6 @@ public class TrackCommitHistory {
                                 fork_count++;
                                 sb.append(name + "," + repo_url + "," + created_at + "\n");
 
-                                if (fork_count == activeForkNum) {
-                                    return sb.toString();
-                                }
                             }
                         }
                     } catch (ParseException e) {
@@ -90,7 +87,7 @@ public class TrackCommitHistory {
 
         if (fork_count < 100) {
             for (String fork : forks_has_forks) {
-                sb.append(getActiveForkList(fork, activeForkNum - fork_count));
+                sb.append(getActiveForkList(fork));
             }
         }
 
@@ -750,11 +747,12 @@ public class TrackCommitHistory {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        commits_in_fork[0] += ", #commits of unmerged PRs\n";
+        commits_in_fork[0] += ", #commits of unmerged PRs,mergedCommits\n";
         sb.append(commits_in_fork[0]);
         for (int i = 1; i < commits_in_fork.length; i++) {
             List<String> commits_only_in_fork = Arrays.asList(removeBrackets(commits_in_fork[i].split(",")[5].split(",")[0]).split("/ "));
             List<String> commits_in_PR_from_fork = new ArrayList<>();
+            HashSet<String> mergedPR = new HashSet<>();
             String[] pr_array = {};
             pr_array = commits_in_PR[i].split("\n");
 
@@ -769,11 +767,13 @@ public class TrackCommitHistory {
                                 commits_in_PR_from_fork.add(rej_commit);
                             }
                         }
+                    }else{
+                        mergedPR.addAll(Arrays.asList(pr_info[1].replace("]","").split(",")));
                     }
                 }
             }
 
-            sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size() + "\n");
+            sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size()+","+mergedPR.toString()+ "\n");
         }
 
         io.rewriteFile(sb.toString(), result_dir + upstream_url + "/authorName_result.csv");
