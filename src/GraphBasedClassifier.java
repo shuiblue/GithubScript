@@ -89,7 +89,6 @@ public class GraphBasedClassifier {
             fork_mergeCommitSet = new HashSet<>(Arrays.asList(fork_mergeCommitStr.split(", ")));
 
 
-
             System.out.println("getting upstream branch commit list..");
 
             String upstream_branchStr = io.readResult(tmpDirPath + upstreamUrl + "/" + upstreamUrl.split("/")[0] + "_branch_commitList.txt");
@@ -119,12 +118,12 @@ public class GraphBasedClassifier {
                     length = fork_br_1.size() >= upstream_br_1.size() ? upstream_br_1.size() : fork_br_1.size();
                     index = length;
 
-                    for (int i =  1; i <= length; i++) {
-                        if (!fork_br_1.get(fork_br_1.size()-i).equals(upstream_br_1.get(upstream_br_1.size()-i))) {
+                    for (int i = 1; i <= length; i++) {
+                        if (!fork_br_1.get(fork_br_1.size() - i).equals(upstream_br_1.get(upstream_br_1.size() - i))) {
                             break;
                         }
                         index = i;
-                        sha = fork_br_1.get(fork_br_1.size()-i);
+                        sha = fork_br_1.get(fork_br_1.size() - i);
 
                     }
                     min_index.add(index);
@@ -140,7 +139,7 @@ public class GraphBasedClassifier {
 
             commitsBeforeForking = new HashSet<>();
             forkPointCommitSHA = min_sha.get(min_index.indexOf(min));
-            System.out.println("forkPointCommitSHA is "+forkPointCommitSHA);
+            System.out.println("forkPointCommitSHA is " + forkPointCommitSHA);
 
             System.out.println("getting commitsBeforeForking ... ");
 
@@ -159,7 +158,7 @@ public class GraphBasedClassifier {
             commitsBeforeForking.addAll(missingCommits);
             commitsBeforeForking.add(forkPointCommitSHA);
 
-            System.out.println("there are "+commitsBeforeForking.size()+" commitsBeforeForking ... ");
+            System.out.println("there are " + commitsBeforeForking.size() + " commitsBeforeForking ... ");
 
 
             System.out.println("initialize distance to fork/upstream ... ");
@@ -194,7 +193,7 @@ public class GraphBasedClassifier {
             }
             upstream_CommitHistorySet.removeAll(commitsBeforeForking);
 
-            System.out.println("start to calculate distance from fork to upstream, in total:  "+ fork_originCommitSet.size()+"original commits in fork");
+            System.out.println("start to calculate distance from fork to upstream, in total:  " + fork_originCommitSet.size() + "original commits in fork");
             for (String forkOriginCommit : fork_originCommitSet) {
                 if (!fork_mergeCommitSet.contains(forkOriginCommit)) {
                     System.out.println(forkOriginCommit);
@@ -202,7 +201,7 @@ public class GraphBasedClassifier {
                 }
             }
 
-            System.out.println("start to calculate distance from upstream  to fork, in total:  "+ upstream_CommitHistorySet.size()+" all commits (including origin and merged commits) in upstream");
+            System.out.println("start to calculate distance from upstream  to fork, in total:  " + upstream_CommitHistorySet.size() + " all commits (including origin and merged commits) in upstream");
             checkedCommits = new ArrayList<>();
             for (String upstream_commit : upstream_CommitHistorySet) {
                 System.out.println(upstream_commit);
@@ -256,16 +255,37 @@ public class GraphBasedClassifier {
 
     }
 
+    HashSet<String> checkedCommitsBeforeForking = new HashSet<>();
 
     public HashSet<String> getAllAncestor(String commit, HashMap<String, ArrayList<String>> historyMap) {
         HashSet<String> ancestor = new HashSet<>();
 
         ArrayList<String> parents = historyMap.get(commit);
-        for (String p : parents) {
-            if (!commitsBeforeForking.contains(p) && !fork_mergeCommitSet.contains(p) && !upstream_mergeCommitSet.contains(p)) {
-                ancestor.add(p);
+        if (parents.size() > 0) {
+            for (String p : parents) {
+                if (!commitsBeforeForking.contains(p) && !fork_mergeCommitSet.contains(p) && !upstream_mergeCommitSet.contains(p)) {
+                    ancestor.add(p);
+                    System.out.println(p);
+                }
+                if (!checkedCommitsBeforeForking.contains(p)) {
+                    ancestor.addAll(getAllAncestor(p, historyMap));
+                }
+                if (checkedCommitsBeforeForking.contains(p)) {
+                    if( parents.size() == 1) {
+                        checkedCommitsBeforeForking.add(commit);
+                    }else{
+                        String p1=parents.get(0);
+                        String p2=parents.get(1);
+                        if(checkedCommitsBeforeForking.contains(p1)&&checkedCommitsBeforeForking.contains(p2)){
+                            checkedCommitsBeforeForking.add(commit);
+                        }
+                    }
+                }
             }
-            ancestor.addAll(getAllAncestor(p, historyMap));
+
+        } else {
+            checkedCommitsBeforeForking.add(commit);
+
         }
         return ancestor;
 
@@ -303,7 +323,7 @@ public class GraphBasedClassifier {
                         path.removeAll(fork_mergeCommitSet);
                         if (path.size() > 0) {
                             distance = 1;
-                            System.out.println("find a bridge from "+source+" to "+target+", start to set all parents' distance to "+targetName+ " as 1");
+                            System.out.println("find a bridge from " + source + " to " + target + ", start to set all parents' distance to " + targetName + " as 1");
                             setParentsDistanceAsOne(source, targetName, distance);
                         }
                     } else {
