@@ -280,8 +280,6 @@ public class GraphBasedClassifier {
      * @param targetName         fork or upstream
      */
     public void getDistance(String source, HashMap<String, List<String>> branch_History_map, String targetName) {
-
-
         branch_History_map.forEach((br, historyList) -> {
             String target = historyList.get(0);
             int distance = -2;
@@ -300,13 +298,12 @@ public class GraphBasedClassifier {
 
                 if (distance != 1) {
                     ArrayList<String> path = getPath(source, target, targetName);
-                    System.out.println(source + " , " + target + " , " + targetName);
                     if (path.contains(source)) {
                         path.removeAll(fork_originCommitSet);
                         path.removeAll(fork_mergeCommitSet);
                         if (path.size() > 0) {
                             distance = 1;
-                            System.out.println("find a bridge, start to set all parents' distance to "+targetName+ " as 1");
+                            System.out.println("find a bridge from "+source+" to "+target+", start to set all parents' distance to "+targetName+ " as 1");
                             setParentsDistanceAsOne(source, targetName, distance);
                         }
                     } else {
@@ -388,7 +385,6 @@ public class GraphBasedClassifier {
      */
 
     public ArrayList<String> getPath(String source, String target, String targetName) {
-        System.out.print(" "+target);
         ArrayList<String> path = new ArrayList<>();
         ArrayList<String> parents;
         if (targetName.equals("fork")) {
