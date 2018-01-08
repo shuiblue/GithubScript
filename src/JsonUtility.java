@@ -53,11 +53,11 @@ public class JsonUtility {
 
     public static ArrayList<String> readUrl(String urlString) {
 
-        try {
-            TimeUnit.SECONDS.sleep(2);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            TimeUnit.SECONDS.sleep(2);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
         System.out.println(urlString );
         ArrayList<String> json_block_array = new ArrayList<>();
         BufferedReader reader = null;

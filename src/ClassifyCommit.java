@@ -53,7 +53,7 @@ public class ClassifyCommit {
         ClassifyCommit cc = new ClassifyCommit();
         IO_Process io = new IO_Process();
         String[] repoList = {};
-        TrackCommitHistory trackCommitHistory = new TrackCommitHistory();
+        NameBasedClassifier trackCommitHistory = new NameBasedClassifier();
 
         current_dir = System.getProperty("user.dir");
 
@@ -501,7 +501,7 @@ public class ClassifyCommit {
     }
 
 
-    private ArrayList<HashSet<String>> compareHistory(String forkURL, String[] branch1, String upstreamURL, String[] branch2, String forkName) {
+    public ArrayList<HashSet<String>> compareHistory(String forkURL, String[] branch1, String upstreamURL, String[] branch2, String forkName) {
 
         ArrayList<HashSet<String>> result = new ArrayList<>();
         StringBuilder sb = new StringBuilder();

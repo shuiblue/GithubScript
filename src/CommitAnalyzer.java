@@ -19,7 +19,7 @@ public class CommitAnalyzer {
     static String result_dir = "/Users/shuruiz/Box Sync/GithubScript-New/result/";
 
     public static void main(String[] args) {
-        TrackCommitHistory tch = new TrackCommitHistory();
+        NameBasedClassifier tch = new NameBasedClassifier();
         IO_Process io = new IO_Process();
         String[] upstream_array = {"timscaffidi/ofxVideoRecorder"};
 //        String[] upstream_array = {"timscaffidi/ofxVideoRecorder", "Smoothieware/Smoothieware", "MarlinFirmware/Marlin"};
@@ -64,7 +64,7 @@ public class CommitAnalyzer {
     }
 
     private static String analyzingCommits(String upstream_url, String fork_url, String repo_url) {
-        TrackCommitHistory trackCommitHistory = new TrackCommitHistory();
+        NameBasedClassifier trackCommitHistory = new NameBasedClassifier();
         String three_month_ago = trackCommitHistory.getThreeMonthBeforeForkTime(fork_url, new JsonUtility());
 
         HashSet<String> commit_only_in_upstream = new HashSet<>();
@@ -196,7 +196,7 @@ public class CommitAnalyzer {
         StringBuilder sb = new StringBuilder();
         String commit_Url = github_api_repo + fork_url + "/commits?access_token=" + token ;
 
-        TrackCommitHistory tch = new TrackCommitHistory();
+        NameBasedClassifier tch = new NameBasedClassifier();
         ArrayList<String> branchList = tch.getBranches(fork_url);
         HashSet<String> commitList = new HashSet<>();
 

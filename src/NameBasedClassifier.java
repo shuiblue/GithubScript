@@ -9,14 +9,14 @@ import java.util.*;
 /**
  * Created by shuruiz on 10/8/17.
  */
-public class TrackCommitHistory {
+public class NameBasedClassifier {
     static String token;
     static String github_api_repo = "https://api.github.com/repos/";
     static String github_api_user = "https://api.github.com/users/";
     static String github_api_search = "https://api.github.com/search/";
     static String result_dir;
 
-    TrackCommitHistory() {
+    NameBasedClassifier() {
         final String current_dir = System.getProperty("user.dir");
         System.out.println("current dir = " + current_dir);
         result_dir = current_dir + "/result/";
@@ -58,7 +58,6 @@ public class TrackCommitHistory {
                     if ((int) fork_list_jsonObj.get("forks") > 0) {
                         forks_has_forks.add(name);
                     }
-
 
                     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
                     String created_at = (String) fork_list_jsonObj.get("created_at");
@@ -167,6 +166,10 @@ public class TrackCommitHistory {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
+
+
+
 
                 if (commit_array_json.size() > 0) {
                     for (String commit : commit_array_json) {
@@ -808,7 +811,7 @@ public class TrackCommitHistory {
 
 
     public void classifyCommitsByAuthor_local() {
-        TrackCommitHistory tch = new TrackCommitHistory();
+        NameBasedClassifier tch = new NameBasedClassifier();
 //        String[] upstream_array = {"traverseda/pycraft,Smoothieware/Smoothieware,MarlinFirmware/Marlin","timscaffidi/ofxVideoRecorder"};
 //        String[] upstream_array = {};
         String[] upstream_array = {"timscaffidi/ofxVideoRecorder"};
@@ -844,7 +847,7 @@ public class TrackCommitHistory {
 
 
     public void classifyCommitsByAuthor(String upstream_url) {
-        TrackCommitHistory tch = new TrackCommitHistory();
+        NameBasedClassifier tch = new NameBasedClassifier();
 
         System.out.println("get fork member contact information...");
         /** analyze each fork owner's emails  **/
@@ -865,7 +868,7 @@ public class TrackCommitHistory {
     }
 
     public static void main(String[] args) {
-        TrackCommitHistory trackCommitHistory = new TrackCommitHistory();
+        NameBasedClassifier trackCommitHistory = new NameBasedClassifier();
         trackCommitHistory.classifyCommitsByAuthor_local();
     }
 

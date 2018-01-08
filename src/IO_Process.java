@@ -113,7 +113,7 @@ public class IO_Process {
 
 
     public String removeBrackets(String str) {
-        return str.replace("[", "").replace("]", "");
+        return str.replace("\n","").replace("[", "").replace("]", "");
     }
     public void deleteDir(File file) throws IOException {
 
