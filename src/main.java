@@ -60,9 +60,9 @@ public class main {
                     e.printStackTrace();
                 }
 
-
-                /**   classify commits **/
-                /**  by graph  **/
+//
+//                /**   classify commits **/
+//                /**  by graph  **/
 //                System.out.println("graph-based...");
 //                StringBuilder sb_result = new StringBuilder();
 //                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
@@ -92,7 +92,7 @@ public class main {
                 io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/forkInfo.csv");
 
 
-                /**   combines results together **/
+//                /**   combines results together **/
 //                combineTwoApproaches(repoUrl);
             }
 

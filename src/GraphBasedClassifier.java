@@ -19,7 +19,7 @@ public class GraphBasedClassifier {
     static String tmpDirPath;
     static String current_dir;
     HashMap<String, ArrayList<String>> fork_HistoryMap, upstream_HistoryMap;
-    HashSet<String>   fork_mergeCommitSet, upstream_mergeCommitSet;
+    HashSet<String> fork_mergeCommitSet, upstream_mergeCommitSet;
     String forkPointCommitSHA = "";
 
 
@@ -35,7 +35,7 @@ public class GraphBasedClassifier {
         forkPointCommitSHA = "";
         checkedCommits = new ArrayList<>();
         checkedCommitsBeforeForking = new HashSet<>();
-        HashSet<String> fork_ignoreBranches , upstream_ignoreBranches  ;
+        HashSet<String> fork_ignoreBranches, upstream_ignoreBranches;
 
         /** result**/
         HashSet<String> onlyFork = new HashSet<>();
@@ -126,10 +126,10 @@ public class GraphBasedClassifier {
                 }
             });
 
-
+            System.out.println("distance to upstream. ...");
             HashMap<String, Integer> distance2Upstream_map = getDistanceMap(allCommits, upstreamLatestCommits);
 
-            System.out.println("fork distance");
+            System.out.println("distance to fork. ...");
             HashMap<String, Integer> distance2Fork_map = getDistanceMap(allCommits, forkLatestCommits);
 
             distance2Fork_map.forEach((fork_origin_commit, d) -> {
@@ -161,6 +161,7 @@ public class GraphBasedClassifier {
 
     }
 
+
     private HashMap<String, Integer> getDistanceMap(HashSet<String> allCommits, HashSet<String> latestCommits) {
         HashMap<String, Integer> distance_map = new HashMap<>();
         for (String source : allCommits) {
@@ -171,13 +172,15 @@ public class GraphBasedClassifier {
                 parents = upstream_HistoryMap.get(source);
             }
             if (parents.size() == 1) {
-
                 ArrayList<Integer> distanceArray = new ArrayList<>();
                 for (String target : latestCommits) {
                     if (!source.equals(target)) {
                         checkedCommits = new ArrayList<>();
                         System.out.println(source + " , " + target);
-                        ArrayList<String> path = getPath(source, target);
+//                        ArrayList<String> path = getPath(source, target);
+
+                        ArrayList<String> path = getPath_iteration(source, target);
+
 
                         if (path.size() > 0) {
                             distanceArray.add(calcaulateDistance(path));
@@ -199,6 +202,51 @@ public class GraphBasedClassifier {
             }
         }
         return distance_map;
+    }
+
+    private ArrayList<String> getPath_iteration(String source, String target) {
+        HashMap<String, Boolean> checkstatus = new HashMap<>();
+        ArrayList<String> stack = new ArrayList<>();
+        ArrayList<String> parents;
+
+        while(stack.size()>0) {
+            String top = stack.get(stack.size() - 1);
+            stack.add(top);
+            checkstatus.put(top, true);
+
+            if (fork_HistoryMap.get(top) != null) {
+                parents = fork_HistoryMap.get(top);
+            } else {
+                parents = upstream_HistoryMap.get(top);
+            }
+            if (parents.size() > 0) {
+                String parent_1 = parents.get(0);
+                String parent_2 = "";
+                if (parents.size() == 2) {
+                    parent_2 = parents.get(1);
+                }
+                if(checkstatus.get(parent_1)==false) {
+                    stack.add(parent_1);
+                }else if (checkstatus.get(parent_2)==false){
+                    stack.add(parent_2);
+                }else{
+                    System.out.println();
+                }
+                if (parent_1.equals(source) || parent_2.equals(source)) {
+                  System.out.println();
+                }
+
+            }else{
+                stack.remove(top);
+            }
+
+        }
+        ArrayList<String> path = new ArrayList<>();
+
+
+
+
+        return path;
     }
 
     private int calcaulateDistance(ArrayList<String> path) {
@@ -243,10 +291,6 @@ public class GraphBasedClassifier {
         } else {
             parents = upstream_HistoryMap.get(target);
         }
-
-        if (parents == null) {
-            System.out.println();
-        }
         ArrayList<String> path = new ArrayList<>();
         if (parents.size() > 0) {
             /**  dealing with parent_1 **/
@@ -256,12 +300,10 @@ public class GraphBasedClassifier {
                 parent_2 = parents.get(1);
             }
             if (parent_1.equals(source) || parent_2.equals(source)) {
-                if (parent_2.equals(source)) {
-                    System.out.println();
-                }
                 path.add(target);
                 path.add(source);
             } else {
+                /**  recursion **/
                 path.addAll(exploreParents(source, target, parent_1));
                 if (path.contains(source)) {
                     return path;
@@ -271,19 +313,14 @@ public class GraphBasedClassifier {
                 }
 
                 /** non-recursion  **/
+
             }
-
-        } else {
-            System.out.println();
-
 
         }
         return path;
 
 
     }
-
-
 
 
     private ArrayList<String> exploreParents(String source, String target, String parent) {

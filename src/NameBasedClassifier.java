@@ -507,60 +507,34 @@ public class NameBasedClassifier {
         }
 
 
-        String commit_msg = (String) commit.get("message");
-
-//        if (commit_msg.contains("Merge remote-tracking branch") || commit_msg.contains("Merge branch")) {
-//            return CommitType.sync_upstream;
-//        }
-//
-//        if (commit_msg.contains("Merge pull request")) {
-//            return CommitType.PullRequest;
-//        }
-//
-//        if (commit_msg.contains("Merge branch")) {
-//            return CommitType.merge_commit;
-//        }
 
         JSONArray parents_json = (JSONArray) commit_jsonObj.get("parents");
-        if (parents_json.length() == 1) {
-            if (contact_info.contains(userid) || contact_info.contains(author) || contact_info.contains(email)) {
-                return CommitType.origin;
+        if(parents_json.length()>0) {
+            if (parents_json.length() == 1) {
+                if (contact_info.contains(userid) || contact_info.contains(author) || contact_info.contains(email)) {
+                    return CommitType.origin;
+                } else {
+                    return CommitType.other;
+                }
+
             } else {
-                return CommitType.other;
+                String parent_sha_1 = (String) ((JSONObject) parents_json.get(0)).get("sha");
+                String parent_sha_2 = (String) ((JSONObject) parents_json.get(1)).get("sha");
+                ForkInfo parent_1 = getParentInfo(parent_sha_1, repo_url);
+                ForkInfo parent_2 = getParentInfo(parent_sha_2, repo_url);
+
+                parent_1.setOwnerID(getAuthorID(getJsonObject(parent_sha_1, repo_url, jsonUtility)));
+                parent_2.setOwnerID(getAuthorID(getJsonObject(parent_sha_2, repo_url, jsonUtility)));
+
+                if (upstream_Owner.isSameAuthor(parent_1, upstream_Owner) || upstream_Owner.isSameAuthor(parent_2, upstream_Owner)) {
+                    return CommitType.sync_upstream;
+                }
+                else {
+                    return CommitType.other;
+                }
             }
-
-        } else {
-            String parent_sha_1 = (String) ((JSONObject) parents_json.get(0)).get("sha");
-            String parent_sha_2 = (String) ((JSONObject) parents_json.get(1)).get("sha");
-            ForkInfo parent_1 = getParentInfo(parent_sha_1, repo_url);
-            ForkInfo parent_2 = getParentInfo(parent_sha_2, repo_url);
-
-            parent_1.setOwnerID(getAuthorID(getJsonObject(parent_sha_1, repo_url, jsonUtility)));
-            parent_2.setOwnerID(getAuthorID(getJsonObject(parent_sha_2, repo_url, jsonUtility)));
-
-            if (upstream_Owner.isSameAuthor(parent_1, upstream_Owner) || upstream_Owner.isSameAuthor(parent_2, upstream_Owner)) {
-                return CommitType.sync_upstream;
-            }
-//            else if (upstream_Owner.isSameAuthor(parent_1, fork_Owner) && upstream_Owner.isSameAuthor(parent_2, fork_Owner)) {
-//                return CommitType.merge_commit;
-//            }
-            else {
-                return CommitType.other;
-            }
-
-//            CommitType parent1 = checkCommitType(parent_sha_1, repo_url, contact_info, upstream_id);
-//            CommitType parent2 = checkCommitType(parent_sha_2, repo_url, contact_info, upstream_id);
-//
-//            if (parent1.equals(CommitType.origin) && parent2.equals(CommitType.origin)) {
-//                return CommitType.merge_commit;
-//            } else if (parent1.equals(CommitType.origin)) {
-//                return parent2;
-//            } else if (parent2.equals(CommitType.origin)) {
-//                return parent1;
-//            } else {
-//                return CommitType.other;
-//            }
         }
+        return CommitType.other;
     }
 
     private ForkInfo getParentInfo(String parent_sha_2, String repo_url) {
