@@ -205,35 +205,40 @@ public class GraphBasedClassifier {
     }
 
     private ArrayList<String> getPath_iteration(String source, String target) {
-        HashMap<String, Boolean> checkstatus = new HashMap<>();
+        HashSet<String> checkstatus = new HashSet<>();
         ArrayList<String> stack = new ArrayList<>();
+        stack.add(target);
         ArrayList<String> parents;
 
         while(stack.size()>0) {
             String top = stack.get(stack.size() - 1);
-            stack.add(top);
-            checkstatus.put(top, true);
 
             if (fork_HistoryMap.get(top) != null) {
                 parents = fork_HistoryMap.get(top);
             } else {
                 parents = upstream_HistoryMap.get(top);
             }
+
             if (parents.size() > 0) {
                 String parent_1 = parents.get(0);
                 String parent_2 = "";
                 if (parents.size() == 2) {
                     parent_2 = parents.get(1);
                 }
-                if(checkstatus.get(parent_1)==false) {
+                if(!checkstatus.contains(parent_1)) {
                     stack.add(parent_1);
-                }else if (checkstatus.get(parent_2)==false){
+                    checkstatus.add(parent_1);
+                }else if (!parent_2.equals("")&&!checkstatus.contains(parent_2)){
                     stack.add(parent_2);
+                    checkstatus.add(parent_2);
                 }else{
-                    System.out.println();
+                    stack.remove(top);
                 }
-                if (parent_1.equals(source) || parent_2.equals(source)) {
-                  System.out.println();
+                if(stack.size()>0) {
+                    String currentTop = stack.get(stack.size() - 1);
+                    if (currentTop.equals(source)) {
+                        return stack;
+                    }
                 }
 
             }else{
@@ -241,12 +246,9 @@ public class GraphBasedClassifier {
             }
 
         }
-        ArrayList<String> path = new ArrayList<>();
 
 
-
-
-        return path;
+        return stack;
     }
 
     private int calcaulateDistance(ArrayList<String> path) {
