@@ -36,20 +36,20 @@ public class main {
 
 //                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl);
 //                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
-                String all_activeForkList = null;
-                try {
-                    all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                if (all_activeForkList.split("\n").length<= maxAnalyzedForkNum) {
-                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
-                } else {
-                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl +"/all_ActiveForklist.txt");
-                    System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
-                    trackCommitHistory.getRamdomForks(repoUrl, maxAnalyzedForkNum);
-                }
+//                String all_activeForkList = null;
+//                try {
+//                    all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                if (all_activeForkList.split("\n").length<= maxAnalyzedForkNum) {
+//                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+//                } else {
+//                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl +"/all_ActiveForklist.txt");
+//                    System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
+//                    trackCommitHistory.getRamdomForks(repoUrl, maxAnalyzedForkNum);
+//                }
 
 
                 /** analyze commit history **/
