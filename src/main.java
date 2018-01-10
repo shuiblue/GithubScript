@@ -36,7 +36,7 @@ public class main {
 
 //                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl);
 //                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
-
+//
 //                if (all_activeForkList.split("\n").length<= maxAnalyzedForkNum) {
 //                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 //                } else {
@@ -57,15 +57,15 @@ public class main {
 
                 /**   classify commits **/
                 /**  by graph  **/
-                System.out.println("graph-based...");
-                StringBuilder sb_result = new StringBuilder();
-                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
-                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
-                for (String forkInfo : activeForkList) {
-                    System.out.println("FORK: " + forkInfo);
-//                    cc.analyzeCommitHistory(forkInfo, true, repoUrl);
-                    graphBasedClassifier.analyzeCommitHistory(forkInfo, repoUrl);
-                }
+//                System.out.println("graph-based...");
+//                StringBuilder sb_result = new StringBuilder();
+//                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
+//                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
+//                for (String forkInfo : activeForkList) {
+//                    System.out.println("FORK: " + forkInfo);
+////                    cc.analyzeCommitHistory(forkInfo, true, repoUrl);
+//                    graphBasedClassifier.analyzeCommitHistory(forkInfo, repoUrl);
+//                }
 
 //                /**  by author id  **/
 //                System.out.println("authorID-based...");
@@ -84,10 +84,10 @@ public class main {
 //                    sb.append(forkURL + "," + githubApiParser.getForkInfo(forkURL));
 //                   }
 //                io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/forkInfo.csv");
-//
-//
-//                /**   combines results together **/
-//                combineTwoApproaches(repoUrl);
+
+
+                /**   combines results together **/
+                combineTwoApproaches(repoUrl);
             }
 
         }
@@ -131,9 +131,12 @@ public class main {
             List<String> author_result = author_approach_result.get(i);
             List<String> graph_result = graph_approach_result.get(i);
 
-            Set<String> author_only_F_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(author_result.get(author_result_onlyF_index)).split("/ ")));
-            Set<String> author_F2U_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(author_result.get(author_result_F2U_index)).split("/ ")));
-            Set<String> author_PRcommit = new HashSet<String>(Arrays.asList(io.removeBrackets(author_result.get(author_pr_index)).split("/ ")));
+//            Set<String> author_only_F_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(author_result.get(author_result_onlyF_index)).split("/ ")));
+//            Set<String> author_F2U_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(author_result.get(author_result_F2U_index)).split("/ ")));
+//            Set<String> author_PRcommit = new HashSet<String>(Arrays.asList(io.removeBrackets(author_result.get(author_pr_index)).split("/ ")));
+            Set<String> author_only_F_commit = getCommitResult(author_result_onlyF_index, author_result);
+            Set<String> author_F2U_commit = getCommitResult(author_result_F2U_index, author_result);
+            Set<String> author_PRcommit = getCommitResult(author_pr_index, author_result);
 
 
             Set<String> graph_only_F_commit = new HashSet<>();
@@ -141,10 +144,15 @@ public class main {
             Set<String> graph_U2F_commit = new HashSet<>();
             Set<String> graph_only_U_commit = new HashSet<>();
             if (graph_result.size() > 1) {
-                graph_only_F_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(graph_result.get(graph_result_onlyF_index)).split("/ ")));
-                graph_F2U_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(graph_result.get(graph_result_F2U_index)).split("/ ")));
-                graph_U2F_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(graph_result.get(graph_result_U2F_index)).split("/ ")));
-                graph_only_U_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(graph_result.get(graph_result_onlyU_list_index)).split("/ ")));
+//                graph_only_F_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(graph_result.get(graph_result_onlyF_index)).split("/ ")));
+//                graph_F2U_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(graph_result.get(graph_result_F2U_index)).split("/ ")));
+//                graph_U2F_commit = new HashSet<String>(Arrays.asList(io.removeBrackets(graph_result.get(graph_result_U2F_index)).split("/ ")));
+
+                graph_only_F_commit = getCommitResult(graph_result_onlyF_index, graph_result);
+                graph_F2U_commit = getCommitResult(graph_result_F2U_index, graph_result);
+                graph_U2F_commit = getCommitResult(graph_result_U2F_index, graph_result);
+                graph_only_U_commit = getCommitResult(graph_result_onlyU_list_index, graph_result);
+
             }
             author_only_F_commit.addAll(graph_only_F_commit);
             author_F2U_commit.addAll(author_PRcommit);
@@ -172,16 +180,16 @@ public class main {
                 // "fork,upstream,only_F,only_U, F2U,U2F ,fail_to_merge_commits,only_F_list,only_U_list,F2U_list,U2F_list\n");
                 sb.append(author_result.get(0) + "," + author_result.get(1) + "," + author_only_F_commit.size() + ","  //fork,upstream,only_F,
                         + graph_only_U_commit.size() + "," + author_F2U_commit.size() + "," + graph_U2F_commit.size() + "," //only_U, F2U,U2F
-                        + author_result.get(4) + "," + author_result.get(7) + "," + author_only_F_commit.toString().replace(", ", "/") + ","   //sync_time, fail_to_merge_commits,only_F_list
-                        + graph_result.get(graph_result_onlyU_list_index) + "," + author_F2U_commit.toString().replace(", ", "/") + "," //only_U_list,F2U_list
-                        + graph_U2F_commit.toString().replace(", ", "/") + "," + forkInfoStr + "\n"); //,U2F_list
+                        + author_result.get(4) + "," + author_result.get(7) + "," + author_only_F_commit.toString().replace(",", "/") + ","   //sync_time, fail_to_merge_commits,only_F_list
+                        + graph_result.get(graph_result_onlyU_list_index) + "," + author_F2U_commit.toString().replace(",", "/") + "," //only_U_list,F2U_list
+                        + graph_U2F_commit.toString().replace(",", "/") + "," + forkInfoStr + "\n"); //,U2F_list
 
             } else {
                 sb.append(author_result.get(0) + "," + author_result.get(1) + "," + author_only_F_commit.size() + ","
                         + "," + "," + author_F2U_commit.size() + ","
                         + "," + "," + ","
-                        + author_result.get(7) + "," + author_only_F_commit.toString().replace(", ", "/") + "," + ","
-                        + author_F2U_commit.toString().replace(", ", "/") + "," + ","
+                        + author_result.get(7) + "," + author_only_F_commit.toString().replace(",", "/") + "," + ","
+                        + author_F2U_commit.toString().replace(",", "/") + "," + ","
                         + forkInfoStr + "\n");
             }
         }
@@ -189,6 +197,18 @@ public class main {
         io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/combine_result.csv");
 
 
+    }
+
+    private static Set<String> getCommitResult(int index, List<String> result) {
+        IO_Process io = new IO_Process();
+        Set<String> graph_only_U_commit;
+        String only_u = io.removeBrackets(result.get(index));
+        if (!only_u.equals("")) {
+            graph_only_U_commit = new HashSet<String>(Arrays.asList(only_u.split("/ ")));
+        } else {
+            graph_only_U_commit = new HashSet<>();
+        }
+        return graph_only_U_commit;
     }
 
 

@@ -771,12 +771,12 @@ public class NameBasedClassifier {
                             }
                         }
                     }else{
-                        mergedPR.addAll(Arrays.asList(pr_info[1].replace("]","").split(",")));
+                        mergedPR.addAll(Arrays.asList(pr_info[1].replace("]","").split(", ")));
                     }
                 }
             }
 
-            sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size()+","+mergedPR.toString()+ "\n");
+            sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size()+","+mergedPR.toString().replace(",","/" )+ "\n");
         }
 
         io.rewriteFile(sb.toString(), result_dir + upstream_url + "/authorName_result.csv");
