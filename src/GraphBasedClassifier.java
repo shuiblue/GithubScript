@@ -177,11 +177,9 @@ public class GraphBasedClassifier {
                     if (!source.equals(target)) {
                         checkedCommits = new ArrayList<>();
                         System.out.println(source + " , " + target);
-//                        ArrayList<String> path = getPath(source, target);
-
+                    /* recursive way
+                      ArrayList<String> path = getPath(source, target);*/
                         ArrayList<String> path = getPath_iteration(source, target);
-
-
                         if (path.size() > 0) {
                             distanceArray.add(calcaulateDistance(path));
                         }
@@ -210,7 +208,7 @@ public class GraphBasedClassifier {
         stack.add(target);
         ArrayList<String> parents;
 
-        while(stack.size()>0) {
+        while (stack.size() > 0) {
             String top = stack.get(stack.size() - 1);
 
             if (fork_HistoryMap.get(top) != null) {
@@ -225,23 +223,23 @@ public class GraphBasedClassifier {
                 if (parents.size() == 2) {
                     parent_2 = parents.get(1);
                 }
-                if(!checkstatus.contains(parent_1)) {
+                if (!checkstatus.contains(parent_1)) {
                     stack.add(parent_1);
                     checkstatus.add(parent_1);
-                }else if (!parent_2.equals("")&&!checkstatus.contains(parent_2)){
+                } else if (!parent_2.equals("") && !checkstatus.contains(parent_2)) {
                     stack.add(parent_2);
                     checkstatus.add(parent_2);
-                }else{
+                } else {
                     stack.remove(top);
                 }
-                if(stack.size()>0) {
+                if (stack.size() > 0) {
                     String currentTop = stack.get(stack.size() - 1);
                     if (currentTop.equals(source)) {
                         return stack;
                     }
                 }
 
-            }else{
+            } else {
                 stack.remove(top);
             }
 
@@ -277,8 +275,6 @@ public class GraphBasedClassifier {
                     distance += 1;
                 }
 
-            } else {
-                System.out.println();
             }
         }
         return distance;
