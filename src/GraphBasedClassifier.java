@@ -167,8 +167,9 @@ public class GraphBasedClassifier {
         HashMap<String, Integer> distance_map = new HashMap<>();
         for (String source : allCommits) {
 
-            System.out.println("analyzed: "+distance_map.keySet().size()+ "/" + allCommits.size()+" commits");
             if (distance_map.get(source) == null) {
+                System.out.println("analyzed: "+distance_map.keySet().size()+ "/" + allCommits.size()+" commits");
+
                 ArrayList<String> parents;
                 if (fork_HistoryMap.get(source) != null) {
                     parents = fork_HistoryMap.get(source);
