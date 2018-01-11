@@ -63,7 +63,7 @@ public class main {
                 /**  by graph  **/
                 System.out.println("graph-based...");
                 StringBuilder sb_result = new StringBuilder();
-                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
+                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
                 io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
                 for (String forkInfo : activeForkList) {
                     System.out.println("FORK: " + forkInfo);
@@ -105,7 +105,8 @@ public class main {
 
         StringBuilder sb = new StringBuilder();
 
-        sb.append("repo,fork,upstream,only_F,only_U,F2U,U2F,only_F_list,only_U_list,F2U_list,U2F_list,"
+//        sb.append("repo,fork,upstream,only_F,only_U,F2U,U2F,only_F_list,only_U_list,F2U_list,U2F_list,"
+        sb.append("repo,fork,upstream,only_F,only_U,F2U,U2F,"
                 + "fork_num,created_at,pushed_at,size,language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type,fork_age,lastCommit_age\n");
 
         int created_at_index = 2;
@@ -132,7 +133,7 @@ public class main {
 
 
 
-                sb.append(repoUrl+","+graph_result.toString().replace("]]","]") + "," + forkInfoStr + "\n"); //,U2F_list
+                sb.append(repoUrl+","+io.removeBrackets(graph_result.toString() )+ "," + forkInfoStr + "\n"); //,U2F_list
 
         }
 

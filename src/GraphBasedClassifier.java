@@ -153,13 +153,15 @@ public class GraphBasedClassifier {
 //        sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,only_F_commits,only_U_commits,F->U_commits,U->F_commits\n");
 
         io.writeTofile(forkUrl + "," + upstreamUrl + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
+                fork2Upstream.size() + "," + upstream2Fork.size() + "," + "\n", current_dir + "/result/" + repoURL + "/graph_result.csv");
+
+        io.writeTofile(forkUrl + "," + upstreamUrl + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
                         fork2Upstream.size() + "," + upstream2Fork.size() + "," +
                         onlyFork.toString().replace(",", "/") + "," +
                         onlyUpstream.toString().replace(",", "/") + "," +
                         fork2Upstream.toString().replace(",", "/") + "," +
                         upstream2Fork.toString().replace(",", "/") + "\n"
-                , current_dir + "/result/" + repoURL + "/graph_result.csv");
-
+                , current_dir + "/result/" + repoURL + "/graph_result.txt");
     }
 
 
@@ -168,7 +170,7 @@ public class GraphBasedClassifier {
         for (String source : allCommits) {
 
             if (distance_map.get(source) == null) {
-                System.out.println("analyzed: "+distance_map.keySet().size()+ "/" + allCommits.size()+" commits");
+                System.out.println("analyzed: " + distance_map.keySet().size() + "/" + allCommits.size() + " commits");
 
                 ArrayList<String> parents;
                 if (fork_HistoryMap.get(source) != null) {
@@ -222,8 +224,17 @@ public class GraphBasedClassifier {
 
                                 for (int i = tmp; i < shortest.size(); i++) {
                                     String c = shortest.get(i);
-                                    if (!c.equals(merge)) {
-                                        distance_map.put(c, distance);
+                                    ArrayList<String> c_parents;
+                                    if (fork_HistoryMap.get(c) != null) {
+                                        c_parents = fork_HistoryMap.get(c);
+                                    } else {
+                                        c_parents = upstream_HistoryMap.get(c);
+                                    }
+
+                                    if (!c.equals(merge) && c_parents.size() != 2) {
+                                        if (!distance_map.containsKey(c)) {
+                                            distance_map.put(c, distance);
+                                        }
                                     } else {
                                         mergeCommit.remove(merge);
 
@@ -237,7 +248,15 @@ public class GraphBasedClassifier {
 
                         } else {
                             for (String c : shortest) {
-                                distance_map.put(c, min);
+                                ArrayList<String> c_parents;
+                                if (fork_HistoryMap.get(c) != null) {
+                                    c_parents = fork_HistoryMap.get(c);
+                                } else {
+                                    c_parents = upstream_HistoryMap.get(c);
+                                }
+                                if (!distance_map.containsKey(c) && c_parents.size() != 2) {
+                                    distance_map.put(c, min);
+                                }
                             }
                         }
 
