@@ -8,6 +8,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -165,37 +166,83 @@ public class GraphBasedClassifier {
     private HashMap<String, Integer> getDistanceMap(HashSet<String> allCommits, HashSet<String> latestCommits) {
         HashMap<String, Integer> distance_map = new HashMap<>();
         for (String source : allCommits) {
-            ArrayList<String> parents;
-            if (fork_HistoryMap.get(source) != null) {
-                parents = fork_HistoryMap.get(source);
-            } else {
-                parents = upstream_HistoryMap.get(source);
-            }
-            if (parents.size() == 1) {
-                ArrayList<Integer> distanceArray = new ArrayList<>();
-                for (String target : latestCommits) {
-                    if (!source.equals(target)) {
-                        checkedCommits = new ArrayList<>();
-                        System.out.println(source + " , " + target);
+
+            System.out.println("analyzed: "+distance_map.keySet().size()+ "/" + allCommits.size()+" commits");
+            if (distance_map.get(source) == null) {
+                ArrayList<String> parents;
+                if (fork_HistoryMap.get(source) != null) {
+                    parents = fork_HistoryMap.get(source);
+                } else {
+                    parents = upstream_HistoryMap.get(source);
+                }
+                if (parents.size() == 1) {
+                    ArrayList<Integer> distanceArray = new ArrayList<>();
+                    ArrayList<ArrayList<String>> candidatePathResult = new ArrayList<>();
+                    ArrayList<ArrayList<String>> mergeCommitResult = new ArrayList<>();
+                    for (String target : latestCommits) {
+                        if (!source.equals(target)) {
+                            checkedCommits = new ArrayList<>();
                     /* recursive way
                       ArrayList<String> path = getPath(source, target);*/
-                        ArrayList<String> path = getPath_iteration(source, target);
-                        if (path.size() > 0) {
-                            distanceArray.add(calcaulateDistance(path));
-                        }
-                    } else {
-                        distanceArray.add(0);
-                    }
-                }
+                            ArrayList<String> path = getPath_iteration(source, target);
 
-                if (distanceArray.size() > 0) {
-                    int min = distanceArray.get(0);
-                    for (int i : distanceArray) {
-                        min = min < i ? min : i;
+                            if (path.size() > 0) {
+                                candidatePathResult.add(path);
+                                ArrayList<String> mergeCommits = calcaulateDistance(path);
+                                distanceArray.add(mergeCommits.size());
+                                if (mergeCommits.size() > 0) {
+                                    mergeCommitResult.add(mergeCommits);
+                                } else {
+                                    mergeCommitResult.add(new ArrayList<>());
+                                }
+                            }
+                        } else {
+                            candidatePathResult.add(new ArrayList<>());
+                            distanceArray.add(0);
+                            mergeCommitResult.add(new ArrayList<>());
+                        }
                     }
-                    distance_map.put(source, min);
-                } else {
-                    distance_map.put(source, -1);
+
+                    if (distanceArray.size() > 0) {
+                        int min = distanceArray.get(0);
+                        for (int i : distanceArray) {
+                            min = min < i ? min : i;
+                        }
+                        distance_map.put(source, min);
+
+                        int index_min = distanceArray.indexOf(min);
+                        ArrayList<String> shortest = candidatePathResult.get(index_min);
+                        if (min > 0) {
+                            ArrayList<String> mergeCommit = mergeCommitResult.get(index_min);
+                            int tmp = 0;
+                            int distance = 0;
+                            while (mergeCommit.size() > 0) {
+                                String merge = mergeCommit.get(0);
+
+                                for (int i = tmp; i < shortest.size(); i++) {
+                                    String c = shortest.get(i);
+                                    if (!c.equals(merge)) {
+                                        distance_map.put(c, distance);
+                                    } else {
+                                        mergeCommit.remove(merge);
+
+                                        distance++;
+                                        tmp = i + 1;
+                                        break;
+                                    }
+                                }
+                            }
+
+
+                        } else {
+                            for (String c : shortest) {
+                                distance_map.put(c, min);
+                            }
+                        }
+
+                    } else {
+                        distance_map.put(source, -1);
+                    }
                 }
             }
         }
@@ -249,7 +296,8 @@ public class GraphBasedClassifier {
         return stack;
     }
 
-    private int calcaulateDistance(ArrayList<String> path) {
+    private ArrayList<String> calcaulateDistance(ArrayList<String> path) {
+        ArrayList<String> parents2List = new ArrayList<>();
 
         int distance = 0;
         for (int i = 0; i < path.size() - 1; i++) {
@@ -273,11 +321,13 @@ public class GraphBasedClassifier {
                     distance += 0;
                 } else {
                     distance += 1;
+                    parents2List.add(parent_2);
+
                 }
 
             }
         }
-        return distance;
+        return parents2List;
     }
 
 

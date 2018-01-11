@@ -59,7 +59,6 @@ public class main {
                     e.printStackTrace();
                 }
 
-//
                 /**   classify commits **/
                 /**  by graph  **/
                 System.out.println("graph-based...");
@@ -92,7 +91,7 @@ public class main {
 
 
                 System.out.println("generating final table.");
-//                /**   combines results together **/
+                /**   combines results together **/
 //                combineTwoApproaches(repoUrl);
                 combineGraphWithInfo(repoUrl);
             }
