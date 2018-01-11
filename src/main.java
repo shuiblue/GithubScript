@@ -51,7 +51,6 @@ public class main {
                     trackCommitHistory.getRamdomForks(repoUrl, maxAnalyzedForkNum);
                 }
 
-
                 /** analyze commit history **/
                 String[] activeForkList = {};
                 try {
@@ -73,10 +72,10 @@ public class main {
                     graphBasedClassifier.analyzeCommitHistory(forkInfo, repoUrl);
                 }
 
-                /**  by author id  **/
-                System.out.println("authorID-based...");
-                System.out.println("repo: " + repoUrl);
-                trackCommitHistory.classifyCommitsByAuthor(repoUrl);
+//                /**  by author id  **/
+//                System.out.println("authorID-based...");
+//                System.out.println("repo: " + repoUrl);
+//                trackCommitHistory.classifyCommitsByAuthor(repoUrl);
 
 
                 /** get fork info  **/
@@ -92,11 +91,55 @@ public class main {
                 io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/forkInfo.csv");
 
 
-                /**   combines results together **/
-                combineTwoApproaches(repoUrl);
+                System.out.println("generating final table.");
+//                /**   combines results together **/
+//                combineTwoApproaches(repoUrl);
+                combineGraphWithInfo(repoUrl);
             }
 
         }
+    }
+
+    private static void combineGraphWithInfo(String repoUrl) {
+        IO_Process io = new IO_Process();
+        List<List<String>>  graph_approach_result, fork_info_result;
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("repo,fork,upstream,only_F,only_U,F2U,U2F,only_F_list,only_U_list,F2U_list,U2F_list,"
+                + "fork_num,created_at,pushed_at,size,language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type,fork_age,lastCommit_age\n");
+
+        int created_at_index = 2;
+        int push_at_index = 3;
+
+        graph_approach_result = io.readCSV(current_dir + "/result/" + repoUrl + "/graph_result.csv");
+        fork_info_result = io.readCSV(current_dir + "/result/" + repoUrl + "/forkInfo.csv");
+
+
+        for (int i = 1; i < graph_approach_result.size(); i++) {
+
+            System.out.println(i);
+            List<String> graph_result = graph_approach_result.get(i);
+            String[] created = fork_info_result.get(i).get(created_at_index).split("T")[0].split("-");
+            String[] push = fork_info_result.get(i).get(push_at_index).split("T")[0].split("-");
+            LocalDate create_date = LocalDate.of(Integer.valueOf(created[0]), Integer.valueOf(created[1]), Integer.valueOf(created[2]));
+            LocalDate push_date = LocalDate.of(Integer.valueOf(push[0]), Integer.valueOf(push[1]), Integer.valueOf(push[2]));
+
+            LocalDate today = LocalDate.now();
+            long fork_age = Duration.between(create_date.atStartOfDay(), today.atStartOfDay()).toDays(); // another option
+            long lastCommit_age = Duration.between(push_date.atStartOfDay(), today.atStartOfDay()).toDays(); // another option
+
+            String forkInfoStr = io.removeBrackets(fork_info_result.get(i).toString()).replace(graph_result.get(0) + ",", "") + "," + fork_age + "," + lastCommit_age;
+
+
+
+                sb.append(repoUrl+","+graph_result.toString().replace("]]","]") + "," + forkInfoStr + "\n"); //,U2F_list
+
+        }
+
+        io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/final_result.csv");
+
+
     }
 
 

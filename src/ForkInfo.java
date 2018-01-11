@@ -46,7 +46,7 @@ public class ForkInfo {
     }
 
     public boolean isSameAuthor(ForkInfo forkInfo_1, ForkInfo forkInfo_2) {
-        boolean hasCommonEmail = false;
+            boolean hasCommonEmail = false;
         for (String email : forkInfo_1.emails) {
             hasCommonEmail = forkInfo_2.emails.contains(email);
             if (hasCommonEmail) break;

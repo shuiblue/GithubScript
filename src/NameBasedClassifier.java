@@ -16,11 +16,13 @@ public class NameBasedClassifier {
     static String github_api_search = "https://api.github.com/search/";
     static String result_dir;
 
+    static String tmpDirPath;
+
     NameBasedClassifier() {
         final String current_dir = System.getProperty("user.dir");
         System.out.println("current dir = " + current_dir);
         result_dir = current_dir + "/result/";
-
+        tmpDirPath = current_dir + "/cloneRepos/";
         try {
             token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
         } catch (IOException e) {
@@ -167,10 +169,6 @@ public class NameBasedClassifier {
                     e.printStackTrace();
                 }
 
-
-
-
-
                 if (commit_array_json.size() > 0) {
                     for (String commit : commit_array_json) {
                         JSONObject commit_jsonObj = new JSONObject(commit);
@@ -188,7 +186,6 @@ public class NameBasedClassifier {
                     break;
                 }
             }
-
 
             /** get email from commit history without author constraint, check user name **/
             for (int page = 1; page <= 300; page++) {
@@ -218,7 +215,7 @@ public class NameBasedClassifier {
                 }
             }
             if (!sb.toString().contains(forkName + ",")) {
-                sb.append(forkName + "," + email_set.toString() + "\n");
+            sb.append(forkName + "," + email_set.toString() + "\n");
             } else {
                 sb.append(email_set.toString() + "\n");
 
@@ -507,9 +504,8 @@ public class NameBasedClassifier {
         }
 
 
-
         JSONArray parents_json = (JSONArray) commit_jsonObj.get("parents");
-        if(parents_json.length()>0) {
+        if (parents_json.length() > 0) {
             if (parents_json.length() == 1) {
                 if (contact_info.contains(userid) || contact_info.contains(author) || contact_info.contains(email)) {
                     return CommitType.origin;
@@ -528,8 +524,7 @@ public class NameBasedClassifier {
 
                 if (upstream_Owner.isSameAuthor(parent_1, upstream_Owner) || upstream_Owner.isSameAuthor(parent_2, upstream_Owner)) {
                     return CommitType.sync_upstream;
-                }
-                else {
+                } else {
                     return CommitType.other;
                 }
             }
@@ -624,19 +619,19 @@ public class NameBasedClassifier {
                                 if (issue_array_json.size() > 0) {
                                     for (String iss : issue_array_json) {
                                         JSONObject iss_jsonObj = new JSONObject(issue);
-                                            JSONArray items_json = iss_jsonObj.getJSONArray("items");
-                                            for (int index=0;index< items_json.toList().size();index++) {
-                                                ;
-                                                JSONObject pr_json = (JSONObject) ((JSONObject) items_json.get(index)).get("pull_request");
-                                                String pr_url = (String) pr_json.get("url");
+                                        JSONArray items_json = iss_jsonObj.getJSONArray("items");
+                                        for (int index = 0; index < items_json.toList().size(); index++) {
+                                            ;
+                                            JSONObject pr_json = (JSONObject) ((JSONObject) items_json.get(index)).get("pull_request");
+                                            String pr_url = (String) pr_json.get("url");
 
-                                                String merge_state = getPRstate(pr_url);
-                                                sb.append(pr_url + "," + merge_state + ",");
+                                            String merge_state = getPRstate(pr_url);
+                                            sb.append(pr_url + "," + merge_state + ",");
 
-                                                /** get commit of this PR **/
-                                                ArrayList<String> pr_commitList = getPRcommits(pr_url);
-                                                sb.append(pr_commitList.toString() + "\n");
-                                            }
+                                            /** get commit of this PR **/
+                                            ArrayList<String> pr_commitList = getPRcommits(pr_url);
+                                            sb.append(pr_commitList.toString() + "\n");
+                                        }
                                     }
                                 }
                             }
@@ -744,13 +739,13 @@ public class NameBasedClassifier {
                                 commits_in_PR_from_fork.add(rej_commit);
                             }
                         }
-                    }else{
-                        mergedPR.addAll(Arrays.asList(pr_info[1].replace("]","").split(", ")));
+                    } else {
+                        mergedPR.addAll(Arrays.asList(pr_info[1].replace("]", "").split(", ")));
                     }
                 }
             }
 
-            sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size()+","+mergedPR.toString().replace(",","/" )+ "\n");
+            sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size() + "," + mergedPR.toString().replace(",", "/") + "\n");
         }
 
         io.rewriteFile(sb.toString(), result_dir + upstream_url + "/authorName_result.csv");
@@ -784,42 +779,6 @@ public class NameBasedClassifier {
     }
 
 
-    public void classifyCommitsByAuthor_local() {
-        NameBasedClassifier tch = new NameBasedClassifier();
-//        String[] upstream_array = {"traverseda/pycraft,Smoothieware/Smoothieware,MarlinFirmware/Marlin","timscaffidi/ofxVideoRecorder"};
-//        String[] upstream_array = {};
-        String[] upstream_array = {"timscaffidi/ofxVideoRecorder"};
-        for (String upstream_url : upstream_array) {
-
-
-//            /** get active fork list for given repository **/
-//            System.out.println("get all active forks...");
-//            String activeForkList = tch.getActiveForkList(upstream_url);
-//            io.rewriteFile(activeForkList, result_dir + upstream_url + "/all_ActiveForklist.txt");
-//
-//            System.out.println("randomly pick 30 active forks...");
-//            tch.getRamdomForks(upstream_url);
-
-            System.out.println("get fork member contact information...");
-            /** analyze each fork owner's emails  **/
-            tch.getForkMemberContactInfo(upstream_url);
-
-            System.out.println("analyzing commit history...");
-            /** analyze each fork commit history **/
-            tch.analyzeCommitHistory(upstream_url);
-
-
-            System.out.println("get pull request information...");
-            /** analyze each fork issue and PR history **/
-            tch.getForkRelatedIssue(upstream_url);
-
-            System.out.println("analyzing contribution of each fork..");
-            tch.analyzeContribution(upstream_url);
-        }
-
-    }
-
-
     public void classifyCommitsByAuthor(String upstream_url) {
         NameBasedClassifier tch = new NameBasedClassifier();
 
@@ -832,18 +791,13 @@ public class NameBasedClassifier {
         tch.analyzeCommitHistory(upstream_url);
 
 
-            System.out.println("get pull request information...");
+        System.out.println("get pull request information...");
         /** analyze each fork issue and PR history **/
         tch.getForkRelatedIssue(upstream_url);
 
         System.out.println("analyzing contribution of each fork..");
         tch.analyzeContribution(upstream_url);
 
-    }
-
-    public static void main(String[] args) {
-        NameBasedClassifier trackCommitHistory = new NameBasedClassifier();
-        trackCommitHistory.classifyCommitsByAuthor_local();
     }
 
 
