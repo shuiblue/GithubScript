@@ -95,7 +95,7 @@ public class JsonUtility {
                 }
                 return json_block_array;
             }else{
-                return null;
+                return  new ArrayList<>();
             }
 
 

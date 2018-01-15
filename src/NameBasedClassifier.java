@@ -268,15 +268,17 @@ public class NameBasedClassifier {
             e.printStackTrace();
         }
         for (String fork_contact_info : forkowner_Array) {
-            ArrayList<String> email_arrayList = new ArrayList<>();
-            String owner_id = fork_contact_info.split(",\\[")[0];
-            String[] emailarray = removeBrackets(fork_contact_info.split(",\\[")[1]).split(",");
-            for (String email : emailarray) {
-                if (!email.equals("")) {
-                    email_arrayList.add(email.trim());
+            if(!fork_contact_info.equals("")) {
+                ArrayList<String> email_arrayList = new ArrayList<>();
+                String owner_id = fork_contact_info.split(",\\[")[0];
+                String[] emailarray = removeBrackets(fork_contact_info.split(",\\[")[1]).split(",");
+                for (String email : emailarray) {
+                    if (!email.equals("")) {
+                        email_arrayList.add(email.trim());
+                    }
                 }
+                forkid_email.put(owner_id, email_arrayList);
             }
-            forkid_email.put(owner_id, email_arrayList);
         }
         return forkid_email;
     }
