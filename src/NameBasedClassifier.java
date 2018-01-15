@@ -155,7 +155,7 @@ public class NameBasedClassifier {
             }
 
             /** get email from user profile */
-            ForkInfo fork_owner_info = getForkOwnerInfo(forkName);
+            getForkOwnerInfo(forkName);
 
 
             /**  get email from commit history when author= forkname */
@@ -813,18 +813,22 @@ public class NameBasedClassifier {
             e.printStackTrace();
         }
 
-        String profile = profile_array_json.get(0);
-        JSONObject profile_jsonObj = new JSONObject(profile);
-        if (!profile.contains("\"email\":null")) {
-            email = profile_jsonObj.getString("email").toString();
-            if (email.contains("@")) {
-                email_set.add(email);
+        if(profile_array_json!=null) {
+            String profile = profile_array_json.get(0);
+            JSONObject profile_jsonObj = new JSONObject(profile);
+            if (!profile.contains("\"email\":null")) {
+                email = profile_jsonObj.getString("email").toString();
+                if (email.contains("@")) {
+                    email_set.add(email);
+                }
             }
-        }
-        if (!profile_jsonObj.get("name").toString().equals("null")) {
-            user_name = (String) profile_jsonObj.get("name");
-        }
+            if (!profile_jsonObj.get("name").toString().equals("null")) {
+                user_name = (String) profile_jsonObj.get("name");
+            }
 
-        return new ForkInfo(forkName, user_name, email_set);
+            return new ForkInfo(forkName, user_name, email_set);
+        }else{
+            return null;
+        }
     }
 }
