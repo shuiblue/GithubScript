@@ -234,7 +234,7 @@ public class NameBasedClassifier {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        if (fork_array_json.size() > 0) {
+        if (fork_array_json!=null&fork_array_json.size() > 0) {
 
             String fork_info = fork_array_json.get(0);
             JSONObject fork_jsonObj = new JSONObject(fork_info);
