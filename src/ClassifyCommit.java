@@ -1,6 +1,7 @@
 import com.jcraft.jsch.HASH;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
@@ -185,7 +186,7 @@ public class ClassifyCommit {
             allCommitsInUpstream.addAll(v);
         });
 
-
+        System.out.println("remove stale branches..");
         HashSet<String> uselessBranches = null;
         if (fork_branch_History_map.keySet().size() >= 2) {
             uselessBranches = RemoveBranchesBeforeForkPoint(fork_branch_History_map, forkInfo);
@@ -454,6 +455,7 @@ public class ClassifyCommit {
         HashMap<String, List<String>> result = new HashMap<>();
         IO_Process io = new IO_Process();
         for (String str : branchArray) {
+            System.out.println(".");
             String[] branchHistory = str.split(",\\[");
             String branch = branchHistory[0];
 
@@ -680,7 +682,7 @@ public class ClassifyCommit {
             try {
                 repository = new FileRepository(pathname + ".git");
                 Git git = new Git(repository);
-
+git.branchList().setListMode( ListBranchCommand.ListMode.ALL );
                 List<Ref> refList = git.branchList().call();
                 List<String> existBranches = new ArrayList<>();
                 for (Ref ref : refList) {
@@ -689,16 +691,16 @@ public class ClassifyCommit {
 
 
                 /**only checkout remote branch**/
-                if (!existBranches.contains(branch)) {
-                    //https://stackoverflow.com/questions/12927163/jgit-checkout-a-remote-branch
-                    System.out.println("check out branch: " + branch);
-                    git.checkout().
-                            setCreateBranch(true).
-                            setName(branch).
-                            setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
-                            setStartPoint("origin/" + branch).
-                            call();
-                }
+//                if (!existBranches.contains(branch)) {
+//                    //https://stackoverflow.com/questions/12927163/jgit-checkout-a-remote-branch
+//                    System.out.println("check out branch: " + branch);
+//                    git.checkout().
+//                            setCreateBranch(true).
+//                            setName(branch).
+//                            setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+//                            setStartPoint("origin/" + branch).
+//                            call();
+//                }
 
                 if (!forkpointDate.equals("")) {
                     /**   get Merge Commit **/

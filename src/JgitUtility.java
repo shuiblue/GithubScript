@@ -7,6 +7,8 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,12 +50,15 @@ public class JgitUtility {
 
         if (!dir_git.exists()) {
             dir.mkdir();
-
+//            CredentialsProvider cp = new UsernamePasswordCredentialsProvider( "shuiblue", "shuiblue218" );
+//            git.pull().setCredentialsProvider( cp ).call();
             try {
                 Git git = Git.cloneRepository()
+//                        .setCredentialsProvider( cp )
                         .setURI(clone_url)
                         .setCloneAllBranches(true)
                         .setDirectory(dir)
+
                         .call();
 
 

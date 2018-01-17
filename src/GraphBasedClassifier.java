@@ -1,5 +1,10 @@
+import Djikstra.DijkstraAlgorithm;
+import Djikstra.Edge;
+import Djikstra.Graph;
+import Djikstra.Vertex;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
@@ -12,6 +17,7 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by shuruiz on 12/29/17.
@@ -23,7 +29,7 @@ public class GraphBasedClassifier {
     HashMap<String, ArrayList<String>> fork_HistoryMap, upstream_HistoryMap;
     HashSet<String> fork_mergeCommitSet, upstream_mergeCommitSet;
     String forkPointCommitSHA = "";
-
+    String firstCommit = "";
 
     ArrayList<String> checkedCommits;
     HashSet<String> checkedCommitsBeforeForking;
@@ -34,6 +40,8 @@ public class GraphBasedClassifier {
     }
 
     public void analyzeCommitHistory(String forkInfo, String repoURL) {
+        JgitUtility jg = new JgitUtility();
+        IO_Process io = new IO_Process();
         forkPointCommitSHA = "";
         checkedCommits = new ArrayList<>();
         checkedCommitsBeforeForking = new HashSet<>();
@@ -45,11 +53,8 @@ public class GraphBasedClassifier {
         HashSet<String> fork2Upstream = new HashSet<>();
         HashSet<String> upstream2Fork = new HashSet<>();
 
-        JgitUtility jg = new JgitUtility();
         String forkUrl = forkInfo.split(",")[0];
-
         String upstreamUrl = forkInfo.split(",")[1];
-
         String forkpointDate = forkInfo.split(",")[2];
 
         /**clone fork to local*/
@@ -67,7 +72,6 @@ public class GraphBasedClassifier {
         upstream_HistoryMap = getCommitInBranch(upstreamUrl, "", forkUrl);
 
 
-        IO_Process io = new IO_Process();
         HashMap<String, List<String>> fork_branch_History_map, upstream_branch_History_map;
         String[] upstream_withMeged_branchArray;
 
@@ -84,6 +88,7 @@ public class GraphBasedClassifier {
                 StringBuilder sb_result = new StringBuilder();
                 sb_result.append(forkUrl + "," + upstreamUrl + ",0,0,0,0,[],[],[],[]\n");
                 io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.csv");
+                io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.txt");
                 return;
 
             }
@@ -102,6 +107,8 @@ public class GraphBasedClassifier {
                 upstream_ignoreBranches.add(br.split(",")[0]);
             }
 
+            System.out.println("get merged commits");
+
             upstream_withMeged_branchArray = io.readResult(tmpDirPath + upstreamUrl + "/" + upstreamUrl.split("/")[0] + "_CommitHistory.txt").split("\n");
             upstream_branch_History_map = getHistory(upstream_withMeged_branchArray);
             String upstream_mergeCommitStr = io.removeBrackets(io.readResult(tmpDirPath + upstreamUrl + "/" + upstreamUrl.split("/")[0] + "_all_mergedCommit.txt"));
@@ -109,6 +116,8 @@ public class GraphBasedClassifier {
 
 
             /**  calculate shortest path  **/
+            System.out.println("start to calculate short distance");
+
             HashSet<String> allCommits = new HashSet<>();
             HashSet<String> forkLatestCommits = new HashSet<>();
             HashSet<String> upstreamLatestCommits = new HashSet<>();
@@ -128,17 +137,31 @@ public class GraphBasedClassifier {
                 }
             });
 
-            System.out.println("distance to upstream. ...");
-            HashMap<String, Integer> distance2Upstream_map = getDistanceMap(allCommits, upstreamLatestCommits);
+            allCommits.removeAll(upstream_mergeCommitSet);
+            allCommits.removeAll(fork_mergeCommitSet);
 
-            System.out.println("distance to fork. ...");
-            HashMap<String, Integer> distance2Fork_map = getDistanceMap(allCommits, forkLatestCommits);
+
+            /** Dijkstra ---  calculate shortest path  **/
+            long start = System.nanoTime();
+            System.out.println("Dijkstra start: " +start);
+
+            initializeGraph();
+            Graph graph = new Graph(nodes, edges);
+            System.out.println("distance to updatream");
+            HashMap<String, Integer> distance2Upstream_map = getShortestPath_Dij(upstreamLatestCommits, graph, allCommits);
+            System.out.println("distance to fork");
+            HashMap<String, Integer> distance2Fork_map = getShortestPath_Dij(forkLatestCommits, graph, allCommits);
+            //time consuming code here.
+            //...
+            long end = System.nanoTime();
+            long used = end - start;
+            System.out.println("dijkstra :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
 
             distance2Fork_map.forEach((fork_origin_commit, d) -> {
                 int distance2Upstream = distance2Upstream_map.get(fork_origin_commit) != null ? distance2Upstream_map.get(fork_origin_commit) : 0;
-                if (d >= 0 && distance2Upstream == -1) {
+                if (distance2Upstream == 999) {
                     onlyFork.add(fork_origin_commit);
-                } else if (d == -1 && distance2Upstream >= 0) {
+                } else if (d == 999) {
                     onlyUpstream.add(fork_origin_commit);
                 } else if (d < distance2Upstream) {
                     fork2Upstream.add(fork_origin_commit);
@@ -147,6 +170,33 @@ public class GraphBasedClassifier {
                 }
             });
 
+
+            /** depth first**/
+            //time consuming code here.
+            //...
+//            start = System.nanoTime();
+//
+//            HashMap<String, Integer> distance2Upstream_map_depth = getDistanceMap(allCommits, upstreamLatestCommits);
+//
+//            System.out.println("distance to fork. ...");
+//            HashMap<String, Integer> distance2Fork_map_depth = getDistanceMap(allCommits, forkLatestCommits);
+//            end = System.nanoTime();
+//            used = end - start;
+//            System.out.println("depth first :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+//
+//            distance2Fork_map_depth.forEach((fork_origin_commit, d) -> {
+//                int distance2Upstream = distance2Upstream_map_depth.get(fork_origin_commit) != null ? distance2Upstream_map_depth.get(fork_origin_commit) : 0;
+//                if (d >= 0 && distance2Upstream == -1) {
+//                    onlyFork.add(fork_origin_commit);
+//                } else if (d == -1 && distance2Upstream >= 0) {
+//                    onlyUpstream.add(fork_origin_commit);
+//                } else if (d < distance2Upstream) {
+//                    fork2Upstream.add(fork_origin_commit);
+//                } else if (d > distance2Upstream) {
+//                    upstream2Fork.add(fork_origin_commit);
+//                }
+//            });
+//            System.out.println(onlyFork.size() + " , " + onlyUpstream.size() + " , " + fork2Upstream.size() + " , " + upstream2Fork.size());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -165,16 +215,88 @@ public class GraphBasedClassifier {
                 , current_dir + "/result/" + repoURL + "/graph_result.txt");
 
         /** remove local copy of fork**/
-        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
-        try {
-//            io.deleteDir(new File(localDirPath + upstreamUrl));
-            io.deleteDir(new File(localDirPath + forkUrl));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
+//        try {
+////            io.deleteDir(new File(localDirPath + upstreamUrl));
+//            io.deleteDir(new File(localDirPath + forkUrl));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
     }
 
+    private HashMap<String, Integer> getShortestPath_Dij(HashSet<String> latestCommits, Graph graph, HashSet<String> allCommits) {
+        HashMap<String, Integer> distance_map = new HashMap<>();
+        System.out.println("set all commits distance as 999");
+        for (String commit : allCommits) {
+            distance_map.put(commit, 999);
+        }
+
+
+        System.out.println("init graph");
+        DijkstraAlgorithm dijkstra = new DijkstraAlgorithm(graph);
+
+
+        for (String target : latestCommits) {
+            System.out.println("target: "+target);
+            dijkstra.execute(new Vertex(target));
+            LinkedList<Vertex> path = dijkstra.getPath(new Vertex(firstCommit));
+            HashMap<Vertex, Integer> tmp_distance_map = (HashMap<Vertex, Integer>) dijkstra.getDistance();
+
+
+            System.out.println("get "+tmp_distance_map.keySet().size()+" reacheable vertex, get min distance");
+            for (String c : allCommits) {
+                int old = distance_map.get(c);
+                if (tmp_distance_map.get(new Vertex(c)) != null) {
+                    int updated = tmp_distance_map.get(new Vertex(c));
+                    int newdist = old <= updated ? old : updated;
+                    distance_map.put(c, newdist);
+                }
+            }
+
+        }
+        return distance_map;
+    }
+
+
+    HashSet<Vertex> nodeSet = new HashSet<>();
+    List<Vertex> nodes = new ArrayList<Vertex>();
+    List<Edge> edges = new ArrayList<Edge>();
+
+
+    private void initializeGraph() {
+
+        generatingGraphForDijkstra(fork_HistoryMap);
+        generatingGraphForDijkstra(upstream_HistoryMap);
+        nodes.addAll(nodeSet);
+    }
+
+
+    private void generatingGraphForDijkstra(HashMap<String, ArrayList<String>> historyMap) {
+
+        historyMap.forEach((k, v) -> {
+            Vertex v_k = new Vertex(k);
+            nodeSet.add(v_k);
+            if (v.size() > 0) {
+                String p1 = v.get(0);
+                Vertex v_p1 = new Vertex(p1);
+                nodeSet.add(v_p1);
+                addEdge(v_k, v_p1, 0);
+
+                if (v.size() == 2) {
+                    String p2 = v.get(1);
+                    Vertex v_p2 = new Vertex(p2);
+                    nodeSet.add(v_p2);
+                    addEdge(v_k, v_p2, 1);
+                }
+            }
+        });
+    }
+
+    private void addEdge(Vertex source, Vertex dest, int weight) {
+        Edge edge = new Edge(source, dest, weight);
+        edges.add(edge);
+    }
 
     private HashMap<String, Integer> getDistanceMap(HashSet<String> allCommits, HashSet<String> latestCommits) {
         HashMap<String, Integer> distance_map = new HashMap<>();
@@ -416,8 +538,9 @@ public class GraphBasedClassifier {
         return path;
     }
 
+
     /**
-     * This function get commits in each branch, removing merged commits
+     * This function gets commits in each branch, removes stale branches
      */
 
     public HashMap<String, ArrayList<String>> getCommitInBranch(String repo_uri, String forkpointDate, String forkUrl) {
@@ -495,7 +618,7 @@ public class GraphBasedClassifier {
                 repository = new FileRepository(pathname + ".git");
                 Git git = new Git(repository);
 
-                List<Ref> refList = git.branchList().call();
+                List<Ref> refList = git.branchList().setListMode( ListBranchCommand.ListMode.ALL ).call();
                 List<String> existBranches = new ArrayList<>();
                 for (Ref ref : refList) {
                     existBranches.add(ref.toString().split("=")[0].replace("Ref[refs/heads/", ""));
@@ -581,6 +704,7 @@ public class GraphBasedClassifier {
                         .add(repository.resolve("refs/remotes/origin/" + branch))
                         .call();
 
+
                 for (RevCommit rev : logs) {
                     String sha = rev.getName();
                     commitHistory.add(sha);
@@ -600,6 +724,8 @@ public class GraphBasedClassifier {
                         } else {
                             if (rev.getParentCount() == 1) {
                                 forkHistoryMap.get(sha).add(rev.getParent(0).getName());
+                            } else {
+                                firstCommit = sha;
                             }
                         }
                     }
