@@ -139,23 +139,20 @@ public class GraphBasedClassifier {
 
             allCommits.removeAll(upstream_mergeCommitSet);
             allCommits.removeAll(fork_mergeCommitSet);
-
+            System.out.println(allCommits.size()+ " commits");
 
             /** Dijkstra ---  calculate shortest path  **/
-            long start = System.nanoTime();
-            System.out.println("Dijkstra start: " +start);
+
+
 
             initializeGraph();
-            Graph graph = new Graph(nodes, edges);
+            Graph graph = new Graph(all_historyMap);
             System.out.println("distance to updatream");
             HashMap<String, Integer> distance2Upstream_map = getShortestPath_Dij(upstreamLatestCommits, graph, allCommits);
             System.out.println("distance to fork");
             HashMap<String, Integer> distance2Fork_map = getShortestPath_Dij(forkLatestCommits, graph, allCommits);
             //time consuming code here.
             //...
-            long end = System.nanoTime();
-            long used = end - start;
-            System.out.println("dijkstra :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
 
             distance2Fork_map.forEach((fork_origin_commit, d) -> {
                 int distance2Upstream = distance2Upstream_map.get(fork_origin_commit) != null ? distance2Upstream_map.get(fork_origin_commit) : 0;
@@ -236,12 +233,18 @@ public class GraphBasedClassifier {
         System.out.println("init graph");
         DijkstraAlgorithm dijkstra = new DijkstraAlgorithm(graph);
 
-
+        System.out.println(latestCommits.size()+" loops");
         for (String target : latestCommits) {
+            long start = System.nanoTime();
+//            System.out.println("Dijkstra start: " +start);
             System.out.println("target: "+target);
             dijkstra.execute(new Vertex(target));
             LinkedList<Vertex> path = dijkstra.getPath(new Vertex(firstCommit));
             HashMap<Vertex, Integer> tmp_distance_map = (HashMap<Vertex, Integer>) dijkstra.getDistance();
+
+            long end = System.nanoTime();
+            long used = end - start;
+            System.out.println("dijkstra :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
 
 
             System.out.println("get "+tmp_distance_map.keySet().size()+" reacheable vertex, get min distance");
@@ -272,9 +275,11 @@ public class GraphBasedClassifier {
     }
 
 
+    HashMap<String, ArrayList<String>> all_historyMap = new HashMap<>();
     private void generatingGraphForDijkstra(HashMap<String, ArrayList<String>> historyMap) {
 
         historyMap.forEach((k, v) -> {
+            all_historyMap.put(k,v);
             Vertex v_k = new Vertex(k);
             nodeSet.add(v_k);
             if (v.size() > 0) {

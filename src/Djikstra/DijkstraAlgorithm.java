@@ -14,8 +14,9 @@ import java.util.Set;
 
 public class DijkstraAlgorithm {
 
-    private final List<Vertex> nodes;
-    private final List<Edge> edges;
+//    private final List<Vertex> nodes;
+//    private final List<Edge> edges;
+    HashMap<String, ArrayList<String>> all_historyMap ;
     private Set<Vertex> settledNodes;
     private Set<Vertex> unSettledNodes;
     private Map<Vertex, Vertex> predecessors;
@@ -28,8 +29,9 @@ public class DijkstraAlgorithm {
 
     public DijkstraAlgorithm(Graph graph) {
         // create a copy of the array so that we can operate on this array
-        this.nodes = new ArrayList<Vertex>(graph.getVertexes());
-        this.edges = new ArrayList<Edge>(graph.getEdges());
+//        this.nodes = new ArrayList<Vertex>(graph.getVertexes());
+//        this.edges = new ArrayList<Edge>(graph.getEdges());
+        this.all_historyMap=graph.getAll_historyMap();
     }
 
     public void execute(Vertex source) {
@@ -62,23 +64,36 @@ public class DijkstraAlgorithm {
     }
 
     private int getDistance(Vertex node, Vertex target) {
-        for (Edge edge : edges) {
-            if (edge.getSource().equals(node)
-                    && edge.getDestination().equals(target)) {
-                return edge.getWeight();
-            }
+//        for (Edge edge : edges) {
+//            if (edge.getSource().equals(node)
+//                    && edge.getDestination().equals(target)) {
+//                return edge.getWeight();
+//            }
+//        }
+
+        ArrayList<String> neighbors_ids =  all_historyMap.get(node.getId());
+        if(target.getId().equals(neighbors_ids.get(0))){
+            return 0;
+        }else if(target.getId().equals(neighbors_ids.get(1))){
+            return 1;
         }
+
         throw new RuntimeException("Should not happen");
     }
 
     private List<Vertex> getNeighbors(Vertex node) {
         List<Vertex> neighbors = new ArrayList<Vertex>();
-        for (Edge edge : edges) {
-            if (edge.getSource().equals(node)
-                    && !isSettled(edge.getDestination())) {
-                neighbors.add(edge.getDestination());
-            }
-        }
+//        for (Edge edge : edges) {
+//            if (edge.getSource().equals(node)
+//                    && !isSettled(edge.getDestination())) {
+//                neighbors.add(edge.getDestination());
+//            }
+//        }
+        ArrayList<String> neighbors_ids = all_historyMap.get(node.getId());
+       for(String id:neighbors_ids){
+           neighbors.add(new Vertex(id));
+       }
+
         return neighbors;
     }
 
