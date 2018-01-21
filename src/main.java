@@ -38,7 +38,7 @@ public class main {
 //                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 
                 /**  randomize forks from active_fork_list **/
-                               String all_activeForkList = null;
+                 String all_activeForkList = null;
                 try {
                     all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
                 } catch (IOException e) {
@@ -91,12 +91,12 @@ public class main {
                     String forkURL = forkInfo.split(",")[0];
                     System.out.println("get fork info: " + forkInfo);
                     sb.append(forkURL + "," + githubApiParser.getForkInfo(forkURL));
-                   }
+                }
                 io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/forkInfo.csv");
 
-
+                /**   combines two result graph and name together **/
                 System.out.println("generating final table.");
-//                /**   combines two result graph and name together **/
+
 ////                combineTwoApproaches(repoUrl);
 //                /**  combine graph, info and PR result together**/
                 combineGraphWithInfo(repoUrl);

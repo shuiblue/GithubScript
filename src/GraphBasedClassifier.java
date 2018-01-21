@@ -212,10 +212,10 @@ public class GraphBasedClassifier {
                 , current_dir + "/result/" + repoURL + "/graph_result.txt");
 
         /** remove local copy of fork**/
-        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
+//        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
         try {
 //            io.deleteDir(new File(localDirPath + upstreamUrl));
-            io.deleteDir(new File(localDirPath + forkUrl));
+            io.deleteDir(new File(current_dir+"/cloneRepos/" + forkUrl));
         } catch (IOException e) {
             e.printStackTrace();
         }
