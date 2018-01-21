@@ -87,7 +87,9 @@ public class GraphBasedClassifier {
             if (fork_branchStr.equals("")) {
                 StringBuilder sb_result = new StringBuilder();
                 sb_result.append(forkUrl + "," + upstreamUrl + ",0,0,0,0,[],[],[],[]\n");
-                io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.csv");
+                StringBuilder sb_result_csv= new StringBuilder();
+                sb_result_csv.append(forkUrl + "," + upstreamUrl + ",0,0,0,0,\n");
+                io.writeTofile(sb_result_csv.toString(), current_dir + "/result/" + repoURL + "/graph_result.csv");
                 io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.txt");
                 return;
 
