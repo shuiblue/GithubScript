@@ -34,24 +34,24 @@ public class main {
                 System.out.println("get all active forks of repo: " + repoName);
 
                 /**  get active forks using github api **/
-//                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl);
-//                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl);
+                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 
                 /**  randomize forks from active_fork_list **/
 //                 String all_activeForkList = null;
-//                try {
-//                    all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                if (all_activeForkList.split("\n").length<= maxAnalyzedForkNum) {
-//                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
-//                } else {
-//                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl +"/all_ActiveForklist.txt");
-//                    System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
-//                    trackCommitHistory.getRamdomForks(repoUrl, maxAnalyzedForkNum);
-//                }
+                try {
+                    all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                if (all_activeForkList.split("\n").length<= maxAnalyzedForkNum) {
+                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+                } else {
+                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl +"/all_ActiveForklist.txt");
+                    System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
+                    trackCommitHistory.getRamdomForks(repoUrl, maxAnalyzedForkNum);
+                }
 
                 /** analyze commit history **/
                 String[] activeForkList = {};
