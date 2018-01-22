@@ -37,7 +37,7 @@ public class NameBasedClassifier {
      *
      * @param repo_url e.g. 'shuiblue/INFOX'
      */
-    public String getActiveForkList(String repo_url) {
+    public String getActiveForkList(String repo_url, boolean hasTimeConstraint) {
 
         String forkUrl = github_api_repo + repo_url + "/forks?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
@@ -60,17 +60,22 @@ public class NameBasedClassifier {
                         forks_has_forks.add(name);
                     }
 
-                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-                    String created_at = (String) fork_list_jsonObj.get("created_at");
-                    String pushed_at = (String) fork_list_jsonObj.get("pushed_at");
-
                     try {
+                        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+                        String created_at = (String) fork_list_jsonObj.get("created_at");
                         Date created_time = formatter.parse(created_at.replaceAll("Z$", "+0000"));
-                        Date pushed_time = formatter.parse(pushed_at.replaceAll("Z$", "+0000"));
-                        if (created_time.before(pushed_time)) {
-                            if (name.length() > 0) {
-                                sb.append(name + "," + repo_url + "," + created_at + "\n");
+
+                        if (hasTimeConstraint) {
+                            String pushed_at = (String) fork_list_jsonObj.get("pushed_at");
+                            Date pushed_time = formatter.parse(pushed_at.replaceAll("Z$", "+0000"));
+                            if (created_time.before(pushed_time)) {
+                                if (name.length() > 0) {
+                                    sb.append(name + "," + repo_url + "," + created_at + "\n");
+                                }
                             }
+
+                        } else {
+                            sb.append(name + "," + repo_url + "," + created_at + "\n");
                         }
                     } catch (ParseException e) {
                         e.printStackTrace();
@@ -82,7 +87,7 @@ public class NameBasedClassifier {
         }
 
         for (String fork : forks_has_forks) {
-            sb.append(getActiveForkList(fork));
+            sb.append(getActiveForkList(fork, hasTimeConstraint));
         }
 
         return sb.toString();

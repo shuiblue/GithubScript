@@ -10,7 +10,7 @@ import java.util.*;
 public class main {
     static String current_dir;
     static int maxAnalyzedForkNum = 100;
-
+    static  boolean hasTimeConstraint =false;
     public static void main(String[] args) {
         GraphBasedClassifier graphBasedClassifier = new GraphBasedClassifier();
         NameBasedClassifier trackCommitHistory = new NameBasedClassifier();
@@ -34,7 +34,7 @@ public class main {
                 System.out.println("get all active forks of repo: " + repoName);
 
                 /**  get active forks using github api **/
-                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl);
+                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl,hasTimeConstraint);
                 io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 
                 /**  randomize forks from active_fork_list **/
