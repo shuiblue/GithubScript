@@ -41,7 +41,6 @@ public class NameBasedClassifier {
 
         String forkUrl = github_api_repo + repo_url + "/forks?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
-        int fork_count = 0;
         StringBuilder sb = new StringBuilder();
         ArrayList<String> forks_has_forks = new ArrayList<>();
 
@@ -70,26 +69,20 @@ public class NameBasedClassifier {
                         Date pushed_time = formatter.parse(pushed_at.replaceAll("Z$", "+0000"));
                         if (created_time.before(pushed_time)) {
                             if (name.length() > 0) {
-                                fork_count++;
                                 sb.append(name + "," + repo_url + "," + created_at + "\n");
-
                             }
                         }
                     } catch (ParseException e) {
                         e.printStackTrace();
                     }
-
                 }
             } else {
                 break;
             }
         }
 
-
-        if (fork_count < 100) {
-            for (String fork : forks_has_forks) {
-                sb.append(getActiveForkList(fork));
-            }
+        for (String fork : forks_has_forks) {
+            sb.append(getActiveForkList(fork));
         }
 
         return sb.toString();
@@ -215,7 +208,7 @@ public class NameBasedClassifier {
                 }
             }
             if (!sb.toString().contains(forkName + ",")) {
-            sb.append(forkName + "," + email_set.toString() + "\n");
+                sb.append(forkName + "," + email_set.toString() + "\n");
             } else {
                 sb.append(email_set.toString() + "\n");
 
@@ -234,7 +227,7 @@ public class NameBasedClassifier {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        if (fork_array_json!=null&fork_array_json.size() > 0) {
+        if (fork_array_json != null & fork_array_json.size() > 0) {
 
             String fork_info = fork_array_json.get(0);
             JSONObject fork_jsonObj = new JSONObject(fork_info);
@@ -268,7 +261,7 @@ public class NameBasedClassifier {
             e.printStackTrace();
         }
         for (String fork_contact_info : forkowner_Array) {
-            if(!fork_contact_info.equals("")) {
+            if (!fork_contact_info.equals("")) {
                 ArrayList<String> email_arrayList = new ArrayList<>();
                 String owner_id = fork_contact_info.split(",\\[")[0];
                 String[] emailarray = removeBrackets(fork_contact_info.split(",\\[")[1]).split(",");
@@ -813,47 +806,47 @@ public class NameBasedClassifier {
 
 
         System.out.println("analyzing contribution of each fork..");
-            IO_Process io = new IO_Process();
+        IO_Process io = new IO_Process();
 //            String[] commits_in_fork = null;
-            String[] commits_in_PR = null;
-            StringBuilder sb = new StringBuilder();
-            try {
+        String[] commits_in_PR = null;
+        StringBuilder sb = new StringBuilder();
+        try {
 //                commits_in_fork = io.readResult(result_dir + upstream_url + "/fork_contribution.csv").split("\n");
-                commits_in_PR = io.readResult(result_dir + upstream_url + "/pr_fork.txt").split("fork:");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            commits_in_PR = io.readResult(result_dir + upstream_url + "/pr_fork.txt").split("fork:");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 //            commits_in_fork[0] += ", #commits of unmerged PRs,mergedCommits\n";
 //            sb.append(commits_in_fork[0]);
-            for (int i = 1; i < commits_in_PR.length; i++) {
+        for (int i = 1; i < commits_in_PR.length; i++) {
 //                List<String> commits_only_in_fork = Arrays.asList(removeBrackets(commits_in_fork[i].split(",")[5].split(",")[0]).split("/ "));
-                List<String> commits_in_PR_from_fork = new ArrayList<>();
-                HashSet<String> mergedPR = new HashSet<>();
-                String[] pr_array = {};
-                pr_array = commits_in_PR[i].split("\n");
+            List<String> commits_in_PR_from_fork = new ArrayList<>();
+            HashSet<String> mergedPR = new HashSet<>();
+            String[] pr_array = {};
+            pr_array = commits_in_PR[i].split("\n");
 
-                if (pr_array.length > 1) {
-                    for (int j = 1; j < pr_array.length; j++) {
-                        String[] pr_info = pr_array[j].split("\\[");
-                        String pr_state = pr_info[0].split(",")[1];
-                        if (!pr_state.equals("merged")) {
-                            String[] rejected_commits = removeBrackets(pr_info[1]).split(", ");
-                            for (String rej_commit : rejected_commits) {
+            if (pr_array.length > 1) {
+                for (int j = 1; j < pr_array.length; j++) {
+                    String[] pr_info = pr_array[j].split("\\[");
+                    String pr_state = pr_info[0].split(",")[1];
+                    if (!pr_state.equals("merged")) {
+                        String[] rejected_commits = removeBrackets(pr_info[1]).split(", ");
+                        for (String rej_commit : rejected_commits) {
 //                                if (commits_only_in_fork.contains(rej_commit)) {
-                                    commits_in_PR_from_fork.add(rej_commit);
+                            commits_in_PR_from_fork.add(rej_commit);
 //                                }
-                            }
-                        } else {
-                            mergedPR.addAll(Arrays.asList(pr_info[1].replace("]", "").split(", ")));
                         }
+                    } else {
+                        mergedPR.addAll(Arrays.asList(pr_info[1].replace("]", "").split(", ")));
                     }
                 }
-
-                sb.append(commits_in_PR_from_fork.toString().replace(",", "/") + "," + mergedPR.toString().replace(",", "/") + "\n");
-//                sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size() + "," + mergedPR.toString().replace(",", "/") + "\n");
             }
 
-            io.rewriteFile(sb.toString(), result_dir + upstream_url + "/PR_result.csv");
+            sb.append(commits_in_PR_from_fork.toString().replace(",", "/") + "," + mergedPR.toString().replace(",", "/") + "\n");
+//                sb.append(commits_in_fork[i] + "," + commits_in_PR_from_fork.size() + "," + mergedPR.toString().replace(",", "/") + "\n");
+        }
+
+        io.rewriteFile(sb.toString(), result_dir + upstream_url + "/PR_result.csv");
 
 
     }
@@ -870,7 +863,7 @@ public class NameBasedClassifier {
             e.printStackTrace();
         }
 
-        if(profile_array_json!=null) {
+        if (profile_array_json != null) {
             String profile = profile_array_json.get(0);
             JSONObject profile_jsonObj = new JSONObject(profile);
             if (!profile.contains("\"email\":null")) {
@@ -884,7 +877,7 @@ public class NameBasedClassifier {
             }
 
             return new ForkInfo(forkName, user_name, email_set);
-        }else{
+        } else {
             return null;
         }
     }
