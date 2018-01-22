@@ -68,7 +68,9 @@ public class NameBasedClassifier {
                         if (hasTimeConstraint) {
                             String pushed_at = (String) fork_list_jsonObj.get("pushed_at");
                             Date pushed_time = formatter.parse(pushed_at.replaceAll("Z$", "+0000"));
-                            if (created_time.before(pushed_time)) {
+                            if (pushed_time.before(created_time)||pushed_time.equals(created_time)) {
+                                //todo: previous approach
+//                            if (created_time.before(pushed_time)) {
                                 if (name.length() > 0) {
                                     sb.append(name + "," + repo_url + "," + created_at + "\n");
                                 }
