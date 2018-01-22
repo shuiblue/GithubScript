@@ -56,7 +56,9 @@ public class main {
                 /** analyze commit history **/
                 String[] activeForkList = {};
                 try {
+
                     activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt").split("\n");
+                    System.out.println(activeForkList.length+" forks");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
