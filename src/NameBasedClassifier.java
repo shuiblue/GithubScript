@@ -68,7 +68,7 @@ public class NameBasedClassifier {
                         if (hasTimeConstraint) {
                             String pushed_at = (String) fork_list_jsonObj.get("pushed_at");
                             Date pushed_time = formatter.parse(pushed_at.replaceAll("Z$", "+0000"));
-                            if (pushed_time.before(created_time)||pushed_time.equals(created_time)) {
+                            if (pushed_time.before(created_time) || pushed_time.equals(created_time)) {
                                 //todo: previous approach
 //                            if (created_time.before(pushed_time)) {
                                 if (name.length() > 0) {
@@ -887,5 +887,188 @@ public class NameBasedClassifier {
         } else {
             return null;
         }
+    }
+
+    public void getPRs(String upstream_url) {
+        NameBasedClassifier tch = new NameBasedClassifier();
+
+        System.out.println("get pull request information...");
+        /** analyze each fork issue and PR history **/
+        IO_Process io = new IO_Process();
+        StringBuilder sb = new StringBuilder();
+
+        //https://api.github.com/repos/MarlinFirmware/Marlin/pulls
+        String PRUrl = github_api_repo + upstream_url + "/pulls?access_token=" + token + "&state=all&page=";
+
+
+        JsonUtility jsonUtility = new JsonUtility();
+        io.rewriteFile(sb.toString(), result_dir + upstream_url + "/pr_list.txt");
+        sb.append("fork,pr_id,state,commitsList\n");
+
+        for (int page = 1; page <= 300; page++) {
+            ArrayList<String> pr_array_json = null;
+            try {
+                pr_array_json = jsonUtility.readUrl(PRUrl + page);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (pr_array_json.size() > 0) {
+                for (String pr : pr_array_json) {
+                    JSONObject pr_jsonObj = new JSONObject(pr);
+                    int pr_id = (int) pr_jsonObj.get("number");
+                    String fork = ((JSONObject) pr_jsonObj.get("user")).get("login").toString();
+                    String state = (String) pr_jsonObj.get("state");
+
+                    if (state.equals("closed")) {
+                        boolean merged = pr_jsonObj.get("merged_at").equals(null) ? false : true;
+                        if (merged) {
+                            state = "merged";
+                        }
+                    }
+                    String PR_commit_Url = github_api_repo + upstream_url + "/pulls/" + pr_id + "/commits" + "?access_token=" + token + "&page=";
+
+                    ArrayList<String> commitsList = new ArrayList<>();
+                    for (int cp = 1; cp <= 30; cp++) {
+                        ArrayList<String> commits_array_json = null;
+                        try {
+                            commits_array_json = jsonUtility.readUrl(PR_commit_Url + cp);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        if (commits_array_json.size() == 0) {
+                            break;
+                        }
+                        for (String str : commits_array_json) {
+                            commitsList.add((String) new JSONObject(str).get("sha"));
+                        }
+                    }
+                    sb.append(fork + "," + pr_id + "," + state + "," + commitsList.toString().replace(",","/") + "\n");
+
+                }
+            } else {
+                break;
+            }
+
+        }
+        io.writeTofile(sb.toString(), result_dir + upstream_url + "/pr_list.txt");
+
+
+    }
+
+    public void getPRsOfEachFork(String repoUrl) {
+
+        IO_Process io = new IO_Process();
+        io.rewriteFile("fork,upstream,Only_F,Only_U,F2U,U2F,pr_commit,merged_commit,rejected_commit\n", result_dir + repoUrl + "/graph_pr.csv");
+
+        HashMap<String, ArrayList<String>> fork_PR = new HashMap<>();
+        StringBuilder sb = new StringBuilder();
+        String[] prs = null;
+        try {
+            prs = io.readResult(result_dir + repoUrl + "/pr_list.txt").split("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for (int i = 1; i < prs.length; i++) {
+            String line = prs[i];
+            String fork = line.split(",")[0];
+            ArrayList<String> prList = new ArrayList<>();
+            if (fork_PR.get(fork) == null) {
+                prList.add(line);
+            } else {
+                prList = fork_PR.get(fork);
+                prList.add(line);
+
+            }
+            fork_PR.put(fork, prList);
+        }
+
+        List<List<String>> graph_approach_result = io.readCSV(result_dir + repoUrl + "/graph_result.txt");
+        for (int i = 1; i < graph_approach_result.size(); i++) {
+            List<String> result = graph_approach_result.get(i);
+            String forkUrl = result.get(0);
+            String upstreamUrl = result.get(1);
+            String fork = forkUrl.split("/")[0];
+
+            ArrayList<String> onlyF_commits = new ArrayList<>();
+            String of=io.removeBrackets(result.get(6));
+            if(!of.equals("")) {
+                onlyF_commits.addAll(Arrays.asList(of.split("/ ")));
+            }
+
+            ArrayList<String> onlyU_commits = new ArrayList<>();
+            String ou=io.removeBrackets(result.get(7));
+            if(!ou.equals("")) {
+                onlyU_commits.addAll(Arrays.asList(ou.split("/")));
+            }
+
+            ArrayList<String> F2U_commits = new ArrayList<>();
+            String f2u=io.removeBrackets(result.get(8));
+            if(!f2u.equals("")) {
+                F2U_commits.addAll(Arrays.asList(f2u.split("/")));
+            }
+
+            ArrayList<String> U2F_commits = new ArrayList<>();
+            String u2f=io.removeBrackets(result.get(9));
+            if(!f2u.equals("")) {
+                U2F_commits.addAll(Arrays.asList(u2f.split("/")));
+            }
+
+
+            ArrayList<String> prList = fork_PR.get(fork);
+            if (prList != null) {
+
+                HashSet<String> pr_commit_set = new HashSet<>();
+                HashSet<String> pr_commit_merged = new HashSet<>();
+                HashSet<String> pr_commit_rejected = new HashSet<>();
+
+                for (String pr : prList) {
+                    String[] prInfo = pr.split(",");
+                    String status = prInfo[2];
+                    List<String> pr_commit = Arrays.asList(io.removeBrackets(prInfo[3]).split("/ "));
+                    for (String c : pr_commit) {
+                        boolean hasTwoParents = isMergeCommit(c, forkUrl);
+                        if (!hasTwoParents) {
+                            pr_commit_set.add(c);
+                            if (status.equals("merged")) {
+                                pr_commit_merged.add(c);
+                                if (!F2U_commits.contains(c)) {
+                                    F2U_commits.add(c);
+                                }
+                            } else if (status.equals("closed")) {
+                                pr_commit_rejected.add(c);
+                                if (!onlyF_commits.contains(c)) {
+                                    onlyF_commits.add(c);
+                                }
+                            }
+                        }
+
+                    }
+                }
+                sb.append(forkUrl + "," + upstreamUrl + "," + onlyF_commits.size() + "," + onlyU_commits.size() + "," + F2U_commits.size() + "," + U2F_commits.size()
+                        + "," + pr_commit_set.size() + "," + pr_commit_merged.size() + "," + pr_commit_rejected.size() + "\n");
+
+            } else {
+                sb.append(forkUrl + "," + upstreamUrl + "," + onlyF_commits.size() + "," + onlyU_commits.size() + "," + F2U_commits.size() + "," + U2F_commits.size()
+                        +",,,\n");
+                continue;
+            }
+
+
+        }
+        io.writeTofile(sb.toString(), result_dir + repoUrl + "/graph_pr.csv");
+
+    }
+
+    private boolean isMergeCommit(String sha, String forkURL) {
+        String commitURL = github_api_repo + forkURL + "/commit/" + sha;
+        JsonUtility jsonUtility = new JsonUtility();
+        JSONObject commit_jsonObj = getJsonObject(sha, forkURL, jsonUtility);
+        JSONArray parents = (JSONArray) commit_jsonObj.get("parents");
+        if (parents.length() == 2) {
+            return true;
+        }
+        return false;
+
     }
 }
