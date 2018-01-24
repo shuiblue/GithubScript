@@ -918,8 +918,11 @@ public class NameBasedClassifier {
                     int pr_id = (int) pr_jsonObj.get("number");
                     String fork = ((JSONObject) pr_jsonObj.get("user")).get("login").toString();
                     String state = (String) pr_jsonObj.get("state");
+                    String created_at = (String) pr_jsonObj.get("created_at");
+                    String closed_at = "";
 
                     if (state.equals("closed")) {
+                        closed_at = (String) pr_jsonObj.get("closed_at");
                         boolean merged = pr_jsonObj.get("merged_at").equals(null) ? false : true;
                         if (merged) {
                             state = "merged";
@@ -942,7 +945,7 @@ public class NameBasedClassifier {
                             commitsList.add((String) new JSONObject(str).get("sha"));
                         }
                     }
-                    sb.append(fork + "," + pr_id + "," + state+ "," + commitsList.size() + "," + commitsList.toString().replace(",","/") + "\n");
+                    sb.append(fork + "," + pr_id + "," + state + "," +created_at+","+closed_at+","+ commitsList.size() + "," + commitsList.toString().replace(",", "/") + "\n");
 
                 }
             } else {
@@ -991,26 +994,26 @@ public class NameBasedClassifier {
             String fork = forkUrl.split("/")[0];
 
             ArrayList<String> onlyF_commits = new ArrayList<>();
-            String of=io.removeBrackets(result.get(6));
-            if(!of.equals("")) {
+            String of = io.removeBrackets(result.get(6));
+            if (!of.equals("")) {
                 onlyF_commits.addAll(Arrays.asList(of.split("/ ")));
             }
 
             ArrayList<String> onlyU_commits = new ArrayList<>();
-            String ou=io.removeBrackets(result.get(7));
-            if(!ou.equals("")) {
+            String ou = io.removeBrackets(result.get(7));
+            if (!ou.equals("")) {
                 onlyU_commits.addAll(Arrays.asList(ou.split("/")));
             }
 
             ArrayList<String> F2U_commits = new ArrayList<>();
-            String f2u=io.removeBrackets(result.get(8));
-            if(!f2u.equals("")) {
+            String f2u = io.removeBrackets(result.get(8));
+            if (!f2u.equals("")) {
                 F2U_commits.addAll(Arrays.asList(f2u.split("/")));
             }
 
             ArrayList<String> U2F_commits = new ArrayList<>();
-            String u2f=io.removeBrackets(result.get(9));
-            if(!f2u.equals("")) {
+            String u2f = io.removeBrackets(result.get(9));
+            if (!f2u.equals("")) {
                 U2F_commits.addAll(Arrays.asList(u2f.split("/")));
             }
 
@@ -1050,7 +1053,7 @@ public class NameBasedClassifier {
 
             } else {
                 sb.append(forkUrl + "," + upstreamUrl + "," + onlyF_commits.size() + "," + onlyU_commits.size() + "," + F2U_commits.size() + "," + U2F_commits.size()
-                        +",,,\n");
+                        + ",,,\n");
                 continue;
             }
 
@@ -1069,6 +1072,62 @@ public class NameBasedClassifier {
             return true;
         }
         return false;
+
+    }
+
+    public void getPRofForks(String repoUrl) {
+        IO_Process io = new IO_Process();
+        HashMap<String, ArrayList<String>> fork_PR = new HashMap<>();
+
+        String[] prs = null;
+        try {
+            prs = io.readResult(result_dir + repoUrl + "/pr_list.txt").split("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for (int i = 1; i < prs.length; i++) {
+            String line = prs[i];
+            String fork = line.split(",")[0];
+            ArrayList<String> prList = new ArrayList<>();
+            if (fork_PR.get(fork) == null) {
+                prList.add(line);
+            } else {
+                prList = fork_PR.get(fork);
+                prList.add(line);
+
+            }
+            fork_PR.put(fork, prList);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("fork,pr_commit_set,pr_commit_merged,pr_commit_rejected\n");
+        fork_PR.forEach((k, v) -> {
+            HashSet<String> pr_commit_set = new HashSet<>();
+            HashSet<String> pr_commit_merged = new HashSet<>();
+            HashSet<String> pr_commit_rejected = new HashSet<>();
+
+            for (String pr : v) {
+                String[] prInfo = pr.split(",");
+                String status = prInfo[2];
+                List<String> pr_commit = Arrays.asList(io.removeBrackets(prInfo[6]).split("/ "));
+                for (String c : pr_commit) {
+                    pr_commit_set.add(c);
+                    if (status.equals("merged")) {
+                        pr_commit_merged.add(c);
+                    } else if (status.equals("closed")) {
+                        pr_commit_rejected.add(c);
+                    }
+
+                }
+            }
+
+            pr_commit_rejected.removeAll(pr_commit_merged);
+            sb.append(k + "," + pr_commit_set.size() + "," + pr_commit_merged.size() + "," + pr_commit_rejected.size() + "\n");
+        });
+
+
+        io.rewriteFile(sb.toString(), result_dir+repoUrl + "/pr_result.txt");
 
     }
 }

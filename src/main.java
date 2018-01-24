@@ -101,11 +101,15 @@ public class main {
 //                combineGraphWithInfo(repoUrl);
 //
 //
-                /**  only analyze PR by forkid **/
+//                /**  only analyze PR by forkid **/
                 trackCommitHistory.getPRs(repoUrl);
-                trackCommitHistory.getPRsOfEachFork(repoUrl);
-                /**  combine graph, info and PR result together**/
-                combineGraphWithInfo(repoUrl);
+                trackCommitHistory.getPRofForks(repoUrl);
+
+//                trackCommitHistory.getPRsOfEachFork(repoUrl);
+//                /**  combine graph, info and PR result together**/
+//                combineGraphWithInfo(repoUrl);
+
+
 
             }
 
