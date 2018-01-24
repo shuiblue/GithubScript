@@ -903,7 +903,7 @@ public class NameBasedClassifier {
 
         JsonUtility jsonUtility = new JsonUtility();
         io.rewriteFile(sb.toString(), result_dir + upstream_url + "/pr_list.txt");
-        sb.append("fork,pr_id,state,commitsList\n");
+        sb.append("fork,pr_id,state,num_commits,commitsList\n");
 
         for (int page = 1; page <= 300; page++) {
             ArrayList<String> pr_array_json = null;
@@ -942,7 +942,7 @@ public class NameBasedClassifier {
                             commitsList.add((String) new JSONObject(str).get("sha"));
                         }
                     }
-                    sb.append(fork + "," + pr_id + "," + state + "," + commitsList.toString().replace(",","/") + "\n");
+                    sb.append(fork + "," + pr_id + "," + state+ "," + commitsList.size() + "," + commitsList.toString().replace(",","/") + "\n");
 
                 }
             } else {
