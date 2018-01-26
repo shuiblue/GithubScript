@@ -1213,7 +1213,7 @@ public class NameBasedClassifier {
             }
             mergedPR.removeAll(rejectedPR);
             sb.append(","+allPR.size()+","+mergedPR.size()+","+rejectedPR.size()+"\n");
-            io.writeTofile(sb.toString(), result_dir+"new_result.csv");
+            io.writeTofile(sb.toString(), result_dir+"new_result_f6t1.csv");
             sb = new StringBuilder();
         }
     }
