@@ -945,7 +945,7 @@ public class NameBasedClassifier {
                             commitsList.add((String) new JSONObject(str).get("sha"));
                         }
                     }
-                    sb.append(fork + "," + pr_id + "," + state + "," +created_at+","+closed_at+","+ commitsList.size() + "," + commitsList.toString().replace(",", "/") + "\n");
+                    sb.append(fork + "," + pr_id + "," + state + "," + created_at + "," + closed_at + "," + commitsList.size() + "," + commitsList.toString().replace(",", "/") + "\n");
 
                 }
             } else {
@@ -1127,7 +1127,94 @@ public class NameBasedClassifier {
         });
 
 
-        io.rewriteFile(sb.toString(), result_dir+repoUrl + "/pr_result.txt");
+        io.rewriteFile(sb.toString(), result_dir + repoUrl + "/pr_result.txt");
 
+    }
+
+    public void getPRbyresuletable() {
+        final String current_dir = System.getProperty("user.dir");
+
+        IO_Process io = new IO_Process();
+        StringBuilder sb = new StringBuilder();
+        String[] forkArray = {};
+        try {
+            String forkList = io.readResult(current_dir + "/input/result.csv");
+            forkArray = forkList.split("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for (int i = 1; i < forkArray.length; i++) {
+            HashSet<String> allPR = new HashSet<>();
+            HashSet<String> mergedPR = new HashSet<>();
+            HashSet<String> rejectedPR = new HashSet<>();
+            String line = forkArray[i];
+            sb.append(line);
+            String[] arr = line.split(",");
+            String fork = arr[1];
+            String upstreamName = arr[2].split("/")[0].trim();
+            String forkName = fork.split("/")[0].replace("+", "%2B");
+            //https://api.github.com/search/issues?q=author%3AJobLeonard+user%3Atimscaffidi+type%3Aissue
+            String issueUrl = github_api_search + "issues?q=author%3A" + forkName + "+user%3A" + upstreamName + "+type%3Apr&access_token=" + token;
+            JsonUtility jsonUtility = new JsonUtility();
+            ArrayList<String> issue_array_json = null;
+            try {
+                issue_array_json = jsonUtility.readUrl(issueUrl);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (issue_array_json.size() > 0) {
+                for (String issue : issue_array_json) {
+                    JSONObject issue_jsonObj = new JSONObject(issue);
+                    int num_issue = (int) issue_jsonObj.get("total_count");
+                    if (num_issue > 0) {
+                        int page = num_issue / 30 + 1;
+
+                        for (int p = 1; p <= page; p++) {
+                            try {
+                                issue_array_json = jsonUtility.readUrl(issueUrl + "&page=" + page);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+
+                            if (issue_array_json.size() > 0) {
+                                for (String iss : issue_array_json) {
+                                    JSONObject iss_jsonObj = new JSONObject(issue);
+                                    JSONArray items_json = iss_jsonObj.getJSONArray("items");
+                                    for (int index = 0; index < items_json.toList().size(); index++) {
+                                        ;
+                                        JSONObject pr_json = (JSONObject) ((JSONObject) items_json.get(index)).get("pull_request");
+                                        String pr_url = (String) pr_json.get("url");
+
+                                        String merge_state = getPRstate(pr_url);
+//                                        sb.append(pr_url + "," + merge_state + ",");
+
+                                        /** get commit of this PR **/
+                                        ArrayList<String> pr_commitList = getPRcommits(pr_url);
+                                        allPR.addAll(pr_commitList);
+                                        if (merge_state.equals("merged")) {
+                                            mergedPR.addAll(pr_commitList);
+                                        } else if (merge_state.equals("closed")) {
+                                            rejectedPR.addAll(pr_commitList);
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+
+                    } else {
+                        break;
+                    }
+
+                }
+
+            }
+            mergedPR.removeAll(rejectedPR);
+            sb.append(","+allPR.size()+","+mergedPR.size()+","+rejectedPR.size()+"\n");
+            io.writeTofile(sb.toString(), result_dir+"new_result.csv");
+            sb = new StringBuilder();
+        }
     }
 }

@@ -102,8 +102,9 @@ public class main {
 //
 //
 //                /**  only analyze PR by forkid **/
-                trackCommitHistory.getPRs(repoUrl);
-                trackCommitHistory.getPRofForks(repoUrl);
+//                trackCommitHistory.getPRs(repoUrl);
+//                trackCommitHistory.getPRofForks(repoUrl);
+                trackCommitHistory.getPRbyresuletable();
 
 //                trackCommitHistory.getPRsOfEachFork(repoUrl);
 //                /**  combine graph, info and PR result together**/
