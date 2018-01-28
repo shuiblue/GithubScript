@@ -9,7 +9,7 @@ import java.util.*;
  */
 public class main {
     static String current_dir;
-    static int maxAnalyzedForkNum = 100;
+    static int maxAnalyzedForkNum = 50;
     static  boolean hasTimeConstraint =true;
     public static void main(String[] args) {
         GraphBasedClassifier graphBasedClassifier = new GraphBasedClassifier();
