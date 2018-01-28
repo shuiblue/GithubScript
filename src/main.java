@@ -9,7 +9,7 @@ import java.util.*;
  */
 public class main {
     static String current_dir;
-    static int maxAnalyzedForkNum = 50;
+    static int maxAnalyzedForkNum = 20;
     static  boolean hasTimeConstraint =true;
     public static void main(String[] args) {
         GraphBasedClassifier graphBasedClassifier = new GraphBasedClassifier();
@@ -132,8 +132,7 @@ public class main {
         int created_at_index = 2;
         int push_at_index = 3;
 
-        graph_approach_result = io.readCSV(current_dir + "/result/" + repoUrl + "/graph_pr.csv");
-//        graph_approach_result = io.readCSV(current_dir + "/result/" + repoUrl + "/graph_result.csv");
+        graph_approach_result = io.readCSV(current_dir + "/result/" + repoUrl + "/graph_result.csv");
         fork_info_result = io.readCSV(current_dir + "/result/" + repoUrl + "/forkInfo.csv");
         String graph_approach_commitList[] = {};
 
