@@ -1138,7 +1138,7 @@ public class NameBasedClassifier {
         StringBuilder sb = new StringBuilder();
         String[] forkArray = {};
         try {
-            String forkList = io.readResult(current_dir + "/input/graph_info_shadowsocks.csv");
+            String forkList = io.readResult(current_dir + "/input/graph_info_call.csv");
             forkArray = forkList.split("\n");
         } catch (IOException e) {
             e.printStackTrace();
@@ -1213,7 +1213,8 @@ public class NameBasedClassifier {
             }
             mergedPR.removeAll(rejectedPR);
             sb.append(","+allPR.size()+","+mergedPR.size()+","+rejectedPR.size()+"\n");
-            io.writeTofile(sb.toString(), result_dir+"new_result_shadowsocks.csv");
+            io.writeTofile(sb.toString(), result_dir+"new_result_call" +
+                    ".csv");
             sb = new StringBuilder();
         }
     }
