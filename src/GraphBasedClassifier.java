@@ -29,8 +29,9 @@ public class GraphBasedClassifier {
     HashMap<String, ArrayList<String>> fork_HistoryMap, upstream_HistoryMap;
     HashSet<String> fork_mergeCommitSet, upstream_mergeCommitSet;
     String forkPointCommitSHA = "";
-    String firstCommit = "";
 
+    //    String firstCommit = "";
+    ArrayList<String> firstCommitList = new ArrayList<>();
     ArrayList<String> checkedCommits;
     HashSet<String> checkedCommitsBeforeForking;
 
@@ -45,7 +46,7 @@ public class GraphBasedClassifier {
         forkPointCommitSHA = "";
         checkedCommits = new ArrayList<>();
         checkedCommitsBeforeForking = new HashSet<>();
-        HashSet<String> fork_ignoreBranches, upstream_ignoreBranches;
+//        HashSet<String> fork_ignoreBranches, upstream_ignoreBranches;
 
         /** result**/
         HashSet<String> onlyFork = new HashSet<>();
@@ -64,12 +65,19 @@ public class GraphBasedClassifier {
         jg.cloneRepo(upstreamUrl);
 
         /** get commit history in each branch of fork and upstream**/
+//        /**----   in fork **/
+//        System.out.println("getting Commits In all Branches of fork: " + forkUrl);
+//        fork_HistoryMap = getCommitInBranch(forkUrl, forkpointDate, "");
+//        /**----  in upstream **/
+//        System.out.println("getting Commits In all Branches of upstream: " + upstreamUrl);
+//        upstream_HistoryMap = getCommitInBranch(upstreamUrl, "", forkUrl);
+        /** consider all branches**/
         /**----   in fork **/
         System.out.println("getting Commits In all Branches of fork: " + forkUrl);
-        fork_HistoryMap = getCommitInBranch(forkUrl, forkpointDate, "");
+        fork_HistoryMap = getCommitInBranch(forkUrl, "");
         /**----  in upstream **/
         System.out.println("getting Commits In all Branches of upstream: " + upstreamUrl);
-        upstream_HistoryMap = getCommitInBranch(upstreamUrl, "", forkUrl);
+        upstream_HistoryMap = getCommitInBranch(upstreamUrl, forkUrl);
 
 
         HashMap<String, List<String>> fork_branch_History_map, upstream_branch_History_map;
@@ -77,23 +85,23 @@ public class GraphBasedClassifier {
 
         try {
             System.out.println("getting fork branch commit list..");
-            String[] fork_ignoreBranchesArray = io.readResult(tmpDirPath + forkUrl + "/" + forkUrl.split("/")[0] + "_ignoreBranches.txt").split("\n");
-            fork_ignoreBranches = new HashSet<>();
-            for (String br : fork_ignoreBranchesArray) {
-                fork_ignoreBranches.add(br.split(",")[0]);
-            }
+//            String[] fork_ignoreBranchesArray = io.readResult(tmpDirPath + forkUrl + "/" + forkUrl.split("/")[0] + "_ignoreBranches.txt").split("\n");
+//            fork_ignoreBranches = new HashSet<>();
+//            for (String br : fork_ignoreBranchesArray) {
+//                fork_ignoreBranches.add(br.split(",")[0]);
+//            }
 
-            String fork_branchStr = io.readResult(tmpDirPath + forkUrl + "/" + forkUrl.split("/")[0] + "_branch_commitList.txt");
-            if (fork_branchStr.equals("")) {
-                StringBuilder sb_result = new StringBuilder();
-                sb_result.append(forkUrl + "," + upstreamUrl + ",0,0,0,0,[],[],[],[]\n");
-                StringBuilder sb_result_csv= new StringBuilder();
-                sb_result_csv.append(forkUrl + "," + upstreamUrl + ",0,0,0,0,\n");
-                io.writeTofile(sb_result_csv.toString(), current_dir + "/result/" + repoURL + "/graph_result.csv");
-                io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.txt");
-                return;
-
-            }
+//            String fork_branchStr = io.readResult(tmpDirPath + forkUrl + "/" + forkUrl.split("/")[0] + "_branch_commitList.txt");
+//            if (fork_branchStr.equals("")) {
+//                StringBuilder sb_result = new StringBuilder();
+//                sb_result.append(forkUrl + "," + upstreamUrl + ",0,0,0,0,[],[],[],[]\n");
+//                StringBuilder sb_result_csv = new StringBuilder();
+//                sb_result_csv.append(forkUrl + "," + upstreamUrl + ",0,0,0,0,\n");
+//                io.writeTofile(sb_result_csv.toString(), current_dir + "/result/" + repoURL + "/graph_result.csv");
+//                io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.txt");
+//                return;
+//
+//            }
 
 
             System.out.println("getting fork commit history map..");
@@ -103,11 +111,11 @@ public class GraphBasedClassifier {
 
 
             System.out.println("getting upstream branch commit list..");
-            String[] upstream_ignoreBranchesArray = io.readResult(tmpDirPath + upstreamUrl + "/" + upstreamUrl.split("/")[0] + "_ignoreBranches.txt").split("\n");
-            upstream_ignoreBranches = new HashSet<>();
-            for (String br : upstream_ignoreBranchesArray) {
-                upstream_ignoreBranches.add(br.split(",")[0]);
-            }
+//            String[] upstream_ignoreBranchesArray = io.readResult(tmpDirPath + upstreamUrl + "/" + upstreamUrl.split("/")[0] + "_ignoreBranches.txt").split("\n");
+//            upstream_ignoreBranches = new HashSet<>();
+//            for (String br : upstream_ignoreBranchesArray) {
+//                upstream_ignoreBranches.add(br.split(",")[0]);
+//            }
 
             System.out.println("get merged commits");
 
@@ -124,27 +132,26 @@ public class GraphBasedClassifier {
             HashSet<String> forkLatestCommits = new HashSet<>();
             HashSet<String> upstreamLatestCommits = new HashSet<>();
 
-            HashSet<String> finalFork_ignoreBranches = fork_ignoreBranches;
+//            HashSet<String> finalFork_ignoreBranches = fork_ignoreBranches;
             fork_branch_History_map.forEach((k, v) -> {
-                if (!finalFork_ignoreBranches.contains(k)) {
-                    allCommits.addAll(v);
-                    forkLatestCommits.add(v.get(0));
-                }
+//                if (!finalFork_ignoreBranches.contains(k)) {
+                allCommits.addAll(v);
+                forkLatestCommits.add(v.get(0));
+//                }
             });
-            HashSet<String> finalUpstream_ignoreBranches = upstream_ignoreBranches;
+//            HashSet<String> finalUpstream_ignoreBranches = upstream_ignoreBranches;
             upstream_branch_History_map.forEach((k, v) -> {
-                if (!finalUpstream_ignoreBranches.contains(k)) {
-                    allCommits.addAll(v);
-                    upstreamLatestCommits.add(v.get(0));
-                }
+//                if (!finalUpstream_ignoreBranches.contains(k)) {
+                allCommits.addAll(v);
+                upstreamLatestCommits.add(v.get(0));
+//                }
             });
 
             allCommits.removeAll(upstream_mergeCommitSet);
             allCommits.removeAll(fork_mergeCommitSet);
-            System.out.println(allCommits.size()+ " commits");
+            System.out.println(allCommits.size() + " commits");
 
             /** Dijkstra ---  calculate shortest path  **/
-
 
 
             initializeGraph();
@@ -217,7 +224,7 @@ public class GraphBasedClassifier {
 //        String localDirPath = "/Users/shuruiz/Box Sync/GithubScript-New/cloneRepos/";
         try {
 //            io.deleteDir(new File(localDirPath + upstreamUrl));
-            io.deleteDir(new File(current_dir+"/cloneRepos/" + forkUrl));
+            io.deleteDir(new File(current_dir + "/cloneRepos/" + forkUrl));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -235,30 +242,34 @@ public class GraphBasedClassifier {
         System.out.println("init graph");
         DijkstraAlgorithm dijkstra = new DijkstraAlgorithm(graph);
 
-        System.out.println(latestCommits.size()+" loops");
+        System.out.println(latestCommits.size() + " loops");
         for (String target : latestCommits) {
             long start = System.nanoTime();
 //            System.out.println("Dijkstra start: " +start);
-            System.out.println("target: "+target);
+            System.out.println("target: " + target);
             dijkstra.execute(new Vertex(target));
-            LinkedList<Vertex> path = dijkstra.getPath(new Vertex(firstCommit));
-            HashMap<Vertex, Integer> tmp_distance_map = (HashMap<Vertex, Integer>) dijkstra.getDistance();
+            for (String firstCommit : firstCommitList) {
+                dijkstra.getPath(new Vertex(firstCommit));
+                HashMap<Vertex, Integer> tmp_distance_map = (HashMap<Vertex, Integer>) dijkstra.getDistance();
 
-            long end = System.nanoTime();
-            long used = end - start;
-            System.out.println("dijkstra :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+                long end = System.nanoTime();
+                long used = end - start;
+                System.out.println("dijkstra :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
 
 
-            System.out.println("get "+tmp_distance_map.keySet().size()+" reacheable vertex, get min distance");
-            for (String c : allCommits) {
-                int old = distance_map.get(c);
-                if (tmp_distance_map.get(new Vertex(c)) != null) {
-                    int updated = tmp_distance_map.get(new Vertex(c));
-                    int newdist = old <= updated ? old : updated;
-                    distance_map.put(c, newdist);
+                System.out.println("get " + tmp_distance_map.keySet().size() + " reacheable vertex, get min distance");
+                for (String c : allCommits) {
+                    int old = distance_map.get(c);
+                    if (c.equals("6adb49b7a928b9f611693ddcde601215583381cf")) {
+                        System.out.println(old);
+                    }
+                    if (tmp_distance_map.get(new Vertex(c)) != null) {
+                        int updated = tmp_distance_map.get(new Vertex(c));
+                        int newdist = old <= updated ? old : updated;
+                        distance_map.put(c, newdist);
+                    }
                 }
             }
-
         }
         return distance_map;
     }
@@ -278,10 +289,11 @@ public class GraphBasedClassifier {
 
 
     HashMap<String, ArrayList<String>> all_historyMap = new HashMap<>();
+
     private void generatingGraphForDijkstra(HashMap<String, ArrayList<String>> historyMap) {
 
         historyMap.forEach((k, v) -> {
-            all_historyMap.put(k,v);
+            all_historyMap.put(k, v);
             Vertex v_k = new Vertex(k);
             nodeSet.add(v_k);
             if (v.size() > 0) {
@@ -545,6 +557,116 @@ public class GraphBasedClassifier {
         return path;
     }
 
+    /**
+     * This function gets commits in each branch, removes stale branches
+     */
+
+    public HashMap<String, ArrayList<String>> getCommitInBranch(String repo_uri, String forkUrl) {
+        HashMap<String, ArrayList<String>> forkHistoryMap = new HashMap<>();
+        StringBuilder sb_commitHistory = new StringBuilder();
+        IO_Process io = new IO_Process();
+        String pathname = tmpDirPath + repo_uri + "/";
+        String repoName = repo_uri.split("/")[0];
+
+        String[] branchArray = {};
+        try {
+            branchArray = io.readResult(pathname + repoName + "_branchList.txt").split("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        /** the pure commit list is [3,2,4,1]**/
+        HashSet<String> all_mergeCommitList = new HashSet<>();
+
+
+        for (String branch : branchArray) {
+            System.out.println("analyzing branch: " + branch);
+            Repository repository;
+
+            /**Pure commit list only contains Parent1-commits, remove merge-commit from history
+             * 1----> 2--------> 3 -------->6
+             *        |                    ^
+             *        |                    |
+             *        --- 4 ------> 5 -----
+             *            |         ^
+             *            |         |
+             *            ---- 7 ---
+             */
+
+            /** commit history   [6, 5, 7, 4, 3, 2, 1] **/
+            ArrayList<String> commitHistory = new ArrayList<>();
+
+            try {
+                repository = new FileRepository(pathname + ".git");
+                Git git = new Git(repository);
+
+                List<Ref> refList = git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
+                List<String> existBranches = new ArrayList<>();
+                for (Ref ref : refList) {
+                    existBranches.add(ref.toString().split("=")[0].replace("Ref[refs/heads/", ""));
+                }
+
+
+                /**only checkout remote branch**/
+                if (!existBranches.contains(branch)) {
+                    //https://stackoverflow.com/questions/12927163/jgit-checkout-a-remote-branch
+                    System.out.println("check out branch: " + branch);
+                    git.checkout().
+                            setCreateBranch(true).
+                            setName(branch).
+                            setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+                            setStartPoint("origin/" + branch).
+                            call();
+                }
+
+
+                /** get commit history of a branch **/
+                Iterable<RevCommit> logs = new Git(repository)
+                        .log()
+                        .add(repository.resolve("refs/remotes/origin/" + branch))
+                        .call();
+
+
+                for (RevCommit rev : logs) {
+                    String sha = rev.getName();
+                    commitHistory.add(sha);
+                    if (forkHistoryMap.get(sha) == null) {
+                        forkHistoryMap.put(sha, new ArrayList<>());
+                        if (rev.getParentCount() >= 2) {
+
+                            all_mergeCommitList.add(sha);
+                            String p1 = rev.getParent(0).getName();
+                            String p2 = rev.getParent(1).getName();
+
+                            forkHistoryMap.get(sha).add(p1);
+                            forkHistoryMap.get(sha).add(p2);
+                        } else {
+                            if (rev.getParentCount() == 1) {
+                                forkHistoryMap.get(sha).add(rev.getParent(0).getName());
+                            } else if (rev.getParentCount() == 0){
+//                                firstCommit = sha;
+                                firstCommitList.add(sha);
+                                System.out.println("root: " + sha);
+                            }
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (NoHeadException e) {
+                e.printStackTrace();
+            } catch (GitAPIException e) {
+                e.printStackTrace();
+            }
+            sb_commitHistory.append(branch + "," + commitHistory + "\n");
+            /**  contribution =  no_merge - origin **/
+        }
+        io.rewriteFile(all_mergeCommitList.toString(), pathname + repoName + "_all_mergedCommit.txt");
+
+        io.rewriteFile(sb_commitHistory.toString(), pathname + repoName + "_CommitHistory.txt");
+        return forkHistoryMap;
+    }
+
 
     /**
      * This function gets commits in each branch, removes stale branches
@@ -625,7 +747,7 @@ public class GraphBasedClassifier {
                 repository = new FileRepository(pathname + ".git");
                 Git git = new Git(repository);
 
-                List<Ref> refList = git.branchList().setListMode( ListBranchCommand.ListMode.ALL ).call();
+                List<Ref> refList = git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
                 List<String> existBranches = new ArrayList<>();
                 for (Ref ref : refList) {
                     existBranches.add(ref.toString().split("=")[0].replace("Ref[refs/heads/", ""));
@@ -732,7 +854,7 @@ public class GraphBasedClassifier {
                             if (rev.getParentCount() == 1) {
                                 forkHistoryMap.get(sha).add(rev.getParent(0).getName());
                             } else {
-                                firstCommit = sha;
+//                                firstCommit = sha;
                             }
                         }
                     }

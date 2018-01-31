@@ -68,9 +68,7 @@ public class NameBasedClassifier {
                         if (hasTimeConstraint) {
                             String pushed_at = (String) fork_list_jsonObj.get("pushed_at");
                             Date pushed_time = formatter.parse(pushed_at.replaceAll("Z$", "+0000"));
-                            if (pushed_time.before(created_time) || pushed_time.equals(created_time)) {
-                                //todo: previous approach
-//                            if (created_time.before(pushed_time)) {
+                            if (created_time.before(pushed_time)) {
                                 if (name.length() > 0) {
                                     sb.append(name + "," + repo_url + "," + created_at + "\n");
                                 }
@@ -1138,7 +1136,7 @@ public class NameBasedClassifier {
         StringBuilder sb = new StringBuilder();
         String[] forkArray = {};
         try {
-            String forkList = io.readResult(current_dir + "/input/graph_info_call.csv");
+            String forkList = io.readResult(current_dir + "/input/smothie.csv");
             forkArray = forkList.split("\n");
         } catch (IOException e) {
             e.printStackTrace();
@@ -1213,8 +1211,7 @@ public class NameBasedClassifier {
             }
             mergedPR.removeAll(rejectedPR);
             sb.append(","+allPR.size()+","+mergedPR.size()+","+rejectedPR.size()+"\n");
-            io.writeTofile(sb.toString(), result_dir+"new_result_call" +
-                    ".csv");
+            io.writeTofile(sb.toString(), result_dir+"test_smothie.csv");
             sb = new StringBuilder();
         }
     }
