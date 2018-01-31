@@ -154,9 +154,11 @@ public class GraphBasedClassifier {
             /** Dijkstra ---  calculate shortest path  **/
 
 
+
             initializeGraph();
             Graph graph = new Graph(all_historyMap);
             System.out.println("distance to updatream");
+            System.out.println(firstCommitList.size()+" roots!");
             HashMap<String, Integer> distance2Upstream_map = getShortestPath_Dij(upstreamLatestCommits, graph, allCommits);
             System.out.println("distance to fork");
             HashMap<String, Integer> distance2Fork_map = getShortestPath_Dij(forkLatestCommits, graph, allCommits);
@@ -260,9 +262,6 @@ public class GraphBasedClassifier {
                 System.out.println("get " + tmp_distance_map.keySet().size() + " reacheable vertex, get min distance");
                 for (String c : allCommits) {
                     int old = distance_map.get(c);
-                    if (c.equals("6adb49b7a928b9f611693ddcde601215583381cf")) {
-                        System.out.println(old);
-                    }
                     if (tmp_distance_map.get(new Vertex(c)) != null) {
                         int updated = tmp_distance_map.get(new Vertex(c));
                         int newdist = old <= updated ? old : updated;
