@@ -43,7 +43,7 @@ public class NameBasedClassifier {
         JsonUtility jsonUtility = new JsonUtility();
         StringBuilder sb = new StringBuilder();
         ArrayList<String> forks_has_forks = new ArrayList<>();
-
+        int totalForks = 0;
         for (int page = 1; page <= 300; page++) {
             ArrayList<String> fork_array_json = null;
             try {
@@ -53,6 +53,7 @@ public class NameBasedClassifier {
             }
             if (fork_array_json.size() > 0) {
                 for (String fork : fork_array_json) {
+                    totalForks += 1;
                     JSONObject fork_list_jsonObj = new JSONObject(fork);
                     String name = (String) fork_list_jsonObj.get("full_name");
 
@@ -89,6 +90,10 @@ public class NameBasedClassifier {
         for (String fork : forks_has_forks) {
             sb.append(getActiveForkList(fork, hasTimeConstraint));
         }
+
+        int activeForkNum = sb.toString().split("\n").length;
+        IO_Process io = new IO_Process() ;
+        io.rewriteFile(activeForkNum + ","+totalForks+ "",result_dir + repo_url + "/activeInTotal.txt");
 
         return sb.toString();
     }
@@ -1129,14 +1134,14 @@ public class NameBasedClassifier {
 
     }
 
-    public void getPRbyresuletable() {
+    public void getPRbyresuletable(String repoURL) {
         final String current_dir = System.getProperty("user.dir");
 
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
         String[] forkArray = {};
         try {
-            String forkList = io.readResult(current_dir + "/input/smothie.csv");
+            String forkList = io.readResult(result_dir + repoURL+"/graph_info.csv");
             forkArray = forkList.split("\n");
         } catch (IOException e) {
             e.printStackTrace();
@@ -1210,8 +1215,8 @@ public class NameBasedClassifier {
 
             }
             mergedPR.removeAll(rejectedPR);
-            sb.append(","+allPR.size()+","+mergedPR.size()+","+rejectedPR.size()+"\n");
-            io.writeTofile(sb.toString(), result_dir+"test_smothie.csv");
+            sb.append("," + allPR.size() + "," + mergedPR.size() + "," + rejectedPR.size() + "\n");
+            io.writeTofile(sb.toString(), result_dir + repoURL + "/PR_graph_info.csv");
             sb = new StringBuilder();
         }
     }

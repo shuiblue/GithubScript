@@ -34,11 +34,10 @@ public class main {
                 System.out.println("get all active forks of repo: " + repoName);
 
                 /**  get active forks using github api **/
-//                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl,hasTimeConstraint);
-//                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl,hasTimeConstraint);
+                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 
-                /**  randomize forks from active_fork_list **/
-//                 String all_activeForkList = null;
+//                /**  randomize forks from active_fork_list **/
 //                try {
 //                    all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 //                } catch (IOException e) {
@@ -93,20 +92,17 @@ public class main {
                 }
                 io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/forkInfo.csv");
 
-                /**   combines two result graph and name together **/
+
                 System.out.println("generating final table.");
-
+                /**   combines two result graph and name together **/
 //                combineTwoApproaches(repoUrl);
-                /**  combine graph, info and PR result together**/
+                /**  combine graph, info and PsR result together**/
                 combineGraphWithInfo(repoUrl);
-//
-//
-//                /**  only analyze PR by forkid **/
-//                trackCommitHistory.getPRs(repoUrl);
-//                trackCommitHistory.getPRofForks(repoUrl);
-//                trackCommitHistory.getPRbyresuletable();
 
-//                trackCommitHistory.getPRsOfEachFork(repoUrl);
+
+                /**  get PR by forkid **/
+                trackCommitHistory.getPRbyresuletable(repoUrl);
+
 
 
 
@@ -126,7 +122,7 @@ public class main {
 
         StringBuilder sb = new StringBuilder();
         sb.append("repo,fork,upstream,only_F,only_U,F2U,U2F,"
-                +"pr_commit,merged_commit,reject_commit,"
+//                +"pr_commit,merged_commit,reject_commit,"
                 + "fork_num,created_at,pushed_at,size,language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type,fork_age,lastCommit_age\n");
 
         int created_at_index = 2;
