@@ -29,7 +29,6 @@ public class GraphBasedClassifier {
     HashSet<String> fork_mergeCommitSet, upstream_mergeCommitSet;
     String forkPointCommitSHA = "";
 
-    ArrayList<String> firstCommitList = new ArrayList<>();
     ArrayList<String> checkedCommits;
     HashSet<String> checkedCommitsBeforeForking;
 
@@ -151,7 +150,6 @@ public class GraphBasedClassifier {
             initializeGraph();
             Graph graph = new Graph(all_historyMap);
             System.out.println("distance to updatream");
-            System.out.println(firstCommitList.size() + " roots!");
             HashMap<String, Integer> distance2Upstream_map = getShortestPath_Dij(upstreamLatestCommits, graph, allCommits);
             System.out.println("distance to fork");
             HashMap<String, Integer> distance2Fork_map = getShortestPath_Dij(forkLatestCommits, graph, allCommits);
@@ -209,8 +207,6 @@ public class GraphBasedClassifier {
             long start = System.nanoTime();
             System.out.println("target: " + target);
             dijkstra.execute(new Vertex(target));
-            for (String firstCommit : firstCommitList) {
-                dijkstra.getPath(new Vertex(firstCommit));
                 HashMap<Vertex, Integer> tmp_distance_map = (HashMap<Vertex, Integer>) dijkstra.getDistance();
 
                 long end = System.nanoTime();
@@ -230,7 +226,6 @@ public class GraphBasedClassifier {
                     }
 
                 }
-            }
         }
         return distance_map;
     }
@@ -525,10 +520,6 @@ public class GraphBasedClassifier {
                             if (rev.getParentCount() > 2) {
                                 sb_multipleParentsSHA.append(sha + " " + rev.getParentCount() + " parents" + "\n");
                             }
-
-
-                        } else if (rev.getParentCount() == 0) {
-                            firstCommitList.add(sha);
                         }
                     }
                 }
@@ -560,7 +551,6 @@ public class GraphBasedClassifier {
         io.rewriteFile(sb_ignoreBranches.toString(), pathname + repoName + "_ignoreBranches.txt");
         io.rewriteFile(sb_update_fork_ignoreBranches.toString(), update_fork_pathname + update_forkName + "_ignoreBranches.txt");
         io.rewriteFile(sb_multipleParentsSHA.toString(), pathname + update_forkName + "_abnormalCommits.txt");
-        io.rewriteFile(firstCommitList.toString(), pathname + update_forkName + "_root.txt");
 
         return forkHistoryMap;
     }
