@@ -117,9 +117,34 @@ public class JsonUtility {
 
     public static void main(String args[]) {
         JsonUtility utility = new JsonUtility();
-        //read
-        readUrl("https://api.github.com/repos/icarus1966/tensorflow/forks?access_token=904838378e141f62ba12e8d824666f2fee27c7b9&page=1");
-        utility.readJson(json);
+        ArrayList<String> json_block_array = new ArrayList<>();
+       IO_Process io = new IO_Process();
+        try {
+          String json_string =  io.readResult("/Users/shuruiz/Box Sync/queryGithub/timscaffidi/ofxVideoRecorder/pr.txt");
+            if (!json_string.equals("[]")) {
+                if (json_string.startsWith("[")) {
+                    if (json_string.contains(",{")) {
+                        JSONArray jsonArray = new JSONArray(json_string);
+
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            JSONObject jsonObj = jsonArray.getJSONObject(i);
+                            json_block_array.add(String.valueOf(jsonObj));
+                        }
+                    } else {
+                        json_block_array.add(json_string.substring(1, json_string.lastIndexOf("]")));
+                    }
+                } else {
+                    json_block_array.add(json_string);
+                }
+            }
+
+//          JSONObject iss_jsonObj = new JSONObject(pr);
+//          JSONArray items_json = iss_jsonObj.getJSONArray("url");
+            System.out.println();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
 }

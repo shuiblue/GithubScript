@@ -9,8 +9,9 @@ import java.util.*;
  */
 public class main {
     static String current_dir;
-    static int maxAnalyzedForkNum =100;
-    static  boolean hasTimeConstraint =true;
+    static int maxAnalyzedForkNum = 100;
+    static boolean hasTimeConstraint = true;
+
     public static void main(String[] args) {
         GraphBasedClassifier graphBasedClassifier = new GraphBasedClassifier();
         NameBasedClassifier trackCommitHistory = new NameBasedClassifier();
@@ -45,10 +46,10 @@ public class main {
                     e.printStackTrace();
                 }
 
-                if (all_activeForkList.split("\n").length<= maxAnalyzedForkNum) {
+                if (all_activeForkList.split("\n").length <= maxAnalyzedForkNum) {
                     io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
                 } else {
-                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl +"/all_ActiveForklist.txt");
+                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/all_ActiveForklist.txt");
                     System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
                     trackCommitHistory.getRamdomForks(repoUrl, maxAnalyzedForkNum);
                 }
@@ -58,7 +59,7 @@ public class main {
                 try {
 
                     activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt").split("\n");
-                    System.out.println(activeForkList.length+" forks");
+                    System.out.println(activeForkList.length + " forks");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -102,9 +103,7 @@ public class main {
 
 
                 /**  get PR by forkid **/
-                trackCommitHistory.getPRbyresuletable(repoUrl);
-
-
+//                trackCommitHistory.getPRbyresuletable(repoUrl);
 
 
             }
@@ -137,7 +136,7 @@ public class main {
         for (int i = 1; i < graph_approach_result.size(); i++) {
             List<String> graph_result = graph_approach_result.get(i);
             System.out.println(i);
-            if (!io.removeBrackets(graph_result.toString()).equals("")&&fork_info_result.get(i).size()>1) {
+            if (!io.removeBrackets(graph_result.toString()).equals("") && fork_info_result.get(i).size() > 1) {
                 String[] created = fork_info_result.get(i).get(created_at_index).split("T")[0].split("-");
                 String[] push = fork_info_result.get(i).get(push_at_index).split("T")[0].split("-");
                 LocalDate create_date = LocalDate.of(Integer.valueOf(created[0]), Integer.valueOf(created[1]), Integer.valueOf(created[2]));
