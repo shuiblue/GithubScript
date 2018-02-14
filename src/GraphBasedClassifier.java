@@ -220,9 +220,9 @@ public class GraphBasedClassifier {
                         int updated = tmp_distance_map.get(new Vertex(c));
                         int newdist = old <= updated ? old : updated;
                         distance_map.put(c, newdist);
-                        if (c.equals("1dec645383385e5728e47db9ae836b104701a66b")) {
-                            System.out.println(target + "  ,  " + newdist);
-                        }
+//                        if (c.equals("1dec645383385e5728e47db9ae836b104701a66b")) {
+//                            System.out.println(target + "  ,  " + newdist);
+//                        }
                     }
 
                 }

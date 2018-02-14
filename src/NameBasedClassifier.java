@@ -91,9 +91,6 @@ public class NameBasedClassifier {
             sb.append(getActiveForkList(fork, hasTimeConstraint));
         }
 
-        int activeForkNum = sb.toString().split("\n").length;
-        IO_Process io = new IO_Process() ;
-        io.rewriteFile(activeForkNum + ","+totalForks+ "",result_dir + repo_url + "/activeInTotal.txt");
 
         return sb.toString();
     }
