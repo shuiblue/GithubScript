@@ -77,8 +77,10 @@ public class DijkstraAlgorithm {
     private List<Vertex> getNeighbors(Vertex node) {
         List<Vertex> neighbors = new ArrayList<Vertex>();
         ArrayList<String> neighbors_ids = all_historyMap.get(node.getId());
-        for (String id : neighbors_ids) {
-            neighbors.add(new Vertex(id));
+        if(neighbors_ids!=null) {
+            for (String id : neighbors_ids) {
+                neighbors.add(new Vertex(id));
+            }
         }
 
         return neighbors;
