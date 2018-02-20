@@ -62,7 +62,7 @@ public class IO_Process {
     public String readResult(String filePath) throws IOException {
         System.out.println(filePath);
         BufferedReader result_br = new BufferedReader(new FileReader(filePath));
-        String result ;
+        String result;
         try {
             StringBuilder sb = new StringBuilder();
             String line = result_br.readLine();
@@ -82,11 +82,11 @@ public class IO_Process {
     }
 
 
-    public String exeCmd(String[] cmd,String pathname) {
+    public String exeCmd(String[] cmd, String pathname) {
 
         ProcessBuilder process = new ProcessBuilder(cmd);
 
-        String result="";
+        String result = "";
         try {
             process.directory(new File(pathname));
             Process p = process.start();
@@ -108,13 +108,14 @@ public class IO_Process {
             e.printStackTrace();
         }
 
-        return result.replace("\"","");
+        return result.replace("\"", "");
     }
 
 
     public String removeBrackets(String str) {
-        return str.replace("\n","").replace("[", "").replace("]", "");
+        return str.replace("\n", "").replace("[", "").replace("]", "");
     }
+
     public void deleteDir(File file) throws IOException {
 
         if (file.isDirectory()) {
@@ -134,9 +135,10 @@ public class IO_Process {
                 for (String temp : files) {
                     //construct the file structure
                     File fileDelete = new File(file, temp);
-
-                    //recursive delete
-                    deleteDir(fileDelete);
+                    if (fileDelete.exists()) {
+                        //recursive delete
+                        deleteDir(fileDelete);
+                    }
                 }
 
                 //check the directory again, if empty then delete it
@@ -155,9 +157,8 @@ public class IO_Process {
     }
 
 
-
-    public  List<List<String>>  readCSV(String filePath){
-        List<List<String>> values=null;
+    public List<List<String>> readCSV(String filePath) {
+        List<List<String>> values = null;
         try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
             values = lines.map(line -> Arrays.asList(line.split(","))).collect(Collectors.toList());
             values.forEach(value -> System.out.println(value));
