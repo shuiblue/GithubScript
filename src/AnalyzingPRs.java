@@ -29,7 +29,9 @@ public class AnalyzingPRs {
         HashMap<String, Integer> mergedPr_map = new HashMap<>();
         HashMap<String, Integer> rejectedPr_map = new HashMap<>();
         HashSet<Fork> forkSet = new HashSet<>();
+        int i =1;
         for (String json_string : pr_json) {
+            System.out.println(i++);
             JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
 
             String forkName = (String) pr_info.get("forkName");
@@ -132,14 +134,7 @@ public class AnalyzingPRs {
         return forkPRstring_map;
     }
 
-    public static void main(String[] args) {
-        AnalyzingPRs ap = new AnalyzingPRs();
-        String repoURL = "tensorflow/tensorflow";
-        HashMap<String, String> forkPR_map = ap.getPRMap(repoURL);
-        ap.combineGraphResult(repoURL, forkPR_map);
 
-
-    }
 
     public void combineGraphResult(String repoURL, HashMap<String, String> forkPR_map) {
         String current_dir = System.getProperty("user.dir");
@@ -152,7 +147,7 @@ public class AnalyzingPRs {
         sb.append("repo,fork,upstream,only_F,only_U,F2U,U2F,"
                 + "fork_num,created_at,pushed_at,size,language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type,fork_age,lastCommit_age,"
                 + "allPR,mergedPR,rejectedPR,num_allPRcommit, num_mergedPRcommits, num_rejectedPRcommits,allPRcommit,mergedPRcommits,rejectedPRcommits,"
-                + "final_F2U,num_mergedCommitsNotThroughPR,F2U_list,mergedCommitsNotThroughPR_list"
+                + "final_OnlyF,final_F2U,num_mergedCommitsNotThroughPR,OnlyF_list,F2U_list,mergedCommitsNotThroughPR_list"
                 + "\n");
 
         String[] graphResult = {};
@@ -177,15 +172,30 @@ public class AnalyzingPRs {
             String result[] = forkResult.split(",");
             String forkName = result[0].split("/")[0];
 
+            System.out.println(forkName);
+            List<String> OnlyF_list = Arrays.asList(io.removeBrackets(result[6]).split("/ "));
             List<String> F2U_list = Arrays.asList(io.removeBrackets(result[8]).split("/ "));
+            HashSet<String> OnlyF = new HashSet<>();
+            for(String c:OnlyF_list){
+                if(!c.trim().equals("")){
+                    OnlyF.add(c);
+                }
+            }
+
             HashSet<String> F2U = new HashSet<>();
-            F2U.addAll(F2U_list);
+            for(String c:F2U_list){
+                if(!c.trim().equals("")){
+                    F2U.add(c);
+                }
+            }
+
             String forkPRinfo;
             if (graph_info_map.get(forkName) != null) {
                 if (forkPR_map.get(forkName) == null) {
 
                     /** forkname,allPR,mergedPR,rejectedPR,#allPRcommit, #mergedPRcommits, #rejectedPRcommits, allPRcommit,  mergedPRcommits,  rejectedPRcommits **/
-                    sb.append(graph_info_map.get(forkName) + ",0,0,0,0,0,0,[],[],[],0,0,[],[]\n");
+                    sb.append(graph_info_map.get(forkName) + ",0,0,0,0,0,0,[],[],[],"+OnlyF.size()+","+F2U.size()+",0,"+
+                            OnlyF.toString().replace(",", "/")+"," + F2U.toString().replace(",", "/")+",[]\n");
 
                 } else {
 
@@ -199,7 +209,7 @@ public class AnalyzingPRs {
                     HashSet<String> mergeThroughOtherMechanisum = new HashSet();
 
                     for (String c : F2U) {
-                        if (!c.equals("")) {
+                        if (!c.trim().equals("")) {
                             if (!mergedPRCommits.contains(c)) {
                                 mergeThroughOtherMechanisum.add(c);
                             }
@@ -212,8 +222,11 @@ public class AnalyzingPRs {
                     F2U.remove("");
                     F2U.addAll(mergedPRCommits);
                     rejectedPRCommits.removeAll(F2U);
+                    OnlyF.removeAll(F2U);
 
-                    sb.append(graph_info_map.get(forkName) + "," + forkPRinfo.replace("\n", "").replaceAll(forkName + ",", "") + "," + F2U.size() + "," + mergeThroughOtherMechanisum.size() + "," + F2U.toString().replace(",", "/") + "," + mergeThroughOtherMechanisum.toString().replace(",", "/") + "\n");
+                    sb.append(graph_info_map.get(forkName) + "," + forkPRinfo.replace("\n", "").replaceAll(forkName + ",", "") + ","
+                            + OnlyF.size() + "," + F2U.size() + "," + mergeThroughOtherMechanisum.size() + ","
+                            + OnlyF.toString().replace(",", "/")+"," + F2U.toString().replace(",", "/") + "," + mergeThroughOtherMechanisum.toString().replace(",", "/") + "\n");
 
                 }
             }
@@ -224,4 +237,15 @@ public class AnalyzingPRs {
 
     }
 
-}
+
+
+
+    public static void main(String[] args) {
+        AnalyzingPRs ap = new AnalyzingPRs();
+        String repoURL = "django/django";
+        HashMap<String, String> forkPR_map = ap.getPRMap(repoURL);
+        ap.combineGraphResult(repoURL, forkPR_map);
+
+
+    }
+ }
