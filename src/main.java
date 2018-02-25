@@ -39,7 +39,7 @@ public class main {
                 io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 
                 /**  randomize forks from active_fork_list **/
-                String all_activeForkList="";
+//                String all_activeForkList="";
                 try {
                     all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
                 } catch (IOException e) {
