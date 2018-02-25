@@ -34,12 +34,12 @@ public class main {
                 /** get active fork list for given repository **/
                 System.out.println("get all active forks of repo: " + repoName);
 
-//                /**  get active forks using github api **/
+                /**  get active forks using github api **/
 //                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl,hasTimeConstraint);
 //                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
-//
+
 //                /**  randomize forks from active_fork_list **/
-////                String all_activeForkList="";
+//                String all_activeForkList="";
 //                try {
 //                    all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 //                } catch (IOException e) {
@@ -102,7 +102,7 @@ public class main {
                 combineGraphWithInfo(repoUrl);
 
 
-                /**  get PR by forkid **/
+//                /**  get PR by forkid **/
 //                trackCommitHistory.getPRbyresuletable(repoUrl);
 
 

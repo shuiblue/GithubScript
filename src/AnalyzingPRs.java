@@ -242,7 +242,7 @@ public class AnalyzingPRs {
 
     public static void main(String[] args) {
         AnalyzingPRs ap = new AnalyzingPRs();
-        String repoURL = "aporter/coursera-android";
+        String repoURL = "nodejs/node" ;
         HashMap<String, String> forkPR_map = ap.getPRMap(repoURL);
         ap.combineGraphResult(repoURL, forkPR_map);
 
