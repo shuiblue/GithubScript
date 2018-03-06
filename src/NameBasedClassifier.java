@@ -44,7 +44,7 @@ public class NameBasedClassifier {
         StringBuilder sb = new StringBuilder();
         ArrayList<String> forks_has_forks = new ArrayList<>();
         int totalForks = 0;
-        for (int page = 1; page <= 300; page++) {
+        for (int page = 1; page <= 600; page++) {
             ArrayList<String> fork_array_json = null;
             try {
                 fork_array_json = jsonUtility.readUrl(forkUrl + page);

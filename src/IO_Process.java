@@ -117,7 +117,7 @@ public class IO_Process {
     }
 
     public void deleteDir(File file) throws IOException {
-
+        System.out.println("delete " + file);
         if (file.isDirectory()) {
 
             //directory is empty, then delete it

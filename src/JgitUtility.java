@@ -1,3 +1,4 @@
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -59,7 +60,6 @@ public class JgitUtility {
                         .setURI(clone_url)
                         .setCloneAllBranches(true)
                         .setDirectory(dir)
-
                         .call();
 
 
@@ -71,8 +71,11 @@ public class JgitUtility {
                 io.rewriteFile(default_branch, pathname + "defaultBranch.txt");
                 for (int i = 1; i < call.size(); i++) {
                     Ref ref = call.get(i);
-                    sb_branches.append(ref.getName().replace("refs/remotes/origin/", "") + "\n");
-                    System.out.println(ref.getName().replace("refs/remotes/origin/", ""));
+                    String branchName = ref.getName().replace("refs/remotes/origin/", "");
+                    String[] checkoutbr_CMD = {"git", "checkout", "--track","origin/"+branchName};
+                    io.exeCmd(checkoutbr_CMD, pathname + ".git");
+                    sb_branches.append(branchName + "\n");
+                    System.out.println(branchName);
                 }
                 io.rewriteFile(sb_branches.toString(), pathname + repoName + "_branchList.txt");
 
@@ -88,7 +91,7 @@ public class JgitUtility {
 
     public static void main(String[] args) {
         JgitUtility jg = new JgitUtility();
-        String[] forkList = {"DomAmato/ofxVideoRecorder", "razvanilin/ofxVideoRecorder", "timscaffidi/ofxVideoRecorder"};
+        String[] forkList = {"timscaffidi/ofxVideoRecorder"};
         for (String forkUrl : forkList) {
             jg.cloneRepo(forkUrl);
         }
