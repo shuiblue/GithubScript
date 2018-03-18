@@ -60,7 +60,6 @@ public class IO_Process {
      * @throws IOException e
      */
     public String readResult(String filePath) throws IOException {
-        System.out.println(filePath);
         BufferedReader result_br = new BufferedReader(new FileReader(filePath));
         String result;
         try {
@@ -85,10 +84,11 @@ public class IO_Process {
     public String exeCmd(String[] cmd, String pathname) {
 
         ProcessBuilder process = new ProcessBuilder(cmd);
-
+        process.redirectErrorStream(true);
         String result = "";
         try {
-            process.directory(new File(pathname));
+            process.directory(new File(pathname).getAbsoluteFile());
+            process.redirectErrorStream(true);
             Process p = process.start();
             BufferedReader reader =
                     new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -117,7 +117,7 @@ public class IO_Process {
     }
 
     public void deleteDir(File file) throws IOException {
-        System.out.println("delete " + file);
+//        System.out.println("delete " + file);
         if (file.isDirectory()) {
 
             //directory is empty, then delete it

@@ -17,7 +17,7 @@ public class main {
         NameBasedClassifier trackCommitHistory = new NameBasedClassifier();
 
         IO_Process io = new IO_Process();
-        current_dir = System.getProperty("user.dir");
+        current_dir = "/Users/shuruiz/Box Sync/ForkData";
         System.out.println("current dir = " + current_dir);
 
         String[] repoList = {};

@@ -26,11 +26,10 @@ public class JgitUtility {
     static String token;
     static String localDirPath;
     static String current_dir;
+    static String output_dir = "/Users/shuruiz/Box Sync/ForkData";
 
     JgitUtility() {
         current_dir = System.getProperty("user.dir");
-        System.out.println("current dir = " + current_dir);
-
         try {
             token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
         } catch (IOException e) {
@@ -40,8 +39,10 @@ public class JgitUtility {
 
 
     public void cloneRepo(String repo_uri) {
+        System.out.println("cloneing " + repo_uri);
+
         IO_Process io = new IO_Process();
-        localDirPath = current_dir + "/cloneRepos/";
+        localDirPath = output_dir + "/cloneRepos/";
 //        localDirPath = current_dir + "/cloneRepos/";
         String clone_url = github_url + repo_uri + ".git";
 
@@ -72,10 +73,7 @@ public class JgitUtility {
                 for (int i = 1; i < call.size(); i++) {
                     Ref ref = call.get(i);
                     String branchName = ref.getName().replace("refs/remotes/origin/", "");
-                    String[] checkoutbr_CMD = {"git", "checkout", "--track","origin/"+branchName};
-                    io.exeCmd(checkoutbr_CMD, pathname + ".git");
                     sb_branches.append(branchName + "\n");
-                    System.out.println(branchName);
                 }
                 io.rewriteFile(sb_branches.toString(), pathname + repoName + "_branchList.txt");
 
