@@ -305,7 +305,7 @@ public class AnalyzeCoChangedFile {
         IO_Process io = new IO_Process();
         String[] forkListInfo = {};
         try {
-            forkListInfo = io.readResult(resultDirPath + repoUrl + "/PR_graph_info.csv").split("\n");
+            forkListInfo = io.readResult(resultDirPath + repoUrl + "/pr_graph_info.csv").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
