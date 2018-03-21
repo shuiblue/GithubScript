@@ -49,7 +49,8 @@ public class JgitUtility {
     }
 
 
-    public void cloneRepo(String repo_uri) {
+    public ArrayList<String> cloneRepo(String repo_uri) {
+        ArrayList<String> branchList= new ArrayList<>();
         System.out.println("cloning repo: " + repo_uri+" ...");
 
         IO_Process io = new IO_Process();
@@ -84,7 +85,14 @@ public class JgitUtility {
                 for (int i = 1; i < call.size(); i++) {
                     Ref ref = call.get(i);
                     String branchName = ref.getName().replace("refs/remotes/origin/", "");
+//                    git.checkout().
+//                            setCreateBranch(true).
+//                            setName(branchName).
+//                            setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+//                            setStartPoint("origin/" + branchName).
+//                            call();
                     sb_branches.append(branchName + "\n");
+                    branchList.add(branchName);
                 }
                 io.rewriteFile(sb_branches.toString(), pathname + repoName + "_branchList.txt");
 
@@ -95,6 +103,8 @@ public class JgitUtility {
         } else {
             System.out.println(repo_uri + " already exist!");
         }
+
+        return branchList;
     }
 
 

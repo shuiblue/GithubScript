@@ -1,12 +1,12 @@
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.diff.DiffEntry;
-import org.eclipse.jgit.diff.DiffFormatter;
-import org.eclipse.jgit.diff.Edit;
-import org.eclipse.jgit.diff.RawTextComparator;
+import org.eclipse.jgit.diff.*;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.patch.FileHeader;
+import org.eclipse.jgit.patch.HunkHeader;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
@@ -29,6 +29,8 @@ public class AnalyzeCoChangedFile {
     static HashSet<String> stopFileSet = new HashSet<>();
     static String output_dir;
     static String current_OS = System.getProperty("os.name").toLowerCase();
+    //        String analyzingRepoOrFork = "repo";
+    static String analyzingRepoOrFork = "fork";
 
     public AnalyzeCoChangedFile() {
 
@@ -38,44 +40,43 @@ public class AnalyzeCoChangedFile {
             output_dir = "/home/feature/shuruiz/ForkData";
         }
 
-
-        stopFileSet.add("gitignore");
-        stopFileSet.add("license");
-        stopFileSet.add("readme");
-        stopFileSet.add("/dev/null");
-        stopFileSet.add(".pdf");
-        stopFileSet.add(".mk");
-        stopFileSet.add(".xlsx");
-        stopFileSet.add(".png");
-        stopFileSet.add("arduinoaddons");
-        stopFileSet.add(".fon");
-        stopFileSet.add(".hex");
-        stopFileSet.add(".tst");
-        stopFileSet.add(".elf");
-        stopFileSet.add(".txt");
-        stopFileSet.add(".ini");
-        stopFileSet.add(".css");
-        stopFileSet.add(".html");
-        stopFileSet.add("changelog");
-        stopFileSet.add(".js");
-        stopFileSet.add(".rst");
-        stopFileSet.add(".sch");
-        stopFileSet.add(".ino");
-        stopFileSet.add(".md");
-        stopFileSet.add(".sh");
-        stopFileSet.add(".dll");
-        stopFileSet.add(".svn-base");
-        stopFileSet.add(".bin");
-        stopFileSet.add(".xml");
-        stopFileSet.add("example_configurations");
-        stopFileSet.add("config");
-        stopFileSet.add(".h");
+        if (analyzingRepoOrFork.equals("repo")) {
+            stopFileSet.add("gitignore");
+            stopFileSet.add("license");
+            stopFileSet.add("readme");
+            stopFileSet.add("/dev/null");
+            stopFileSet.add(".pdf");
+            stopFileSet.add(".mk");
+            stopFileSet.add(".xlsx");
+            stopFileSet.add(".png");
+            stopFileSet.add(".fon");
+            stopFileSet.add(".hex");
+            stopFileSet.add(".tst");
+            stopFileSet.add(".elf");
+            stopFileSet.add(".txt");
+            stopFileSet.add(".ini");
+            stopFileSet.add(".css");
+            stopFileSet.add(".html");
+            stopFileSet.add("changelog");
+            stopFileSet.add(".js");
+            stopFileSet.add(".rst");
+            stopFileSet.add(".sch");
+            stopFileSet.add(".ino");
+            stopFileSet.add(".md");
+            stopFileSet.add(".sh");
+            stopFileSet.add(".dll");
+            stopFileSet.add(".svn-base");
+            stopFileSet.add(".bin");
+            stopFileSet.add(".xml");
+        }
+//        stopFileSet.add("example_configurations");
+//        stopFileSet.add("config");
+//        stopFileSet.add(".h");
+//        stopFileSet.add("arduinoaddons");
     }
 
-    static public void main(String[] args)  {
+    static public void main(String[] args) {
         AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
-//        String analyzingRepoOrFork = "repo";
-        String analyzingRepoOrFork = "fork";
 
         current_dir = System.getProperty("user.dir");
 
@@ -119,7 +120,8 @@ public class AnalyzeCoChangedFile {
                         "language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type,fork_age,lastCommit_age," +
                         "allPR,mergedPR,rejectedPR,num_allPRcommit, num_mergedPRcommits, num_rejectedPRcommits,allPRcommit,mergedPRcommits,rejectedPRcommits," +
                         "final_OnlyF,final_F2U,num_mergedCommitsNotThroughPR,OnlyF_list,F2U_list,mergedCommitsNotThroughPR_list," +
-                        "num_addFile,num_modifyFile,num_deleteFile,num_copyFile,num_renameFile,linesAdded,readmeAdded,addFile,modifyFile,deleteFile,copyFile,renameFile\n", locHistory);
+                        "num_addFile,num_modifyFile,num_deleteFile,num_copyFile,num_renameFile,addFile_linesAdded,modifyFile_linesAdded,readmeAdded,linesDeleted," +
+                        "addFile,modifyFile,deleteFile,copyFile,renameFile\n", locHistory);
                 acc.getCodechangedLOC(repoUrl);
             }
         }
@@ -327,7 +329,7 @@ public class AnalyzeCoChangedFile {
 
             /** clone fork **/
             JgitUtility jg = new JgitUtility();
-            jg.cloneRepo(forkurl);
+            ArrayList<String> branchList = jg.cloneRepo(forkurl);
 
 
             Repository repo = null;
@@ -349,7 +351,9 @@ public class AnalyzeCoChangedFile {
             RevWalk rw = new RevWalk(repo);
 
             int readmeAdded = 0;
-            int linesAdded = 0;
+            int addFile_linesAdded = 0;
+            int modifyFile_linesAdded = 0;
+            int linesDeleted = 0;
 
             HashSet<String> addFileSet = new HashSet();
             HashSet<String> deleteFileSet = new HashSet();
@@ -360,7 +364,7 @@ public class AnalyzeCoChangedFile {
 
             for (String sha : codeChangeCommits) {
                 System.out.println(sha);
-                RevCommit commit = getCommit(sha, repo, git);
+                RevCommit commit = getCommit(sha, repo, git, branchList);
                 if (commit != null && commit.getParentCount() > 0) {
 
                     RevCommit parent = null;
@@ -384,12 +388,21 @@ public class AnalyzeCoChangedFile {
                                     int tmp_linesAdded = 0;
                                     int tmp_linesDeleted = 0;
 
-                                    for (Edit edit : df.toFileHeader(diff).toEditList()) {
-                                        tmp_linesAdded += edit.getEndA() - edit.getBeginA();
-                                        tmp_linesDeleted += edit.getEndB() - edit.getBeginB();
-                                    }
-                                    linesAdded += tmp_linesAdded;
 
+                                    FileHeader fileHeader = df.toFileHeader(diff);
+                                    EditList edits = fileHeader.toEditList();
+                                    for (int s = 0; s < edits.size(); s++) {
+                                        Edit edit = edits.get(s);
+                                        if (edit.toString().toLowerCase().startsWith("insert")) {
+                                            tmp_linesAdded += edit.getEndB() - edit.getBeginB();
+                                        } else if (edit.toString().toLowerCase().startsWith("delete")) {
+                                            tmp_linesDeleted += edit.getEndA() - edit.getBeginA();
+                                        } else {
+                                            tmp_linesDeleted += edit.getEndA() - edit.getBeginA();
+                                            tmp_linesAdded += edit.getEndB() - edit.getBeginB();
+                                        }
+                                    }
+                                    linesDeleted += tmp_linesDeleted;
                                     if (fileName.toLowerCase().contains("readme")) {
                                         readmeAdded += tmp_linesAdded;
                                     }
@@ -397,12 +410,14 @@ public class AnalyzeCoChangedFile {
                                     String changeType = diff.getChangeType().name();
                                     if (changeType.equals("ADD")) {
                                         addFileSet.add(fileName);
+                                        addFile_linesAdded += tmp_linesAdded;
                                     } else if (changeType.equals("COPY")) {
                                         copyFileSet.add(fileName);
                                     } else if (changeType.equals("DELETE")) {
                                         deleteFileSet.add(fileName);
                                     } else if (changeType.equals("MODIFY")) {
                                         modifyFileSet.add(fileName);
+                                        modifyFile_linesAdded += tmp_linesAdded;
                                     } else if (changeType.equals("RENAME")) {
                                         renameFileSet.add(fileName);
                                     }
@@ -423,10 +438,10 @@ public class AnalyzeCoChangedFile {
             }
 
             System.out.println(repoUrl + "," + forkurl + "," + addFileSet.size() + "," + modifyFileSet.size() + ","
-                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + linesAdded + "," + readmeAdded + "\n");
+                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + addFile_linesAdded + "," + modifyFile_linesAdded + "," + readmeAdded + "\n");
 
             io.writeTofile(forkINFO + "," + addFileSet.size() + "," + modifyFileSet.size() + ","
-                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + linesAdded + "," + readmeAdded + ","
+                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + addFile_linesAdded + "," + modifyFile_linesAdded + "," + readmeAdded + "," + linesDeleted + ","
                     + addFileSet.toString().replace(", ", "~") + "," + modifyFileSet.toString().replace(", ", "~") + ","
                     + deleteFileSet.toString().replace(", ", "~") + "," + copyFileSet.toString().replace(", ", "~") + ","
                     + renameFileSet.toString().replace(", ", "~") + "\n", locHistory);
@@ -444,23 +459,26 @@ public class AnalyzeCoChangedFile {
     }
 
 
-    public RevCommit getCommit(String idString, Repository repository, Git git) {
-        try {
-
-            ObjectId o1 = repository.resolve(idString);
-//            ObjectId o1 = ObjectId.fromString( idString );
-            if (o1 != null) {
-                RevWalk walk = new RevWalk(repository);
-                RevCommit commit = walk.parseCommit(o1);
-//                    PersonIdent ai = commit.getAuthorIdent();
-//                    System.out.println("bbb >>" + ai.getEmailAddress() + "|" + ai.getTimeZone() + "|" + ai.getWhen() + ", ref :" + idString);
-                return commit;
-            } else {
-                System.err.println("Could not get commit with SHA :" + idString);
+    public RevCommit getCommit(String idString, Repository repository, Git git, ArrayList<String> branchList) {
+        for (String branchName : branchList) {
+            try {
+                git.checkout().
+                        setCreateBranch(true).
+                        setName(branchName).
+                        setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+                        setStartPoint("origin/" + branchName).
+                        call();
+                ObjectId o1 = repository.resolve(idString);
+                if (o1 != null) {
+                    RevWalk walk = new RevWalk(repository);
+                    RevCommit commit = walk.parseCommit(o1);
+                    return commit;
+                } else {
+                    System.err.println("Could not get commit with SHA :" + idString);
+                }
+            } catch (Exception e) {
+                continue;
             }
-        } catch (Exception e) {
-//            System.out.println("err :" + e);
-            e.printStackTrace();
         }
         return null;
     }
