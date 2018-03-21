@@ -26,9 +26,20 @@ public class JgitUtility {
     static String token;
     static String localDirPath;
     static String current_dir;
-    static String output_dir = "/Users/shuruiz/Box Sync/ForkData";
 
-    JgitUtility() {
+
+    static String output_dir;
+    static String current_OS = System.getProperty("os.name").toLowerCase();
+
+    public  JgitUtility() {
+
+        if (current_OS.indexOf("mac") >= 0) {
+            output_dir = "/Users/shuruiz/Box Sync/ForkData";
+        } else {
+            output_dir = "/home/feature/shuruiz/ForkData";
+        }
+
+
         current_dir = System.getProperty("user.dir");
         try {
             token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();

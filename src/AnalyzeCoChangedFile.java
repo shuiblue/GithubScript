@@ -27,10 +27,18 @@ public class AnalyzeCoChangedFile {
     static String current_dir;
     static String pathname, historyDirPath;
     static HashSet<String> stopFileSet = new HashSet<>();
-//    static String output_dir = "/Users/shuruiz/Box Sync/ForkData";
-        static String output_dir = "/home/feature/shuruiz/ForkData";
+    static String output_dir;
+    static String current_OS = System.getProperty("os.name").toLowerCase();
 
     public AnalyzeCoChangedFile() {
+
+        if (current_OS.indexOf("mac") >= 0) {
+            output_dir = "/Users/shuruiz/Box Sync/ForkData";
+        } else {
+            output_dir = "/home/feature/shuruiz/ForkData";
+        }
+
+
         stopFileSet.add("gitignore");
         stopFileSet.add("license");
         stopFileSet.add("readme");
