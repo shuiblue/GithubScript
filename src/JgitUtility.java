@@ -39,7 +39,7 @@ public class JgitUtility {
 
 
     public void cloneRepo(String repo_uri) {
-        System.out.println("cloneing " + repo_uri);
+        System.out.println("cloning repo: " + repo_uri+" ...");
 
         IO_Process io = new IO_Process();
         localDirPath = output_dir + "/cloneRepos/";
