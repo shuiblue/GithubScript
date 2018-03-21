@@ -72,8 +72,8 @@ public class AnalyzeCoChangedFile {
         stopFileSet.add(".h");
     }
 
-    static public void main(String[] args) throws IOException, GitAPIException {
-
+    static public void main(String[] args)  {
+        AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
 //        String analyzingRepoOrFork = "repo";
         String analyzingRepoOrFork = "fork";
 
@@ -96,7 +96,7 @@ public class AnalyzeCoChangedFile {
             e.printStackTrace();
         }
 
-        AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
+
 //        io.rewriteFile("", historyDirPath + "/repoModularity.csv");
 //        io.rewriteFile("", historyDirPath + "/repo_ECI.csv");
 
