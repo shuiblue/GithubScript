@@ -1131,6 +1131,10 @@ public class NameBasedClassifier {
 
     }
 
+    /***
+     * This function
+     * @param repoURL
+     */
     public void getPRbyresuletable(String repoURL) {
         final String current_dir = System.getProperty("user.dir");
 

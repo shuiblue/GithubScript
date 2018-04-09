@@ -14,7 +14,7 @@ public class main {
 
     public static void main(String[] args) {
         GraphBasedClassifier graphBasedClassifier = new GraphBasedClassifier();
-        NameBasedClassifier trackCommitHistory = new NameBasedClassifier();
+        NameBasedClassifier nameBasedClassifier = new NameBasedClassifier();
 
         IO_Process io = new IO_Process();
         current_dir = "/Users/shuruiz/Box Sync/ForkData";
@@ -35,7 +35,7 @@ public class main {
                 System.out.println("get all active forks of repo: " + repoName);
 
                 /**  get active forks using github api **/
-                String all_activeForkList = trackCommitHistory.getActiveForkList(repoUrl,hasTimeConstraint);
+                String all_activeForkList = nameBasedClassifier.getActiveForkList(repoUrl,hasTimeConstraint);
                 io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 
 //                /**  randomize forks from active_fork_list **/
@@ -51,7 +51,7 @@ public class main {
 //                } else {
 //                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/all_ActiveForklist.txt");
 //                    System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
-//                    trackCommitHistory.getRamdomForks(repoUrl, maxAnalyzedForkNum);
+//                    nameBasedClassifier.getRamdomForks(repoUrl, maxAnalyzedForkNum);
 //                }
 ////
 //                /** analyze commit history **/
@@ -79,7 +79,7 @@ public class main {
 //////                System.out.println("authorID-based...");
 //////                System.out.println("repo: " + repoUrl);
 //////                /** classify commit by name **/
-////////                trackCommitHistory.classifyCommitsByAuthor(repoUrl);
+////////                nameBasedClassifier.classifyCommitsByAuthor(repoUrl);
 ////
 ////
 //                /** get fork info  **/
@@ -103,7 +103,7 @@ public class main {
 
 
 //                /**  get PR by forkid **/
-//                trackCommitHistory.getPRbyresuletable(repoUrl);
+                nameBasedClassifier.getPRbyresuletable(repoUrl);
 
 
             }

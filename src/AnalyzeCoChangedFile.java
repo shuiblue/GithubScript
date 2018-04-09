@@ -5,6 +5,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.*;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.patch.FileHeader;
 import org.eclipse.jgit.patch.HunkHeader;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -15,7 +16,10 @@ import org.eclipse.jgit.util.io.DisabledOutputStream;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.*;
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -43,7 +47,7 @@ public class AnalyzeCoChangedFile {
         if (analyzingRepoOrFork.equals("repo")) {
             stopFileSet.add("gitignore");
             stopFileSet.add("license");
-            stopFileSet.add("readme");
+//            stopFileSet.add("readme");
             stopFileSet.add("/dev/null");
             stopFileSet.add(".pdf");
             stopFileSet.add(".mk");
@@ -58,11 +62,11 @@ public class AnalyzeCoChangedFile {
             stopFileSet.add(".css");
             stopFileSet.add(".html");
             stopFileSet.add("changelog");
-            stopFileSet.add(".js");
+//            stopFileSet.add(".js");
             stopFileSet.add(".rst");
             stopFileSet.add(".sch");
             stopFileSet.add(".ino");
-            stopFileSet.add(".md");
+//            stopFileSet.add(".md");
             stopFileSet.add(".sh");
             stopFileSet.add(".dll");
             stopFileSet.add(".svn-base");
@@ -116,12 +120,12 @@ public class AnalyzeCoChangedFile {
                 }
             } else if (analyzingRepoOrFork.equals("fork")) {
                 String locHistory = historyDirPath + repoUrl + "/changedSize_LOC.csv";
-                io.rewriteFile("repo,fork,upstream,only_F,only_U,F2U,U2F,fork_num,created_at,pushed_at,size," +
-                        "language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type,fork_age,lastCommit_age," +
-                        "allPR,mergedPR,rejectedPR,num_allPRcommit, num_mergedPRcommits, num_rejectedPRcommits,allPRcommit,mergedPRcommits,rejectedPRcommits," +
-                        "final_OnlyF,final_F2U,num_mergedCommitsNotThroughPR,OnlyF_list,F2U_list,mergedCommitsNotThroughPR_list," +
-                        "num_addFile,num_modifyFile,num_deleteFile,num_copyFile,num_renameFile,addFile_linesAdded,modifyFile_linesAdded,readmeAdded,linesDeleted," +
-                        "addFile,modifyFile,deleteFile,copyFile,renameFile\n", locHistory);
+//                io.rewriteFile("repo,fork,upstream,only_F,only_U,F2U,U2F,fork_num,created_at,pushed_at,size," +
+//                        "language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type,fork_age,lastCommit_age," +
+//                        "allPR,mergedPR,rejectedPR,num_allPRcommit, num_mergedPRcommits, num_rejectedPRcommits,allPRcommit,mergedPRcommits,rejectedPRcommits," +
+//                        "final_OnlyF,final_F2U,num_mergedCommitsNotThroughPR,OnlyF_list,F2U_list,mergedCommitsNotThroughPR_list," +
+//                        "num_addFile,num_modifyFile,num_deleteFile,num_copyFile,num_renameFile,addFile_linesAdded,modifyFile_linesAdded,readmeAdded,linesDeleted," +
+//                        "addFile,modifyFile,deleteFile,copyFile,renameFile\n", locHistory);
                 acc.getCodechangedLOC(repoUrl);
             }
         }
@@ -312,11 +316,19 @@ public class AnalyzeCoChangedFile {
      * @param repoUrl
      */
     private void getCodechangedLOC(String repoUrl) {
+        String myDriver = "com.mysql.jdbc.Driver";
+        String myUrl = "jdbc:mysql://localhost:3306/Fork";
+        Connection conn = null;
+        PreparedStatement preparedStmt;
+
         IO_Process io = new IO_Process();
         String[] forkListInfo = {};
         try {
             forkListInfo = io.readResult(resultDirPath + repoUrl + "/pr_graph_info.csv").split("\n");
+            conn = DriverManager.getConnection(myUrl, "root", "shuruiz");
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         String locHistory = historyDirPath + repoUrl + "/changedSize_LOC.csv";
@@ -340,7 +352,7 @@ public class AnalyzeCoChangedFile {
             }
             Git git = new Git(repo);
 
-
+            /** Get contribution code : onlyF and F2U  **/
             String[] columns = forkINFO.split(",");
             HashSet<String> codeChangeCommits = new HashSet<>();
             List<String> commits_onlyF = Arrays.asList(io.removeBrackets(columns[33]).split("/ "));
@@ -350,22 +362,21 @@ public class AnalyzeCoChangedFile {
             codeChangeCommits.remove("");
             RevWalk rw = new RevWalk(repo);
 
-            int readmeAdded = 0;
-            int addFile_linesAdded = 0;
-            int modifyFile_linesAdded = 0;
-            int linesDeleted = 0;
 
-            HashSet<String> addFileSet = new HashSet();
-            HashSet<String> deleteFileSet = new HashSet();
-            HashSet<String> renameFileSet = new HashSet();
-            HashSet<String> modifyFileSet = new HashSet();
-            HashSet<String> copyFileSet = new HashSet();
 
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+            LocalDateTime now = LocalDateTime.now();
 
             for (String sha : codeChangeCommits) {
+
+
                 System.out.println(sha);
                 RevCommit commit = getCommit(sha, repo, git, branchList);
                 if (commit != null && commit.getParentCount() > 0) {
+
+                    String author_fullName = commit.getAuthorIdent().getName();
+                    String email = commit.getAuthorIdent().getEmailAddress();
+
 
                     RevCommit parent = null;
                     List<DiffEntry> diffs = null;
@@ -381,49 +392,163 @@ public class AnalyzeCoChangedFile {
 
                         HashSet<String> commit_fileSet = new HashSet<>();
                         if (diffs.size() < 100) {
-                            for (DiffEntry diff : diffs) {
-                                String fileName = diff.getNewPath();
-                                if (!isStopFile(fileName)) {
-                                    commit_fileSet.add(fileName);
-                                    int tmp_linesAdded = 0;
-                                    int tmp_linesDeleted = 0;
 
+                            try {
+                                String getcommitID = "SELECT id FROM commit WHERE commitSHA = ?";
 
-                                    FileHeader fileHeader = df.toFileHeader(diff);
-                                    EditList edits = fileHeader.toEditList();
-                                    for (int s = 0; s < edits.size(); s++) {
-                                        Edit edit = edits.get(s);
-                                        if (edit.toString().toLowerCase().startsWith("insert")) {
-                                            tmp_linesAdded += edit.getEndB() - edit.getBeginB();
-                                        } else if (edit.toString().toLowerCase().startsWith("delete")) {
-                                            tmp_linesDeleted += edit.getEndA() - edit.getBeginA();
-                                        } else {
-                                            tmp_linesDeleted += edit.getEndA() - edit.getBeginA();
-                                            tmp_linesAdded += edit.getEndB() - edit.getBeginB();
-                                        }
-                                    }
-                                    linesDeleted += tmp_linesDeleted;
-                                    if (fileName.toLowerCase().contains("readme")) {
-                                        readmeAdded += tmp_linesAdded;
-                                    }
+                                int sha_id = -1;
+                                preparedStmt = conn.prepareStatement(getcommitID);
+                                preparedStmt.setString(1, sha);
+                                ResultSet rs = preparedStmt.executeQuery();        // Get the result table from the query  3
+                                if (rs.getRow() == 0) {
 
-                                    String changeType = diff.getChangeType().name();
-                                    if (changeType.equals("ADD")) {
-                                        addFileSet.add(fileName);
-                                        addFile_linesAdded += tmp_linesAdded;
-                                    } else if (changeType.equals("COPY")) {
-                                        copyFileSet.add(fileName);
-                                    } else if (changeType.equals("DELETE")) {
-                                        deleteFileSet.add(fileName);
-                                    } else if (changeType.equals("MODIFY")) {
-                                        modifyFileSet.add(fileName);
-                                        modifyFile_linesAdded += tmp_linesAdded;
-                                    } else if (changeType.equals("RENAME")) {
-                                        renameFileSet.add(fileName);
-                                    }
+                                    String update_commit_query = " INSERT INTO Fork.commit (commitSHA,  repoURL, num_changedFiles, authorName, email, data_update_at, upstreamURL)" +
+                                            "  SELECT *" +
+                                            "  FROM (SELECT" +
+                                            "          ? AS a,? AS b, ? AS c, ? as d, ? as e,? as f, ? as g ) AS tmp" +
+                                            "  WHERE NOT EXISTS(" +
+                                            "      SELECT commitSHA" +
+                                            "      FROM Fork.commit AS cc" +
+                                            "      WHERE cc.commitSHA = ?" +
+                                            "  )" +
+                                            "  LIMIT 1";
 
+                                    preparedStmt = conn.prepareStatement(update_commit_query);
+                                    preparedStmt.setString(1, sha);
+                                    preparedStmt.setString(2, forkurl);
+                                    preparedStmt.setInt(3, diffs.size());
+                                    preparedStmt.setString(4, author_fullName);
+                                    preparedStmt.setString(5, email);
+                                    preparedStmt.setString(6, String.valueOf(now));
+                                    preparedStmt.setString(7, repoUrl);
+                                    preparedStmt.setString(8, sha);
+                                    preparedStmt.execute();
+                                } else {
+                                    String insert_changedFile_query = " UPDATE commit" +
+                                            " SET num_changedFiles = ?, authorName = ?, email = ?, data_update_at = ? " +
+                                            " WHERE commitSHA =?";
+
+                                    preparedStmt = conn.prepareStatement(insert_changedFile_query);
+                                    preparedStmt.setInt(1, diffs.size());
+                                    preparedStmt.setString(2, author_fullName);
+                                    preparedStmt.setString(3, email);
+                                    preparedStmt.setString(4, String.valueOf(now));
+                                    preparedStmt.setString(5, sha);
+                                    preparedStmt.execute();
                                 }
+                            } catch (SQLException e) {
+                                e.printStackTrace();
                             }
+
+                            System.out.println(sha);
+                            for (int index_d = 1; index_d <= diffs.size(); index_d++) {
+                                HashSet<String> addFileSet = new HashSet();
+                                HashSet<String> deleteFileSet = new HashSet();
+                                HashSet<String> renameFileSet = new HashSet();
+                                HashSet<String> modifyFileSet = new HashSet();
+                                HashSet<String> copyFileSet = new HashSet();
+                                int readmeAdded = 0;
+                                int addFile_linesAdded = 0;
+                                int modifyFile_linesAdded = 0;
+                                int linesDeleted = 0;
+
+
+                                System.out.println(index_d - 1);
+                                DiffEntry diff = diffs.get(index_d - 1);
+                                String fileName = diff.getNewPath();
+//                                if (!isStopFile(fileName)) {
+                                commit_fileSet.add(fileName);
+                                int tmp_linesAdded = 0;
+                                int tmp_linesDeleted = 0;
+                                FileHeader fileHeader = df.toFileHeader(diff);
+                                EditList edits = fileHeader.toEditList();
+                                for (int s = 0; s < edits.size(); s++) {
+                                    Edit edit = edits.get(s);
+                                    if (edit.toString().toLowerCase().startsWith("insert")) {
+                                        tmp_linesAdded += edit.getEndB() - edit.getBeginB();
+                                    } else if (edit.toString().toLowerCase().startsWith("delete")) {
+                                        tmp_linesDeleted += edit.getEndA() - edit.getBeginA();
+                                    } else {
+                                        tmp_linesDeleted += edit.getEndA() - edit.getBeginA();
+                                        tmp_linesAdded += edit.getEndB() - edit.getBeginB();
+                                    }
+                                }
+                                linesDeleted += tmp_linesDeleted;
+                                if (fileName.toLowerCase().contains("readme")) {
+                                    readmeAdded += tmp_linesAdded;
+                                }
+
+                                String changeType = diff.getChangeType().name();
+                                if (changeType.equals("ADD")) {
+                                    addFileSet.add(fileName);
+                                    addFile_linesAdded += tmp_linesAdded;
+                                } else if (changeType.equals("COPY")) {
+                                    copyFileSet.add(fileName);
+                                } else if (changeType.equals("DELETE")) {
+                                    deleteFileSet.add(fileName);
+                                } else if (changeType.equals("MODIFY")) {
+                                    modifyFileSet.add(fileName);
+                                    modifyFile_linesAdded += tmp_linesAdded;
+                                } else if (changeType.equals("RENAME")) {
+                                    renameFileSet.add(fileName);
+                                }
+
+
+                                /**   upsdate commit information into table**/
+                                try {
+
+                                    String commitshaID_QUERY = "SELECT id FROM commit WHERE commitSHA = ?";
+
+                                    int commitshaID = -1;
+                                    preparedStmt = conn.prepareStatement(commitshaID_QUERY);
+                                    preparedStmt.setString(1, sha);
+                                   ResultSet rs = preparedStmt.executeQuery();        // Get the result table from the query  3
+                                    // Get the result table from the query  3
+                                    while (rs.next()) {               // Position the cursor                  4
+                                        commitshaID = rs.getInt(1);        // Retrieve the first column valu
+                                    }
+//                                    String insert_changedFile_query = " UPDATE changedFile" +
+//                                            " SET  added_files_list = ?, added_files_num = ?, modify_files_list = ?, modify_files_num = ?, renamed_files_list = ?,renamed_files_num = ?, " +
+//                                            "copied_files_list = ?, copied_files_num = ? , deleted_files_list = ?, deleted_files_num = ?," +
+//                                            "   add_loc = ?, modify_loc = ?, delete_loc = ?, data_update_at = ?,index_changedFile =?"+
+//                                            " WHERE commitSHA =?";
+
+                                    //TODO: skip existing commits
+
+                                    String insert_changedFile_query = " INSERT INTO Fork.commit_changedFiles (" +
+                                            "added_files_list  , added_files_num  , modify_files_list, modify_files_num , renamed_files_list ,renamed_files_num ,copied_files_list ," +
+                                            " copied_files_num, deleted_files_list , deleted_files_num , add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commitSHA_id,readme_loc )" +
+                                            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+
+                                    preparedStmt = conn.prepareStatement(insert_changedFile_query);
+                                    preparedStmt.setString(1, addFileSet.toString());
+                                    preparedStmt.setInt(2, addFileSet.size());
+                                    preparedStmt.setString(3, modifyFileSet.toString());
+                                    preparedStmt.setInt(4, modifyFileSet.size());
+                                    preparedStmt.setString(5, renameFileSet.toString());
+                                    preparedStmt.setInt(6, renameFileSet.size());
+                                    preparedStmt.setString(7, copyFileSet.toString());
+                                    preparedStmt.setInt(8, copyFileSet.size());
+                                    preparedStmt.setString(9, deleteFileSet.toString());
+                                    preparedStmt.setInt(10, deleteFileSet.size());
+                                    preparedStmt.setInt(11, addFile_linesAdded);
+                                    preparedStmt.setInt(12, modifyFile_linesAdded);
+                                    preparedStmt.setInt(13, linesDeleted);
+                                    preparedStmt.setString(14, String.valueOf(now));
+                                    preparedStmt.setInt(15, index_d);
+                                    preparedStmt.setInt(16, commitshaID);
+                                    preparedStmt.setInt(17, readmeAdded);
+                                    preparedStmt.execute();
+
+                                } catch (SQLException e) {
+                                    e.printStackTrace();
+                                }
+
+                                System.out.println(sha);
+                            }
+
+//                            }
 
 
                         }
@@ -435,16 +560,17 @@ public class AnalyzeCoChangedFile {
                     System.out.println(sha);
                 }
 
+
             }
 
-            System.out.println(repoUrl + "," + forkurl + "," + addFileSet.size() + "," + modifyFileSet.size() + ","
-                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + addFile_linesAdded + "," + modifyFile_linesAdded + "," + readmeAdded + "\n");
-
-            io.writeTofile(forkINFO + "," + addFileSet.size() + "," + modifyFileSet.size() + ","
-                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + addFile_linesAdded + "," + modifyFile_linesAdded + "," + readmeAdded + "," + linesDeleted + ","
-                    + addFileSet.toString().replace(", ", "~") + "," + modifyFileSet.toString().replace(", ", "~") + ","
-                    + deleteFileSet.toString().replace(", ", "~") + "," + copyFileSet.toString().replace(", ", "~") + ","
-                    + renameFileSet.toString().replace(", ", "~") + "\n", locHistory);
+//            System.out.println(repoUrl + "," + forkurl + "," + addFileSet.size() + "," + modifyFileSet.size() + ","
+//                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + addFile_linesAdded + "," + modifyFile_linesAdded + "," + readmeAdded + "\n");
+//
+//            io.writeTofile(forkINFO + "," + addFileSet.size() + "," + modifyFileSet.size() + ","
+//                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + addFile_linesAdded + "," + modifyFile_linesAdded + "," + readmeAdded + "," + linesDeleted + ","
+//                    + addFileSet.toString().replace(", ", "~") + "," + modifyFileSet.toString().replace(", ", "~") + ","
+//                    + deleteFileSet.toString().replace(", ", "~") + "," + copyFileSet.toString().replace(", ", "~") + ","
+//                    + renameFileSet.toString().replace(", ", "~") + "\n", locHistory);
 
             /** remove local copy of fork**/
             System.out.println("delete clone " + forkurl);
