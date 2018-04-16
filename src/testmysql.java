@@ -27,128 +27,106 @@ public class testmysql {
             String myUrl = "jdbc:mysql://localhost:3306/Fork";
 
             Connection conn = DriverManager.getConnection(myUrl, "root", "shuruiz");
-            PreparedStatement preparedStmt;
+            PreparedStatement preparedStmt = null;
 
             // create a mysql database connection
             Class.forName(myDriver);
             IO_Process io = new IO_Process();
 
+
             /*** insert repoList to repository table ***/
             String[] repos = io.readResult("/Users/shuruiz/Box Sync/SPL_Research/ForkBasedDev/statistics/try/repoList.txt").split("\n");
-//
-//            for (int i = 1; i <= repos.length; i++) {
-//                String repo = repos[i-1];
-//                String loginID = repo.split("/")[0];
-//                String repoName = repo.split("/")[1];
-//                String query = " insert into repository ( repoURL,loginID,repoName) "+
-//                        " values (?,?,?)";
-//                PreparedStatement preparedStmt = conn.prepareStatement(query);
-//                preparedStmt.setString(1, repo);
-//                preparedStmt.setString(2, loginID);
-//                preparedStmt.setString(3, repoName);
-//                preparedStmt.execute();
-//            }
+
+            for (int i = 1; i <= repos.length; i++) {
+
+                String repourl = repos[i - 1];
+                System.out.println(repourl);
+                String[] upstream_INFO = io.readResult("/Users/shuruiz/Box Sync/ForkData/result/" + repourl + "/upstreamInfo.csv").split("\n")[1].split(",");
+
+
+                String query = " update Fork.repository " +
+                        " set   num_of_forks = ?,created_at = ?, pushed_at = ? , size = ?, language = ?, ownerID = ? ,public_repos = ?" +
+                        ",public_gists = ?, followers = ?, following = ?, sign_up_time = ?,user_type = ?, belongToRepo = ?, isFork=? " +
+                        " where repoURL = ?";
+
+                preparedStmt = conn.prepareStatement(query);
+                preparedStmt.setInt(1, Integer.parseInt(upstream_INFO[1]));
+                preparedStmt.setString(2, upstream_INFO[2]);
+                preparedStmt.setString(3, upstream_INFO[3]);
+                preparedStmt.setString(4, upstream_INFO[4]);
+                preparedStmt.setString(5, upstream_INFO[5]);
+                preparedStmt.setString(6, upstream_INFO[6]);
+                preparedStmt.setString(7, upstream_INFO[7]);
+                preparedStmt.setString(8, upstream_INFO[8]);
+                preparedStmt.setString(9, upstream_INFO[9]);
+                preparedStmt.setString(10, upstream_INFO[10]);
+                preparedStmt.setString(11, upstream_INFO[11]);
+                preparedStmt.setString(12, upstream_INFO[12]);
+                preparedStmt.setString(13, repourl);
+                preparedStmt.setBoolean(14, false);
+                preparedStmt.setString(15, upstream_INFO[0]);
+                preparedStmt.execute();
+            }
+
 
             /*** insert pr info to  repo_PR table***/
-            String selectSQL = " SELECT repoURL FROM Fork.repository";
-            preparedStmt = conn.prepareStatement(selectSQL);
-
-            //Execute select SQL stetement
-            for (String repoURL : repos) {
-                String[] forkListInfo = {};
-                try {
-                    forkListInfo = io.readResult("/Users/shuruiz/Box Sync/ForkData/result/" + repoURL + "/graph_result.txt").split("\n");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                for (int i = 1; i < forkListInfo.length; i++) {
-                    String[] columns = forkListInfo[i].split(",");
-                    HashSet<String> codeChangeCommits = new HashSet<>();
-                    String forkurl = columns[0];
-                    System.out.println(forkurl);
-
-                    int onlyF = Integer.parseInt(columns[2]);
-                    int onlyU = Integer.parseInt(columns[3]);
-                    int F2U = Integer.parseInt(columns[4]);
-                    int U2F = Integer.parseInt(columns[5]);
-
-                    List<String> commits_onlyF = Arrays.asList(io.removeBrackets(columns[6]).split("/ "));
-                    List<String> commits_onlyU = Arrays.asList(io.removeBrackets(columns[7]).split("/ "));
-                    List<String> commits_F2U = Arrays.asList(io.removeBrackets(columns[8]).split("/ "));
-                    List<String> commits_U2F = Arrays.asList(io.removeBrackets(columns[9]).split("/ "));
-
-                    String selectForkID = "SELECT id from Fork.repository where repoURL = ?";
-                    preparedStmt = conn.prepareStatement(selectForkID);
-                    preparedStmt.setString(1, forkurl);
-                    ResultSet rs = preparedStmt.executeQuery();
-                    int forkID=-1;
-                    if(rs.next()) {
-                         forkID = rs.getInt("id");
-                    }
-
-                    if(forkID != -1) {
-                        String query = "  INSERT into Fork.repo_fork_commit_graph ( forkID, only_F, only_U, F2U, U2F, only_F_commit_list, F2U_commit_list, data_update_at) " +
-                                "VALUES (?,?,?,?,?,?,?,?)";
-                        preparedStmt = conn.prepareStatement(query);
-
-
-                        preparedStmt.setInt(1, forkID);
-                        preparedStmt.setInt(2, onlyF);
-                        preparedStmt.setInt(3, onlyU);
-                        preparedStmt.setInt(4, F2U);
-                        preparedStmt.setInt(5, U2F);
-                        preparedStmt.setString(6, commits_onlyF.toString());
-                        preparedStmt.setString(7, commits_F2U.toString());
-                        preparedStmt.setString(8, String.valueOf(now));
-
-                        preparedStmt.execute();
-                    }
-
-//                    String[] array = forkListInfo[i].split(",");
-//                    if (array.length > 2) {
-//                        String query_fork = "  INSERT into repository ( repoURL,loginID,repoName,isFork,UpstreamURL,belongToRepo)" +
-//                                " SELECT * FROM (SELECT ? as repourl,? as login,? as reponame,? as isf,? as upurl,? as belo) AS tmp" +
-//                                " WHERE NOT EXISTS (" +
-//                                "SELECT repoURL FROM repository WHERE repoURL = ?" +
-//                                ") LIMIT 1";
-//                        String forkURL = array[0];
-//                        System.out.println(forkURL);
-//                        System.out.println(i);
+//            String selectSQL = " SELECT repoURL FROM Fork.repository";
+//            preparedStmt = conn.prepareStatement(selectSQL);
 //
-//                        preparedStmt = conn.prepareStatement(query_fork);
-//                        preparedStmt.setString(1, forkURL);
-//                        preparedStmt.setString(2, forkURL.split("/")[0]);
-//                        preparedStmt.setString(3, forkURL.split("/")[1]);
-//                        preparedStmt.setBoolean(4, true);
-//                        preparedStmt.setString(5, repoURL);
-//                        preparedStmt.setString(6, repoURL);
-//                        preparedStmt.setString(7, forkURL);
-//                        preparedStmt.execute();
+//            //Execute select SQL stetement
+//            for (String repoURL : repos) {
+//                String[] forkListInfo = {};
+//                try {
+//                    forkListInfo = io.readResult("/Users/shuruiz/Box Sync/ForkData/result/" + repoURL + "/graph_result.txt").split("\n");
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//                for (int i = 1; i < forkListInfo.length; i++) {
+//                    String[] columns = forkListInfo[i].split(",");
+//                    HashSet<String> codeChangeCommits = new HashSet<>();
+//                    String forkurl = columns[0];
+//                    System.out.println(forkurl);
 //
+//                    int onlyF = Integer.parseInt(columns[2]);
+//                    int onlyU = Integer.parseInt(columns[3]);
+//                    int F2U = Integer.parseInt(columns[4]);
+//                    int U2F = Integer.parseInt(columns[5]);
 //
-//                        String query = " UPDATE repository" +
-//                                " SET num_of_forks = ?, created_at = ?, pushed_at = ?, size = ?, language = ?, " +
-//                                "ownerID = ?, public_repos = ? , public_gists = ?, followers = ?, following = ?, sign_up_time = ?, user_type = ?" +
-//                                " WHERE repoURL =?";
+//                    List<String> commits_onlyF = Arrays.asList(io.removeBrackets(columns[6]).split("/ "));
+//                    List<String> commits_onlyU = Arrays.asList(io.removeBrackets(columns[7]).split("/ "));
+//                    List<String> commits_F2U = Arrays.asList(io.removeBrackets(columns[8]).split("/ "));
+//                    List<String> commits_U2F = Arrays.asList(io.removeBrackets(columns[9]).split("/ "));
+//
+//                    String selectForkID = "SELECT id from Fork.repository where repoURL = ?";
+//                    preparedStmt = conn.prepareStatement(selectForkID);
+//                    preparedStmt.setString(1, forkurl);
+//                    ResultSet rs = preparedStmt.executeQuery();
+//                    int forkID=-1;
+//                    if(rs.next()) {
+//                         forkID = rs.getInt("id");
+//                    }
+//
+//                    if(forkID != -1) {
+//                        String query = "  INSERT into Fork.repo_fork_commit_graph ( forkID, only_F, only_U, F2U, U2F, only_F_commit_list, F2U_commit_list, data_update_at) " +
+//                                "VALUES (?,?,?,?,?,?,?,?)";
 //                        preparedStmt = conn.prepareStatement(query);
-//                        preparedStmt.setString(1, array[1]);
-//                        preparedStmt.setString(2, array[2]);
-//                        preparedStmt.setString(3, array[3]);
-//                        preparedStmt.setString(4, array[4]);
-//                        preparedStmt.setString(5, array[5]);
-//                        preparedStmt.setString(6, array[6]);
-//                        preparedStmt.setString(7, array[7]);
-//                        preparedStmt.setString(8, array[8]);
-//                        preparedStmt.setString(9, array[9]);
-//                        preparedStmt.setString(10, array[10]);
-//                        preparedStmt.setString(11, array[11]);
-//                        preparedStmt.setString(12, array[12]);
-//                        preparedStmt.setString(13, array[0]);
+//
+//
+//                        preparedStmt.setInt(1, forkID);
+//                        preparedStmt.setInt(2, onlyF);
+//                        preparedStmt.setInt(3, onlyU);
+//                        preparedStmt.setInt(4, F2U);
+//                        preparedStmt.setInt(5, U2F);
+//                        preparedStmt.setString(6, commits_onlyF.toString());
+//                        preparedStmt.setString(7, commits_F2U.toString());
+//                        preparedStmt.setString(8, String.valueOf(now));
+//
 //                        preparedStmt.execute();
 //                    }
-                }
-
-            }
+//
+//                }
+//
+//            }
 
 
             preparedStmt.close();
