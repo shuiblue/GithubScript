@@ -33,8 +33,8 @@ public class AnalyzeCoChangedFile {
     static HashSet<String> stopFileSet = new HashSet<>();
     static String output_dir;
     static String current_OS = System.getProperty("os.name").toLowerCase();
-    //        String analyzingRepoOrFork = "repo";
-    static String analyzingRepoOrFork = "fork";
+    static String analyzingRepoOrFork = "repo";
+//    static String analyzingRepoOrFork = "fork";
 
     public AnalyzeCoChangedFile() {
 
@@ -158,18 +158,20 @@ public class AnalyzeCoChangedFile {
         HashSet<String> fileSET = new HashSet<>();
         ArrayList<HashSet<String>> changedFile_Set = new ArrayList<>();
 
+        /** this threshold is used for filtering out 20% large commits **/
+        int threshold = 10;
+//        if (repoUrl.equals("MarlinFirmware/Marlin")) {
+//            threshold = 36;
+//        } else if (repoUrl.equals("Smoothieware/Smoothieware")) {
+//            threshold = 14;
+//        }
+
+
         int total = 0;
         for (Ref branch : branches) {
             String branchName = branch.getName();
             Iterable<RevCommit> commits = git.log().add(repo.resolve(branchName.replace("refs/", ""))).call();
 
-            /** this threshold is used for filtering out 20% large commits **/
-            int threshold = 0;
-            if (repoUrl.equals("MarlinFirmware/Marlin")) {
-                threshold = 36;
-            } else if (repoUrl.equals("Smoothieware/Smoothieware")) {
-                threshold = 14;
-            }
 
             for (RevCommit commit : commits) {
                 if (commit.getParentCount() == 1) {
@@ -231,12 +233,12 @@ public class AnalyzeCoChangedFile {
 
 
         /** generating graph, node--file, edge -- co-changed relation */
-        StringBuilder sb = new StringBuilder();
-        sb.append("*Vertices " + fileList.size() + "\n");
-        for (int i = 1; i <= fileList.size(); i++) {
-            sb.append(i + " \"" + fileList.get(i - 1) + "\"\n");
-        }
-        sb.append("*Arcs\n");
+//        StringBuilder sb = new StringBuilder();
+//        sb.append("*Vertices " + fileList.size() + "\n");
+//        for (int i = 1; i <= fileList.size(); i++) {
+//            sb.append(i + " \"" + fileList.get(i - 1) + "\"\n");
+//        }
+//        sb.append("*Arcs\n");
 
 
         /**  init support matrix **/
@@ -266,7 +268,7 @@ public class AnalyzeCoChangedFile {
 
 
                 /** generating graph, node--file, edge -- co-changed relation */
-                sb.append((index_a + 1) + "," + (index_b + 1) + "\n");
+//                sb.append((index_a + 1) + "," + (index_b + 1) + "\n");
             } else if (co_changedFiles.size() == 1) {
                 support_matrix[index_a][index_a] += 1;
             }
@@ -274,8 +276,8 @@ public class AnalyzeCoChangedFile {
 
         }
 
-        /** generating graph, node--file, edge -- co-changed relation */
-        io.rewriteFile(sb.toString(), historyDirPath + repoUrl + "/CoChangedFileGraph.pajek.net");
+//        /** generating graph, node--file, edge -- co-changed relation */
+//        io.rewriteFile(sb.toString(), historyDirPath + repoUrl + "/CoChangedFileGraph.pajek.net");
 
 
         System.out.println(" confidence matrix");
@@ -304,7 +306,7 @@ public class AnalyzeCoChangedFile {
                 + " , files in total: " + fileList.size() + "\n------\n", historyDirPath + "/repoModularity.csv");
         System.out.println(repoUrl + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
                 + (filesTotal * filesTotal - filesTotal) + " , " + commitSET.size() + " unique commits in total, all branches has " + total + " commits , files in total: " + fileList.size() + "\n------\n");
-        io.writeTofile(repoUrl + "," + modularity * 100 + "\n", historyDirPath + "/repo_ECI.csv");
+        io.writeTofile(repoUrl + "," + modularity * 100 + "\n", historyDirPath + "/" + threshold + "_repo_ECI.csv");
 
     }
 
@@ -331,7 +333,6 @@ public class AnalyzeCoChangedFile {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        String locHistory = historyDirPath + repoUrl + "/changedSize_LOC.csv";
 
         for (int i = 1; i < forkListInfo.length; i++) {
             String forkINFO = forkListInfo[i];
@@ -361,7 +362,6 @@ public class AnalyzeCoChangedFile {
             codeChangeCommits.addAll(commits_onlyF);
             codeChangeCommits.remove("");
             RevWalk rw = new RevWalk(repo);
-
 
 
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
@@ -423,6 +423,28 @@ public class AnalyzeCoChangedFile {
                                     preparedStmt.setString(7, repoUrl);
                                     preparedStmt.setString(8, sha);
                                     preparedStmt.execute();
+
+
+                                    String updateForkID = "UPDATE Fork.commit AS a" +
+                                            "    SET" +
+                                            "      a.repoID         = (SELECT b.id" +
+                                            "                          FROM Fork.repository AS b" +
+                                            "                          WHERE b.repoURL =?)";
+                                    preparedStmt = conn.prepareStatement(updateForkID);
+                                    preparedStmt.setString(1, forkurl);
+                                    preparedStmt.executeQuery();
+
+
+                                    String update_belongToRepo_ID = "UPDATE Fork.commit AS a" +
+                                            "    SET" +
+                                            "      a.belongToRepoID         = (SELECT b.id" +
+                                            "                          FROM Fork.repository AS b" +
+                                            "                          WHERE b.repoURL =?)";
+                                    preparedStmt = conn.prepareStatement(update_belongToRepo_ID);
+                                    preparedStmt.setString(1, repoUrl);
+                                    preparedStmt.executeQuery();
+
+
                                 } else {
                                     String insert_changedFile_query = " UPDATE commit" +
                                             " SET num_changedFiles = ?, authorName = ?, email = ?, data_update_at = ? " +
@@ -502,7 +524,7 @@ public class AnalyzeCoChangedFile {
                                     int commitshaID = -1;
                                     preparedStmt = conn.prepareStatement(commitshaID_QUERY);
                                     preparedStmt.setString(1, sha);
-                                   ResultSet rs = preparedStmt.executeQuery();        // Get the result table from the query  3
+                                    ResultSet rs = preparedStmt.executeQuery();        // Get the result table from the query  3
                                     // Get the result table from the query  3
                                     while (rs.next()) {               // Position the cursor                  4
                                         commitshaID = rs.getInt(1);        // Retrieve the first column valu
