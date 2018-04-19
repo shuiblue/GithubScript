@@ -33,15 +33,22 @@ public class AnalyzeCoChangedFile {
     static HashSet<String> stopFileSet = new HashSet<>();
     static String output_dir;
     static String current_OS = System.getProperty("os.name").toLowerCase();
-//    static String analyzingRepoOrFork = "repo";
+    //    static String analyzingRepoOrFork = "repo";
     static String analyzingRepoOrFork = "fork";
+    String myUrl;
+    String user;
 
     public AnalyzeCoChangedFile() {
 
         if (current_OS.indexOf("mac") >= 0) {
             output_dir = "/Users/shuruiz/Box Sync/ForkData";
+            myUrl = "jdbc:mysql://localhost:3306/Fork";
+            user = "root";
         } else {
-            output_dir = "/home/feature/shuruiz/ForkData";
+//            output_dir = "/home/feature/shuruiz/ForkData";
+            output_dir = "/usr0/home/shuruiz/ForkData";
+            myUrl = "jdbc:mysql://localhost:3306/fork";
+            user = "shuruiz";
         }
 
         if (analyzingRepoOrFork.equals("repo")) {
@@ -311,7 +318,7 @@ public class AnalyzeCoChangedFile {
      * @param repoUrl
      */
     private void getCodechangedLOC(String repoUrl) {
-        String myUrl = "jdbc:mysql://localhost:3306/Fork";
+
         Connection conn = null;
         PreparedStatement preparedStmt;
 
@@ -319,7 +326,8 @@ public class AnalyzeCoChangedFile {
         String[] forkListInfo = {};
         try {
             forkListInfo = io.readResult(resultDirPath + repoUrl + "/pr_graph_info.csv").split("\n");
-            conn = DriverManager.getConnection(myUrl, "root", "shuruiz");
+
+            conn = DriverManager.getConnection(myUrl, user, "shuruiz");
         } catch (IOException e) {
             e.printStackTrace();
         } catch (SQLException e) {
