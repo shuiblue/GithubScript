@@ -400,13 +400,13 @@ public class AnalyzeCoChangedFile {
                                 ResultSet rs = preparedStmt.executeQuery();        // Get the result table from the query  3
                                 if (rs.getRow() == 0) {
 
-                                    String update_commit_query = " INSERT INTO forkcommit (commitSHA,  repoURL, num_changedFiles, authorName, email, data_update_at, upstreamURL)" +
+                                    String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, num_changedFiles, authorName, email, data_update_at, upstreamURL)" +
                                             "  SELECT *" +
                                             "  FROM (SELECT" +
                                             "          ? AS a,? AS b, ? AS c, ? as d, ? as e,? as f, ? as g ) AS tmp" +
                                             "  WHERE NOT EXISTS(" +
                                             "      SELECT commitSHA" +
-                                            "      FROM forkcommit AS cc" +
+                                            "      FROM fork.commit AS cc" +
                                             "      WHERE cc.commitSHA = ?" +
                                             "  )" +
                                             "  LIMIT 1";
@@ -425,20 +425,20 @@ public class AnalyzeCoChangedFile {
                                     preparedStmt.execute();
 
 
-                                    String updateForkID = "UPDATE forkcommit AS a" +
+                                    String updateForkID = "UPDATE fork.commit AS a" +
                                             "    SET" +
                                             "      a.repoID         = (SELECT b.id" +
-                                            "                          FROM forkrepository AS b" +
+                                            "                          FROM fork.repository AS b" +
                                             "                          WHERE b.repoURL =?)";
                                     preparedStmt = conn.prepareStatement(updateForkID);
                                     preparedStmt.setString(1, forkurl);
                                     preparedStmt.executeQuery();
 
 
-                                    String update_belongToRepo_ID = "UPDATE forkcommit AS a" +
+                                    String update_belongToRepo_ID = "UPDATE fork.commit AS a" +
                                             "    SET" +
                                             "      a.belongToRepoID         = (SELECT b.id" +
-                                            "                          FROM forkrepository AS b" +
+                                            "                          FROM fork.repository AS b" +
                                             "                          WHERE b.repoURL =?)";
                                     preparedStmt = conn.prepareStatement(update_belongToRepo_ID);
                                     preparedStmt.setString(1, repoUrl);
@@ -532,7 +532,7 @@ public class AnalyzeCoChangedFile {
 
                                     //TODO: skip existing commits
 
-                                    String insert_changedFile_query = " INSERT INTO forkcommit_changedFiles (" +
+                                    String insert_changedFile_query = " INSERT INTO fork.commit_changedFiles (" +
                                             "added_files_list  , added_files_num  , modify_files_list, modify_files_num , renamed_files_list ,renamed_files_num ,copied_files_list ," +
                                             " copied_files_num, deleted_files_list , deleted_files_num , add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commitSHA_id,readme_loc )" +
                                             " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
