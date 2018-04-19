@@ -556,7 +556,7 @@ public class AnalyzeCoChangedFile {
                                     preparedStmt.setInt(15, index_d);
                                     preparedStmt.setInt(16, commitshaID);
                                     preparedStmt.setInt(17, readmeAdded);
-                                    preparedStmt.execute();
+                                    preparedStmt.executeUpdate();
 
                                 } catch (SQLException e) {
                                     e.printStackTrace();
