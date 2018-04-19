@@ -119,13 +119,6 @@ public class AnalyzeCoChangedFile {
                     e.printStackTrace();
                 }
             } else if (analyzingRepoOrFork.equals("fork")) {
-                String locHistory = historyDirPath + repoUrl + "/changedSize_LOC.csv";
-//                io.rewriteFile("repo,fork,upstream,only_F,only_U,F2U,U2F,fork_num,created_at,pushed_at,size," +
-//                        "language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type,fork_age,lastCommit_age," +
-//                        "allPR,mergedPR,rejectedPR,num_allPRcommit, num_mergedPRcommits, num_rejectedPRcommits,allPRcommit,mergedPRcommits,rejectedPRcommits," +
-//                        "final_OnlyF,final_F2U,num_mergedCommitsNotThroughPR,OnlyF_list,F2U_list,mergedCommitsNotThroughPR_list," +
-//                        "num_addFile,num_modifyFile,num_deleteFile,num_copyFile,num_renameFile,addFile_linesAdded,modifyFile_linesAdded,readmeAdded,linesDeleted," +
-//                        "addFile,modifyFile,deleteFile,copyFile,renameFile\n", locHistory);
                 acc.getCodechangedLOC(repoUrl);
             }
         }
@@ -275,7 +268,7 @@ public class AnalyzeCoChangedFile {
 
 
         }
-
+/** generating graph, node--file, edge -- co-changed relation */
 //        /** generating graph, node--file, edge -- co-changed relation */
 //        io.rewriteFile(sb.toString(), historyDirPath + repoUrl + "/CoChangedFileGraph.pajek.net");
 
@@ -318,7 +311,6 @@ public class AnalyzeCoChangedFile {
      * @param repoUrl
      */
     private void getCodechangedLOC(String repoUrl) {
-        String myDriver = "com.mysql.jdbc.Driver";
         String myUrl = "jdbc:mysql://localhost:3306/Fork";
         Connection conn = null;
         PreparedStatement preparedStmt;
@@ -529,11 +521,6 @@ public class AnalyzeCoChangedFile {
                                     while (rs.next()) {               // Position the cursor                  4
                                         commitshaID = rs.getInt(1);        // Retrieve the first column valu
                                     }
-//                                    String insert_changedFile_query = " UPDATE changedFile" +
-//                                            " SET  added_files_list = ?, added_files_num = ?, modify_files_list = ?, modify_files_num = ?, renamed_files_list = ?,renamed_files_num = ?, " +
-//                                            "copied_files_list = ?, copied_files_num = ? , deleted_files_list = ?, deleted_files_num = ?," +
-//                                            "   add_loc = ?, modify_loc = ?, delete_loc = ?, data_update_at = ?,index_changedFile =?"+
-//                                            " WHERE commitSHA =?";
 
                                     //TODO: skip existing commits
 
@@ -584,15 +571,6 @@ public class AnalyzeCoChangedFile {
 
 
             }
-
-//            System.out.println(repoUrl + "," + forkurl + "," + addFileSet.size() + "," + modifyFileSet.size() + ","
-//                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + addFile_linesAdded + "," + modifyFile_linesAdded + "," + readmeAdded + "\n");
-//
-//            io.writeTofile(forkINFO + "," + addFileSet.size() + "," + modifyFileSet.size() + ","
-//                    + deleteFileSet.size() + "," + copyFileSet.size() + "," + renameFileSet.size() + "," + addFile_linesAdded + "," + modifyFile_linesAdded + "," + readmeAdded + "," + linesDeleted + ","
-//                    + addFileSet.toString().replace(", ", "~") + "," + modifyFileSet.toString().replace(", ", "~") + ","
-//                    + deleteFileSet.toString().replace(", ", "~") + "," + copyFileSet.toString().replace(", ", "~") + ","
-//                    + renameFileSet.toString().replace(", ", "~") + "\n", locHistory);
 
             /** remove local copy of fork**/
             System.out.println("delete clone " + forkurl);

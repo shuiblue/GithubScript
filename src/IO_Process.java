@@ -3,6 +3,7 @@ import org.json.JSONObject;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -166,5 +167,32 @@ public class IO_Process {
             e.printStackTrace();
         }
         return values;
+    }
+
+
+    public int getRepoId(String repoURL) {
+        String myDriver = "com.mysql.jdbc.Driver";
+        String myUrl = "jdbc:mysql://localhost:3306/Fork";
+        int repoID = -1;
+        try {
+
+            Connection conn  = DriverManager.getConnection(myUrl, "root", "shuruiz");
+            PreparedStatement preparedStmt;
+
+            String selectRepoID = "SELECT id from Fork.repository where repoURL = ?";
+            preparedStmt = conn.prepareStatement(selectRepoID);
+            preparedStmt.setString(1, repoURL);
+            ResultSet rs = preparedStmt.executeQuery();
+
+            if (rs.next()) {
+                repoID = rs.getInt("id");
+            }
+//            preparedStmt.close();
+//            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return repoID;
+
     }
 }

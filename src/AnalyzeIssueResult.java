@@ -63,16 +63,29 @@ public class AnalyzeIssueResult {
                     if (f.exists()) {
                         // do something
 
-                        System.out.println(repo);
+//                        System.out.println(repo);
                         String[] issueList = io.readResult(issue_dir).split("\n");
                         for (String is : issueList) {
                             if (!is.contains("null") && is.contains("[{")) {
+//                                String query = "  INSERT into Fork.ISSUE (issue_id, author, closed, created_at, updated_at, closed_at, title,repoID) " +
+//                                        "VALUES (?,?,?,?,?,?,?,?)";
+
                                 String query = "  INSERT into Fork.ISSUE (issue_id, author, closed, created_at, updated_at, closed_at, title,repoID) " +
-                                        "VALUES (?,?,?,?,?,?,?,?)";
+
+                                        " SELECT * FROM (SELECT ? as a,? as b,? as c,? as d,? as e,? as f, ? as ds,? as de) AS tmp" +
+                                        " WHERE NOT EXISTS (" +
+                                        " SELECT * FROM  Fork.ISSUE WHERE repoID = ? AND issue_id = ?" +
+                                        ") LIMIT 1";
+
+
+
+
                                 preparedStmt = conn.prepareStatement(query);
+                                System.out.println(is);
                                 String[] issue_arr = is.split("----")[1].replace("[{", "").replace("}]", "").split(", \"");
 
-                                preparedStmt.setInt(1, Integer.parseInt(issue_arr[3].replace("number", "").replace("\":", "").replace("\"", "").trim()));
+                                int issueID = Integer.parseInt(issue_arr[3].replace("number", "").replace("\":", "").replace("\"", "").trim());
+                                preparedStmt.setInt(1, issueID);
                                 preparedStmt.setString(2, issue_arr[0].replace("author", "").replace("\":", "").replace("\"", "").trim());
                                 preparedStmt.setString(3, issue_arr[5].replace("closed", "").replace("\":", "").replace("\"", "").trim());
                                 preparedStmt.setString(4, issue_arr[1].replace("created_at", "").replace("\":", "").replace("\"", "").trim());
@@ -80,12 +93,14 @@ public class AnalyzeIssueResult {
                                 preparedStmt.setString(6, issue_arr[6].replace("closed_at", "").replace("\":", "").replace("\"", "").trim());
                                 preparedStmt.setString(7, issue_arr[2].replace("title", "").replace("\":", "").replace("\"", "").trim());
                                 preparedStmt.setInt(8, RepoID);
+                                preparedStmt.setInt(9, RepoID);
+                                preparedStmt.setInt(10, issueID);
                                 preparedStmt.execute();
 //                        System.out.println("insert to issue " + is);
                             }
                         }
 
-                        System.out.println("start pr_issue...");
+//                        System.out.println("start pr_issue...");
                         String[] pr_issue_List = io.readResult(pr_issue_dir).split("\n");
                         HashSet<Integer> checkedIssue = new HashSet<>();
                         for (String pr : pr_issue_List) {
@@ -120,11 +135,11 @@ public class AnalyzeIssueResult {
                 }
 
             } catch (IOException e) {
-//                e.printStackTrace();
+                e.printStackTrace();
             } catch (ClassNotFoundException e) {
-//                e.printStackTrace();
+                e.printStackTrace();
             } catch (SQLException e) {
-//                e.printStackTrace();
+                e.printStackTrace();
             }
 
 
