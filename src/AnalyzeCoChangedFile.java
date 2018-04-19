@@ -420,6 +420,8 @@ public class AnalyzeCoChangedFile {
                                     preparedStmt.setString(6, String.valueOf(now));
                                     preparedStmt.setString(7, repoUrl);
                                     preparedStmt.setString(8, sha);
+
+                                    System.out.println(preparedStmt.toString());
                                     preparedStmt.execute();
 
 
