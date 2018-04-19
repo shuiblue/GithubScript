@@ -33,8 +33,8 @@ public class AnalyzeCoChangedFile {
     static HashSet<String> stopFileSet = new HashSet<>();
     static String output_dir;
     static String current_OS = System.getProperty("os.name").toLowerCase();
-    static String analyzingRepoOrFork = "repo";
-//    static String analyzingRepoOrFork = "fork";
+//    static String analyzingRepoOrFork = "repo";
+    static String analyzingRepoOrFork = "fork";
 
     public AnalyzeCoChangedFile() {
 
@@ -360,8 +360,6 @@ public class AnalyzeCoChangedFile {
             LocalDateTime now = LocalDateTime.now();
 
             for (String sha : codeChangeCommits) {
-
-
                 System.out.println(sha);
                 RevCommit commit = getCommit(sha, repo, git, branchList);
                 if (commit != null && commit.getParentCount() > 0) {

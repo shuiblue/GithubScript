@@ -188,7 +188,7 @@ public class IO_Process {
                 repoID = rs.getInt("id");
             }
 //            preparedStmt.close();
-//            conn.close();
+            conn.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
