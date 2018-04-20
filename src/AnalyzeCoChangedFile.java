@@ -538,7 +538,7 @@ public class AnalyzeCoChangedFile {
                                             "  SELECT *" +
                                             "  FROM (SELECT" +
                                             "          ? as a1,? as a2,? as a3,? as a4,?  as a17,? as a5,? as a6," +
-                                            "? as a7,? as a8,? as a9,? as a10,? as a11,? as a12,? as a13,? as a14,? as a15,? as a16 AS tmp" +
+                                            "? as a7,? as a8,? as a9,? as a10,? as a11,? as a12,? as a13,? as a14,? as a15,? as a16 ) AS tmp" +
                                             "  WHERE NOT EXISTS(" +
                                             "      SELECT *" +
                                             "      FROM fork.commit_changedFiles AS cc" +
