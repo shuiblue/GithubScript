@@ -1,3 +1,4 @@
+import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -118,46 +119,48 @@ public class IO_Process {
     }
 
     public void deleteDir(File file) throws IOException {
+
+        FileUtils.deleteDirectory(file);
 //        System.out.println("delete " + file);
-        if (file.isDirectory()) {
-
-            //directory is empty, then delete it
-            if (file.list().length == 0) {
-
-                file.delete();
-                System.out.println("Directory is deleted : "
-                        + file.getAbsolutePath());
-
-            } else {
-
-                //list all the directory contents
-                String files[] = file.list();
-
-                for (String temp : files) {
-                    //construct the file structure
-                    File fileDelete = new File(file, temp);
-                    if (fileDelete.exists()) {
-                        //recursive delete
-                        deleteDir(fileDelete);
-
-                        System.out.println("Directory is deleted : "
-                                + file.getAbsolutePath());
-                    }
-                }
-
-                //check the directory again, if empty then delete it
-                if (file.list().length == 0) {
-                    file.delete();
-//                    System.out.println("Directory is deleted : "
-//                            + file.getAbsolutePath());
-                }
-            }
-
-        } else {
-            //if file, then delete it
-            file.delete();
-//            System.out.println("File is deleted : " + file.getAbsolutePath());
-        }
+//        if (file.isDirectory()) {
+//
+//            //directory is empty, then delete it
+//            if (file.list().length == 0) {
+//
+//                file.delete();
+//                System.out.println("Directory is deleted : "
+//                        + file.getAbsolutePath());
+//
+//            } else {
+//
+//                //list all the directory contents
+//                String files[] = file.list();
+//
+//                for (String temp : files) {
+//                    //construct the file structure
+//                    File fileDelete = new File(file, temp);
+//                    if (fileDelete.exists()) {
+//                        //recursive delete
+//                        deleteDir(fileDelete);
+//
+//                        System.out.println("Directory is deleted : "
+//                                + file.getAbsolutePath());
+//                    }
+//                }
+//
+//                //check the directory again, if empty then delete it
+//                if (file.list().length == 0) {
+//                    file.delete();
+////                    System.out.println("Directory is deleted : "
+////                            + file.getAbsolutePath());
+//                }
+//            }
+//
+//        } else {
+//            //if file, then delete it
+//            file.delete();
+////            System.out.println("File is deleted : " + file.getAbsolutePath());
+//        }
     }
 
 
