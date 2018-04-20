@@ -432,7 +432,7 @@ public class AnalyzeCoChangedFile {
                                             "                          WHERE b.repoURL =?)";
                                     preparedStmt = conn.prepareStatement(updateForkID);
                                     preparedStmt.setString(1, forkurl);
-                                    preparedStmt.executeQuery();
+                                    preparedStmt.executeUpdate();
 
 
                                     String update_belongToRepo_ID = "UPDATE fork.commit AS a" +
@@ -442,7 +442,7 @@ public class AnalyzeCoChangedFile {
                                             "                          WHERE b.repoURL =?)";
                                     preparedStmt = conn.prepareStatement(update_belongToRepo_ID);
                                     preparedStmt.setString(1, repoUrl);
-                                    preparedStmt.executeQuery();
+                                    preparedStmt.executeUpdate();
 
 
                                 } else {
