@@ -125,8 +125,8 @@ public class IO_Process {
             if (file.list().length == 0) {
 
                 file.delete();
-//                System.out.println("Directory is deleted : "
-//                        + file.getAbsolutePath());
+                System.out.println("Directory is deleted : "
+                        + file.getAbsolutePath());
 
             } else {
 
@@ -139,6 +139,9 @@ public class IO_Process {
                     if (fileDelete.exists()) {
                         //recursive delete
                         deleteDir(fileDelete);
+
+                        System.out.println("Directory is deleted : "
+                                + file.getAbsolutePath());
                     }
                 }
 
