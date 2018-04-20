@@ -530,13 +530,22 @@ public class AnalyzeCoChangedFile {
                                         commitshaID = rs.getInt(1);        // Retrieve the first column valu
                                     }
 
-                                    //TODO: skip existing commits
 
                                     String insert_changedFile_query = " INSERT INTO fork.commit_changedFiles (" +
                                             "added_files_list  , added_files_num  , modify_files_list, modify_files_num , renamed_files_list ,renamed_files_num ,copied_files_list ," +
                                             " copied_files_num, deleted_files_list , deleted_files_num , add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commitSHA_id,readme_loc )" +
-                                            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-
+//                                            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                                            "  SELECT *" +
+                                            "  FROM (SELECT" +
+                                            "          ? as a1,? as a2,? as a3,? as a4,?  as a17,? as a5,? as a6," +
+                                            "? as a7,? as a8,? as a9,? as a10,? as a11,? as a12,? as a13,? as a14,? as a15,? as a16 AS tmp" +
+                                            "  WHERE NOT EXISTS(" +
+                                            "      SELECT *" +
+                                            "      FROM fork.commit_changedFiles AS cc" +
+                                            "      WHERE cc.commitsha_id = ?" +
+                                            "      and cc.index_changedFile = ?" +
+                                            "  )" +
+                                            "  LIMIT 1";
 
                                     preparedStmt = conn.prepareStatement(insert_changedFile_query);
                                     preparedStmt.setString(1, addFileSet.toString());
@@ -556,6 +565,8 @@ public class AnalyzeCoChangedFile {
                                     preparedStmt.setInt(15, index_d);
                                     preparedStmt.setInt(16, commitshaID);
                                     preparedStmt.setInt(17, readmeAdded);
+                                    preparedStmt.setInt(18, commitshaID);
+                                    preparedStmt.setInt(19, index_d);
                                     preparedStmt.executeUpdate();
 
                                 } catch (SQLException e) {
