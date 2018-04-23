@@ -164,6 +164,7 @@ public class AnalyzingPRs {
                             preparedStmt.setString(1, commit);
 
                             int sha_id = -1;
+                            System.out.println(preparedStmt.toString());
                             ResultSet rs = preparedStmt.executeQuery();        // Get the result table from the query  3
 
                             if (rs.getRow() == 0) {
