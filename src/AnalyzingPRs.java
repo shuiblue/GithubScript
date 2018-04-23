@@ -73,7 +73,8 @@ public class AnalyzingPRs {
         LocalDateTime now = LocalDateTime.now();
 
         try {
-            conn = DriverManager.getConnection(myUrl, "root", "shuruiz");
+
+            conn = DriverManager.getConnection(myUrl, user, "shuruiz");
             String pr_json_string = io.readResult(dir + repoUrl + "/pr.txt");
             if (pr_json_string.contains("----")) {
                 pr_json = pr_json_string.split("\n");
