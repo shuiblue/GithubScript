@@ -154,8 +154,6 @@ public class IO_Process {
             String selectRepoID = "SELECT id from fork.repository where repoURL = ?";
             preparedStmt = conn.prepareStatement(selectRepoID);
             preparedStmt.setString(1, repoURL);
-
-            System.out.println(preparedStmt.toString());
             ResultSet rs = preparedStmt.executeQuery();
 
             if (rs.next()) {

@@ -108,6 +108,7 @@ public class AnalyzingPRs {
                                 commitSet.add(commit);
                             }
                         }
+
                         String insert_query_1 = " insert into fork.repo_PR( " +
                                 "projectID,pull_request_ID, forkName, authorName,forkURL,forkID," +
                                 "created_at, closed, closed_at, merged, data_update_at) " +
@@ -130,6 +131,8 @@ public class AnalyzingPRs {
                         preparedStmt.setString(11, String.valueOf(now));
                         preparedStmt.setInt(12, projectID);
                         preparedStmt.setInt(13, pr_id);
+                        System.out.println(preparedStmt.toString());
+
                         preparedStmt.execute();
 
 
@@ -149,6 +152,7 @@ public class AnalyzingPRs {
                         preparedStmt.setInt(7, projectID);
                         preparedStmt.setInt(8, projectID);
                         preparedStmt.setString(9, forkURL);
+                        System.out.println(preparedStmt.toString());
                         preparedStmt.execute();
 
 
@@ -183,6 +187,7 @@ public class AnalyzingPRs {
                                     preparedStmt.setString(5, commit);
                                     preparedStmt.setInt(6, forkID);
                                     preparedStmt.setInt(7, projectID);
+                                    System.out.println(preparedStmt.toString());
                                     preparedStmt.execute();
                                 } catch (SQLException e) {
                                     e.printStackTrace();
@@ -230,6 +235,7 @@ public class AnalyzingPRs {
                             preparedStmt.setInt(4, sha_id);
                             preparedStmt.setInt(5, fork_id);
                             preparedStmt.setInt(6, pr_id);
+                            System.out.println(preparedStmt.toString());
                             preparedStmt.execute();
 
                         }
