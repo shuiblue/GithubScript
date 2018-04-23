@@ -105,7 +105,7 @@ public class AnalyzingPRs {
                                 commitSet.add(commit);
                             }
                         }
-                        String insert_query_1 = " insert into Fork.repo_PR( " +
+                        String insert_query_1 = " insert into fork.repo_PR( " +
                                 "projectID,pull_request_ID, forkName, authorName,forkURL,forkID," +
                                 "created_at, closed, closed_at, merged, data_update_at) " +
                                 " SELECT * FROM (SELECT ? as a,? as b,? as c,? as d,? as e,? as f, ?as ds,?as de,?as d3,?as d2, ? as d5) AS tmp" +
@@ -161,13 +161,13 @@ public class AnalyzingPRs {
 
                             if (rs.getRow() == 0) {
                                 try {
-                                    String update_commit_query = " INSERT INTO Fork.commit (commitSHA,  repoURL, upstreamURL, data_update_at, repoID, belongToRepoID)" +
+                                    String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, upstreamURL, data_update_at, repoID, belongToRepoID)" +
                                             "  SELECT *" +
                                             "  FROM (SELECT" +
                                             "          ? AS a,? AS b, ? AS c, ? as d,? as x, ? as y) AS tmp" +
                                             "  WHERE NOT EXISTS(" +
                                             "      SELECT commitSHA" +
-                                            "      FROM Fork.commit AS cc" +
+                                            "      FROM fork.commit AS cc" +
                                             "      WHERE cc.commitSHA = ?" +
                                             "  )" +
                                             "  LIMIT 1";
@@ -206,13 +206,13 @@ public class AnalyzingPRs {
                                 fork_id = rs.getInt(1);        // Retrieve the first column valu
                             }
 
-                            String insert_commit_query = " INSERT INTO Fork.pr_commit (commitsha_id,repoID,pull_request_id)" +
+                            String insert_commit_query = " INSERT INTO fork.pr_commit (commitsha_id,repoID,pull_request_id)" +
                                     "  SELECT *" +
                                     "  FROM (SELECT" +
                                     "          ? AS a,? AS b, ? AS c ) AS tmp" +
                                     "  WHERE NOT EXISTS(" +
                                     "      SELECT *" +
-                                    "      FROM Fork.pr_commit AS cc" +
+                                    "      FROM fork.pr_commit AS cc" +
                                     "      WHERE cc.commitsha_id = ?" +
                                     "      and cc.repoID = ?" +
                                     "      and cc.pull_request_id = ?" +
@@ -384,7 +384,7 @@ public class AnalyzingPRs {
 //            }
 
             /*** insert pr info to  repo_PR table***/
-            String selectSQL = " SELECT repoURL FROM Fork.repository";
+            String selectSQL = " SELECT repoURL FROM fork.repository";
             preparedStmt = conn.prepareStatement(selectSQL);
 
             //Execute select SQL stetement

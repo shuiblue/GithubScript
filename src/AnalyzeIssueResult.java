@@ -43,7 +43,7 @@ public class AnalyzeIssueResult {
                 Connection conn = DriverManager.getConnection(myUrl, "root", "shuruiz");
                 PreparedStatement preparedStmt;
 
-                String selectRepoID = "SELECT id from Fork.repository where repoURL = ?";
+                String selectRepoID = "SELECT id from fork.repository where repoURL = ?";
                 preparedStmt = conn.prepareStatement(selectRepoID);
                 preparedStmt.setString(1, repo);
                 ResultSet rs = preparedStmt.executeQuery();
@@ -67,14 +67,14 @@ public class AnalyzeIssueResult {
                         String[] issueList = io.readResult(issue_dir).split("\n");
                         for (String is : issueList) {
                             if (!is.contains("null") && is.contains("[{")) {
-//                                String query = "  INSERT into Fork.ISSUE (issue_id, author, closed, created_at, updated_at, closed_at, title,repoID) " +
+//                                String query = "  INSERT into fork.ISSUE (issue_id, author, closed, created_at, updated_at, closed_at, title,repoID) " +
 //                                        "VALUES (?,?,?,?,?,?,?,?)";
 
-                                String query = "  INSERT into Fork.ISSUE (issue_id, author, closed, created_at, updated_at, closed_at, title,repoID) " +
+                                String query = "  INSERT into fork.ISSUE (issue_id, author, closed, created_at, updated_at, closed_at, title,projectID) " +
 
                                         " SELECT * FROM (SELECT ? as a,? as b,? as c,? as d,? as e,? as f, ? as ds,? as de) AS tmp" +
                                         " WHERE NOT EXISTS (" +
-                                        " SELECT * FROM  Fork.ISSUE WHERE repoID = ? AND issue_id = ?" +
+                                        " SELECT * FROM  fork.ISSUE WHERE projectID = ? AND issue_id = ?" +
                                         ") LIMIT 1";
 
 
@@ -115,7 +115,7 @@ public class AnalyzeIssueResult {
                                         checkedIssue.add(issue_num);
 
 
-                                        String query = "  INSERT into Fork.PR_TO_ISSUE (repoID, pull_request_id, issue_id) " +
+                                        String query = "  INSERT into fork.PR_TO_ISSUE (repoID, pull_request_id, issue_id) " +
                                                 "VALUES (?,?,?)";
                                         preparedStmt = conn.prepareStatement(query);
                                         preparedStmt.setInt(1, RepoID);
