@@ -151,7 +151,7 @@ public class IO_Process {
             Connection    conn = DriverManager.getConnection(myUrl, user, "shuruiz");
             PreparedStatement preparedStmt;
 
-            String selectRepoID = "SELECT id from Fork.repository where repoURL = ?";
+            String selectRepoID = "SELECT id from fork.repository where repoURL = ?";
             preparedStmt = conn.prepareStatement(selectRepoID);
             preparedStmt.setString(1, repoURL);
 
