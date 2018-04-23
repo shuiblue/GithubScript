@@ -184,9 +184,9 @@ public class AnalyzingPRs {
                                     preparedStmt.setString(2, forkURL);
                                     preparedStmt.setString(3, repoUrl);
                                     preparedStmt.setString(4, String.valueOf(now));
-                                    preparedStmt.setString(5, commit);
-                                    preparedStmt.setInt(6, forkID);
-                                    preparedStmt.setInt(7, projectID);
+                                    preparedStmt.setInt(5, forkID);
+                                    preparedStmt.setInt(6, projectID);
+                                    preparedStmt.setString(7, commit);
                                     System.out.println(preparedStmt.toString());
                                     preparedStmt.execute();
                                 } catch (SQLException e) {
