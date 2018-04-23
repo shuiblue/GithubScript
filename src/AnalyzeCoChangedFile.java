@@ -89,7 +89,6 @@ public class AnalyzeCoChangedFile {
     static public void main(String[] args) {
         AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
 
-        current_dir = System.getProperty("user.dir");
 
         tmpDirPath = output_dir + "/cloneRepos/";
         historyDirPath = output_dir + "/commitHistory/";

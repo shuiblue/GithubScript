@@ -13,11 +13,13 @@ import java.util.*;
  */
 public class AnalyzingPRs {
 
-    String dir = "/Users/shuruiz/Box Sync/queryGithub/";
-    String myDriver = "com.mysql.jdbc.Driver";
-    String myUrl = "jdbc:mysql://localhost:3306/Fork";
+    static String dir ;
     static String current_dir;
     PreparedStatement preparedStmt;
+    static String output_dir;
+    static String current_OS = System.getProperty("os.name").toLowerCase();
+    static String myUrl;
+    static String user;
 
     public ArrayList<PullRequest> createPR(String repoUrl) {
         ArrayList<PullRequest> prList = new ArrayList<>();
@@ -351,6 +353,19 @@ public class AnalyzingPRs {
 
     public static void main(String[] args) {
         current_dir = System.getProperty("user.dir");
+
+        if (current_OS.indexOf("mac") >= 0) {
+            dir = "/Users/shuruiz/Box Sync/queryGithub";
+            myUrl = "jdbc:mysql://localhost:3306/Fork";
+            user = "root";
+        } else {
+//            output_dir = "/home/feature/shuruiz/ForkData";
+            dir = "/usr0/home/shuruiz/queryGithub";
+            myUrl = "jdbc:mysql://localhost:3306/fork";
+            user = "shuruiz";
+        }
+
+
         AnalyzingPRs analyzingPRs = new AnalyzingPRs();
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
@@ -358,9 +373,7 @@ public class AnalyzingPRs {
 
         try {
             String myDriver = "com.mysql.jdbc.Driver";
-            String myUrl = "jdbc:mysql://localhost:3306/Fork";
-
-            Connection conn = DriverManager.getConnection(myUrl, "root", "shuruiz");
+            Connection    conn = DriverManager.getConnection(myUrl, user, "shuruiz");
             PreparedStatement preparedStmt;
 
             // create a mysql database connection

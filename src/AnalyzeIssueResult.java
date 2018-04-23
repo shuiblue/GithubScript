@@ -12,19 +12,32 @@ public class AnalyzeIssueResult {
     static String pathname, historyDirPath;
     static HashSet<String> stopFileSet = new HashSet<>();
     static String output_dir;
-
+    static String myUrl;
+    static String user;
+    static String current_OS = System.getProperty("os.name").toLowerCase();
 
     static public void main(String[] args) {
         AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
 
         current_dir = System.getProperty("user.dir");
 
+        if (current_OS.indexOf("mac") >= 0) {
+            output_dir = "/Users/shuruiz/Box Sync/queryGithub";
+            myUrl = "jdbc:mysql://localhost:3306/Fork";
+            user = "root";
+        } else {
+//            output_dir = "/home/feature/shuruiz/ForkData";
+            output_dir = "/usr0/home/shuruiz/queryGithub";
+            myUrl = "jdbc:mysql://localhost:3306/fork";
+            user = "shuruiz";
+        }
+
+
         tmpDirPath = output_dir + "/cloneRepos/";
         historyDirPath = output_dir + "/commitHistory/";
         resultDirPath = output_dir + "/result/";
         IO_Process io = new IO_Process();
         String[] repoList = {};
-        current_dir = System.getProperty("user.dir");
         io.rewriteFile("", resultDirPath + "File_history.csv");
 
         /** get repo list **/
@@ -40,7 +53,7 @@ public class AnalyzeIssueResult {
             String myDriver = "com.mysql.jdbc.Driver";
             String myUrl = "jdbc:mysql://localhost:3306/Fork";
             try {
-                Connection conn = DriverManager.getConnection(myUrl, "root", "shuruiz");
+                Connection        conn = DriverManager.getConnection(myUrl, user, "shuruiz");
                 PreparedStatement preparedStmt;
 
                 String selectRepoID = "SELECT id from fork.repository where repoURL = ?";
