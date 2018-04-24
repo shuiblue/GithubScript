@@ -75,7 +75,7 @@ public class AnalyzeIssueResult {
                     if (f.exists()) {
                         // do something
 
-//                        System.out.println(repo);
+                        System.out.println(repo);
                         String[] issueList = io.readResult(issue_dir).split("\n");
                         for (String is : issueList) {
                             if (!is.contains("null") && is.contains("[{")) {
@@ -108,11 +108,11 @@ public class AnalyzeIssueResult {
                                 preparedStmt.setInt(9, RepoID);
                                 preparedStmt.setInt(10, issueID);
                                 preparedStmt.execute();
-//                        System.out.println("insert to issue " + is);
+                        System.out.println("insert to issue " + is);
                             }
                         }
 
-//                        System.out.println("start pr_issue...");
+                        System.out.println("start pr_issue...");
                         String[] pr_issue_List = io.readResult(pr_issue_dir).split("\n");
                         HashSet<Integer> checkedIssue = new HashSet<>();
                         for (String pr : pr_issue_List) {
@@ -142,7 +142,6 @@ public class AnalyzeIssueResult {
                                         preparedStmt.setInt(4, RepoID);
                                         preparedStmt.setInt(5, pr_num);
                                         preparedStmt.setInt(6, issue_num);
-                                        System.out.println(preparedStmt.toString());
                                         preparedStmt.execute();
 //                                        System.out.println("insert to prTOissue " + issue);
 
