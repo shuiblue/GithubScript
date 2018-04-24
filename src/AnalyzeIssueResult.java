@@ -51,7 +51,6 @@ public class AnalyzeIssueResult {
 
         for (String repo : repoList) {
             String myDriver = "com.mysql.jdbc.Driver";
-            String myUrl = "jdbc:mysql://localhost:3306/Fork";
             try {
                 Connection        conn = DriverManager.getConnection(myUrl, user, "shuruiz");
                 PreparedStatement preparedStmt;
