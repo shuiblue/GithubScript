@@ -142,6 +142,7 @@ public class AnalyzeIssueResult {
                                         preparedStmt.setInt(4, RepoID);
                                         preparedStmt.setInt(5, pr_num);
                                         preparedStmt.setInt(6, issue_num);
+                                        System.out.println(preparedStmt.toString());
                                         preparedStmt.execute();
 //                                        System.out.println("insert to prTOissue " + issue);
 
