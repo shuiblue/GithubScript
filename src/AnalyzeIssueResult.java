@@ -75,7 +75,7 @@ public class AnalyzeIssueResult {
                     if (f.exists()) {
                         // do something
 
-                        System.out.println(repo);
+                        System.out.println("repo --- "+repo);
                         String[] issueList = io.readResult(issue_dir).split("\n");
                         for (String is : issueList) {
                             if (!is.contains("null") && is.contains("[{")) {
@@ -93,10 +93,11 @@ public class AnalyzeIssueResult {
 
 
                                 preparedStmt = conn.prepareStatement(query);
-                                System.out.println(is);
+
                                 String[] issue_arr = is.split("----")[1].replace("[{", "").replace("}]", "").split(", \"");
 
                                 int issueID = Integer.parseInt(issue_arr[3].replace("number", "").replace("\":", "").replace("\"", "").trim());
+                                System.out.println(issueID);
                                 preparedStmt.setInt(1, issueID);
                                 preparedStmt.setString(2, issue_arr[0].replace("author", "").replace("\":", "").replace("\"", "").trim());
                                 preparedStmt.setString(3, issue_arr[5].replace("closed", "").replace("\":", "").replace("\"", "").trim());
