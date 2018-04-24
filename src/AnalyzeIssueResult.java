@@ -22,12 +22,12 @@ public class AnalyzeIssueResult {
         current_dir = System.getProperty("user.dir");
 
         if (current_OS.indexOf("mac") >= 0) {
-            output_dir = "/Users/shuruiz/Box Sync/queryGithub";
+            output_dir = "/Users/shuruiz/Box Sync/queryGithub/";
             myUrl = "jdbc:mysql://localhost:3306/Fork";
             user = "root";
         } else {
 //            output_dir = "/home/feature/shuruiz/ForkData";
-            output_dir = "/usr0/home/shuruiz/queryGithub";
+            output_dir = "/usr0/home/shuruiz/queryGithub/";
             myUrl = "jdbc:mysql://localhost:3306/fork";
             user = "shuruiz";
         }
