@@ -128,11 +128,20 @@ public class AnalyzeIssueResult {
 
 
                                         String query = "  INSERT into fork.PR_TO_ISSUE (repoID, pull_request_id, issue_id) " +
-                                                "VALUES (?,?,?)";
+//                                                "VALUES (?,?,?)";
+                                                " SELECT * FROM (SELECT ? as a,? as b,? as c) AS tmp" +
+                                                " WHERE NOT EXISTS (" +
+                                                "SELECT * FROM fork.PR_TO_ISSUE WHERE repoID = ? AND pull_request_id=? AND issue_id = ?" +
+                                                ") LIMIT 1";
+
+
                                         preparedStmt = conn.prepareStatement(query);
                                         preparedStmt.setInt(1, RepoID);
                                         preparedStmt.setInt(2, pr_num);
                                         preparedStmt.setInt(3, issue_num);
+                                        preparedStmt.setInt(4, RepoID);
+                                        preparedStmt.setInt(5, pr_num);
+                                        preparedStmt.setInt(6, issue_num);
                                         preparedStmt.execute();
 //                                        System.out.println("insert to prTOissue " + issue);
 
