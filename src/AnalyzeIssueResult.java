@@ -109,7 +109,6 @@ public class AnalyzeIssueResult {
                                 preparedStmt.setInt(9, RepoID);
                                 preparedStmt.setInt(10, issueID);
                                 preparedStmt.execute();
-                        System.out.println("insert to issue " + is);
                             }
                         }
 
