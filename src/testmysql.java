@@ -21,12 +21,22 @@ public class testmysql {
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
-
+         String current_OS = System.getProperty("os.name").toLowerCase();
+         String myUrl,user;
         try {
             String myDriver = "com.mysql.jdbc.Driver";
-            String myUrl = "jdbc:mysql://localhost:3306/Fork";
 
-            Connection conn = DriverManager.getConnection(myUrl, "root", "shuruiz");
+            if (current_OS.indexOf("mac") >= 0) {
+                myUrl = "jdbc:mysql://localhost:3307/fork";
+                user = "shuruiz";
+            } else {
+//            output_dir = "/home/feature/shuruiz/ForkData";
+                myUrl = "jdbc:mysql://localhost:3306/fork";
+                user = "shuruiz";
+            }
+
+
+            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
             PreparedStatement preparedStmt = null;
 
             // create a mysql database connection
@@ -34,21 +44,36 @@ public class testmysql {
             IO_Process io = new IO_Process();
 
 
-            /**  insert modularity of project  **/
-            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/commitHistory/10_repo_ECI.csv").split("\n");
+            /**  insert ratio of merged pr  **/
+            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status.csv").split("\n");
             for (String repo : modularity_array) {
-                String[] repoInfo = repo.split(",");
-                String insertQuery = "UPDATE Fork.Final SET  repoURL = ?,modularity_threshold_10_files =? WHERE repoURL = ?";
+                if (repo.contains("Merged")) {
+                    String[] repoInfo = repo.split(",");
+                    String insertQuery = "UPDATE fork.Final SET ratio_mergedPR = ? WHERE repoURL = ?";
 
-                preparedStmt = conn.prepareStatement(insertQuery);
-                preparedStmt.setString(1, repoInfo[0]);
-                preparedStmt.setDouble(2, Double.parseDouble(repoInfo[1]));
-                preparedStmt.setString(3, repoInfo[0]);
-                preparedStmt.execute();
-                System.out.println(preparedStmt.toString());
+                    preparedStmt = conn.prepareStatement(insertQuery);
+                    preparedStmt.setString(1, repoInfo[4]);
+                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
+                    System.out.println(preparedStmt.toString());
+                    preparedStmt.execute();
+
+                }
             }
+            /**  insert modularity of project  **/
+//            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/commitHistory/10_repo_ECI.csv").split("\n");
+//            for (String repo : modularity_array) {
+//                String[] repoInfo = repo.split(",");
+//                String insertQuery = "UPDATE Fork.Final SET  repoURL = ?,modularity_threshold_10_files =? WHERE repoURL = ?";
+//
+//                preparedStmt = conn.prepareStatement(insertQuery);
+//                preparedStmt.setString(1, repoInfo[0]);
+//                preparedStmt.setDouble(2, Double.parseDouble(repoInfo[1]));
+//                preparedStmt.setString(3, repoInfo[0]);
+//                preparedStmt.execute();
+//                System.out.println(preparedStmt.toString());
+//            }
 
-//            /**  update percentage of issue_first result  **/
+            /**  update percentage of issue_first result  **/
 //            String[] issueFirst_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/pr_issue.csv").split("\n");
 //            for (int i =1;i< issueFirst_array.length;i++) {
 //

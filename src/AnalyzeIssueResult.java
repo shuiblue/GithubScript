@@ -65,8 +65,8 @@ public class AnalyzeIssueResult {
                 }
                 if (RepoID != -1) {
 
-                    String issue_dir = "/Users/shuruiz/Box Sync/queryGithub/" + repo + "/linked_issue_info.txt";
-                    String pr_issue_dir = "/Users/shuruiz/Box Sync/queryGithub/" + repo + "/pr_comments.txt";
+                    String issue_dir = output_dir+ repo + "/linked_issue_info.txt";
+                    String pr_issue_dir =output_dir + repo + "/pr_comments.txt";
 
                     // create a mysql database connection
                     Class.forName(myDriver);
