@@ -45,20 +45,34 @@ public class testmysql {
 
 
             /**  insert ratio of merged pr  **/
-            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status.csv").split("\n");
-            for (String repo : modularity_array) {
-                if (repo.contains("Merged")) {
-                    String[] repoInfo = repo.split(",");
-                    String insertQuery = "UPDATE fork.Final SET ratio_mergedPR = ? WHERE repoURL = ?";
+            String[] easiness_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/easiness.csv").split("\n");
+            for (int i =1;i< easiness_array.length;i++) {
+                String repo = easiness_array[i];
+                String[] repoInfo = repo.split(",");
+                    String insertQuery = "UPDATE fork.Final SET easiness_mergePR = ? WHERE repoURL = ?";
 
                     preparedStmt = conn.prepareStatement(insertQuery);
-                    preparedStmt.setString(1, repoInfo[4]);
+                    preparedStmt.setString(1, repoInfo[2]);
                     preparedStmt.setString(2, repoInfo[1].replace("\"",""));
                     System.out.println(preparedStmt.toString());
                     preparedStmt.execute();
 
-                }
             }
+            /**  insert ratio of merged pr  **/
+//            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status.csv").split("\n");
+//            for (String repo : modularity_array) {
+//                if (repo.contains("Merged")) {
+//                    String[] repoInfo = repo.split(",");
+//                    String insertQuery = "UPDATE fork.Final SET ratio_mergedPR = ? WHERE repoURL = ?";
+//
+//                    preparedStmt = conn.prepareStatement(insertQuery);
+//                    preparedStmt.setString(1, repoInfo[4]);
+//                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
+//                    System.out.println(preparedStmt.toString());
+//                    preparedStmt.execute();
+//
+//                }
+//            }
             /**  insert modularity of project  **/
 //            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/commitHistory/10_repo_ECI.csv").split("\n");
 //            for (String repo : modularity_array) {
@@ -82,7 +96,7 @@ public class testmysql {
 //                    repo = repo.replace("\"", "");
 //
 //                    String[] repoInfo = repo.split(",");
-//                    String insertQuery = "UPDATE Fork.Final SET  central_management_index = ? WHERE repoID = ?";
+//                    String insertQuery = "UPDATE fork.Final SET  central_management_index = ? WHERE repoID = ?";
 //                    preparedStmt = conn.prepareStatement(insertQuery);
 //                    preparedStmt.setDouble(1, Double.parseDouble(repoInfo[4]));
 //                    preparedStmt.setInt(2, Integer.parseInt(repoInfo[1]));

@@ -399,7 +399,7 @@ public class AnalyzeCoChangedFile {
                                 ResultSet rs = preparedStmt.executeQuery();        // Get the result table from the query  3
                                 if (rs.getRow() == 0) {
 
-                                    String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, num_changedFiles, authorName, email, data_update_at, upstreamURL)" +
+                                    String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, num_changedFiles, authorName, email, data_update_at, upstreamURL,repoID,belongToRepoID)" +
                                             "  SELECT *" +
                                             "  FROM (SELECT" +
                                             "          ? AS a,? AS b, ? AS c, ? as d, ? as e,? as f, ? as g ) AS tmp" +
@@ -410,6 +410,9 @@ public class AnalyzeCoChangedFile {
                                             "  )" +
                                             "  LIMIT 1";
 
+                                    int repoID = io.getRepoId(forkurl);
+                                    int projectID = io.getRepoId(repoUrl);
+
                                     preparedStmt = conn.prepareStatement(update_commit_query);
                                     preparedStmt.setString(1, sha);
                                     preparedStmt.setString(2, forkurl);
@@ -418,30 +421,13 @@ public class AnalyzeCoChangedFile {
                                     preparedStmt.setString(5, email);
                                     preparedStmt.setString(6, String.valueOf(now));
                                     preparedStmt.setString(7, repoUrl);
-                                    preparedStmt.setString(8, sha);
+                                    preparedStmt.setInt(8, repoID);
+                                    preparedStmt.setInt(9, projectID);
+                                    preparedStmt.setString(10, sha);
 
                                     System.out.println(preparedStmt.toString());
                                     preparedStmt.execute();
 
-
-                                    String updateForkID = "UPDATE fork.commit AS a" +
-                                            "    SET" +
-                                            "      a.repoID         = (SELECT b.id" +
-                                            "                          FROM fork.repository AS b" +
-                                            "                          WHERE b.repoURL =?)";
-                                    preparedStmt = conn.prepareStatement(updateForkID);
-                                    preparedStmt.setString(1, forkurl);
-                                    preparedStmt.executeUpdate();
-
-
-                                    String update_belongToRepo_ID = "UPDATE fork.commit AS a" +
-                                            "    SET" +
-                                            "      a.belongToRepoID         = (SELECT b.id" +
-                                            "                          FROM fork.repository AS b" +
-                                            "                          WHERE b.repoURL =?)";
-                                    preparedStmt = conn.prepareStatement(update_belongToRepo_ID);
-                                    preparedStmt.setString(1, repoUrl);
-                                    preparedStmt.executeUpdate();
 
 
                                 } else {
