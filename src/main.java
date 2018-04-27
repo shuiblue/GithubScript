@@ -17,7 +17,7 @@ public class main {
         NameBasedClassifier nameBasedClassifier = new NameBasedClassifier();
 
         IO_Process io = new IO_Process();
-        current_dir = "/Users/shuruiz/Box Sync/ForkData";
+        current_dir = System.getProperty("user.dir");
         System.out.println("current dir = " + current_dir);
 
         String[] repoList = {};
