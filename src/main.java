@@ -22,59 +22,61 @@ public class main {
 
         String[] repoList = {};
         /** get repo list **/
+
         try {
-            repoList = io.readResult("/Users/shuruiz/Box Sync/SPL_Research/ForkBasedDev/statistics/try/repoList.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/repoList.txt").split("\n");
+
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+
         for (String repoUrl : repoList) {
             if (repoUrl.trim().length() > 0) {
-//                String repoName = repoUrl.split("/")[0];
-//                /** get active fork list for given repository **/
-//                System.out.println("get all active forks of repo: " + repoName);
+                String repoName = repoUrl.split("/")[0];
+                /** get active fork list for given repository **/
+                System.out.println("get all active forks of repo: " + repoName);
 //
-//                /**  get active forks using github api **/
-//                String all_activeForkList = nameBasedClassifier.getActiveForkList(repoUrl,hasTimeConstraint);
-//                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+                /**  get active forks using github api **/
+                String all_activeForkList = nameBasedClassifier.getActiveForkList(repoUrl,hasTimeConstraint);
+                io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
 
-//                /**  randomize forks from active_fork_list **/
-////                String all_activeForkList="";
-//                try {
-//                    all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
+                /**  randomize forks from active_fork_list **/
+//                String all_activeForkList="";
+                try {
+                    all_activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                if (all_activeForkList.split("\n").length <= maxAnalyzedForkNum) {
+                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
+                } else {
+                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/all_ActiveForklist.txt");
+                    System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
+                    nameBasedClassifier.getRamdomForks(repoUrl, maxAnalyzedForkNum);
+                }
+                /** analyze commit history **/
+                String[] activeForkList = {};
+                try {
+
+                    activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt").split("\n");
+                    System.out.println(activeForkList.length + " forks");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                /**   classify commits **/
+                /**  by graph  **/
+                System.out.println("graph-based...");
+                StringBuilder sb_result = new StringBuilder();
+                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
+                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
+                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.txt");
+                for (String forkInfo : activeForkList) {
+                    System.out.println("FORK: " + forkInfo);
+                    graphBasedClassifier.analyzeCommitHistory(forkInfo, repoUrl);
+                }
 //
-//                if (all_activeForkList.split("\n").length <= maxAnalyzedForkNum) {
-//                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/ActiveForklist.txt");
-//                } else {
-//                    io.rewriteFile(all_activeForkList, current_dir + "/result/" + repoUrl + "/all_ActiveForklist.txt");
-//                    System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
-//                    nameBasedClassifier.getRamdomForks(repoUrl, maxAnalyzedForkNum);
-//                }
-////
-//                /** analyze commit history **/
-//                String[] activeForkList = {};
-//                try {
-//
-//                    activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt").split("\n");
-//                    System.out.println(activeForkList.length + " forks");
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//                /**   classify commits **/
-//                /**  by graph  **/
-//                System.out.println("graph-based...");
-//                StringBuilder sb_result = new StringBuilder();
-//                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
-//                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
-//                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.txt");
-//                for (String forkInfo : activeForkList) {
-//                    System.out.println("FORK: " + forkInfo);
-//                    graphBasedClassifier.analyzeCommitHistory(forkInfo, repoUrl);
-//                }
-////
 ////                /**  by author id  **/
 //////                System.out.println("authorID-based...");
 //////                System.out.println("repo: " + repoUrl);
