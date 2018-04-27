@@ -34,7 +34,8 @@ public class GraphBasedClassifier {
 
     GraphBasedClassifier() {
         current_dir = System.getProperty("user.dir");
-        tmpDirPath = current_dir + "/cloneRepos/";
+//        tmpDirPath = current_dir + "/cloneRepos/";
+        tmpDirPath = "/home/feature/shuruiz/ForkData/cloneRepos/";
     }
 
 
