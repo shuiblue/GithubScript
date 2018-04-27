@@ -57,25 +57,25 @@ public class main {
                     nameBasedClassifier.getRamdomForks(repoUrl, maxAnalyzedForkNum);
                 }
                 /** analyze commit history **/
-                String[] activeForkList = {};
-                try {
-
-                    activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt").split("\n");
-                    System.out.println(activeForkList.length + " forks");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                /**   classify commits **/
-                /**  by graph  **/
-                System.out.println("graph-based...");
-                StringBuilder sb_result = new StringBuilder();
-                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
-                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
-                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.txt");
-                for (String forkInfo : activeForkList) {
-                    System.out.println("FORK: " + forkInfo);
-                    graphBasedClassifier.analyzeCommitHistory(forkInfo, repoUrl);
-                }
+//                String[] activeForkList = {};
+//                try {
+//
+//                    activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt").split("\n");
+//                    System.out.println(activeForkList.length + " forks");
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//                /**   classify commits **/
+//                /**  by graph  **/
+//                System.out.println("graph-based...");
+//                StringBuilder sb_result = new StringBuilder();
+//                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
+//                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
+//                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.txt");
+//                for (String forkInfo : activeForkList) {
+//                    System.out.println("FORK: " + forkInfo);
+//                    graphBasedClassifier.analyzeCommitHistory(forkInfo, repoUrl);
+//                }
 //
 ////                /**  by author id  **/
 //////                System.out.println("authorID-based...");
@@ -85,19 +85,19 @@ public class main {
 ////
 ////
                 /** get fork info  **/
-                GithubApiParser githubApiParser = new GithubApiParser();
-                StringBuilder sb = new StringBuilder();
-                sb.append("forkUrl,fork_num,created_at,pushed_at,size,language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type\n");
-                io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/forkInfo.csv");
-//                for (String forkInfo : activeForkList) {
-//                    String forkURL = forkInfo.split(",")[0];
-                    System.out.println("get fork info: " + repoUrl);
-//                    System.out.println("get fork info: " + forkInfo);
-//                    sb.append(forkURL + "," + githubApiParser.getForkInfo(forkURL));
-                    sb.append(repoUrl + "," + githubApiParser.getForkInfo(repoUrl));
-//                }
-                io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/upstreamInfo.csv");
-//
+//                GithubApiParser githubApiParser = new GithubApiParser();
+//                StringBuilder sb = new StringBuilder();
+//                sb.append("forkUrl,fork_num,created_at,pushed_at,size,language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type\n");
+//                io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/forkInfo.csv");
+////                for (String forkInfo : activeForkList) {
+////                    String forkURL = forkInfo.split(",")[0];
+//                    System.out.println("get fork info: " + repoUrl);
+////                    System.out.println("get fork info: " + forkInfo);
+////                    sb.append(forkURL + "," + githubApiParser.getForkInfo(forkURL));
+//                    sb.append(repoUrl + "," + githubApiParser.getForkInfo(repoUrl));
+////                }
+//                io.rewriteFile(sb.toString(), current_dir + "/result/" + repoUrl + "/upstreamInfo.csv");
+////
 //
 //                System.out.println("generating final table.");
 //                /**   combines two result graph and name together **/
