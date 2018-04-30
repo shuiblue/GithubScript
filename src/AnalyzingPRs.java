@@ -15,7 +15,7 @@ public class AnalyzingPRs {
 
     static String dir ;
     static String current_dir;
-    PreparedStatement preparedStmt;
+
     static String output_dir;
     static String current_OS = System.getProperty("os.name").toLowerCase();
     static String myUrl;
@@ -117,7 +117,7 @@ public class AnalyzingPRs {
                                 " SELECT projectID FROM repo_PR WHERE projectID = ? AND pull_request_ID = ?" +
                                 ") LIMIT 1";
 
-                        preparedStmt = conn.prepareStatement(insert_query_1);
+                        PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1);
                         preparedStmt.setInt(1, projectID);
                         preparedStmt.setInt(2, pr_id);
                         preparedStmt.setString(3, forkName);
@@ -133,8 +133,8 @@ public class AnalyzingPRs {
                         preparedStmt.setInt(13, pr_id);
                         System.out.println(preparedStmt.toString());
 
-                        preparedStmt.execute();
-
+                       System.out.println( preparedStmt.executeUpdate());
+                        preparedStmt.close();
 
                         String query = "  INSERT into repository ( repoURL,loginID,repoName,isFork,UpstreamURL,belongToRepo,upstreamID,projectID)" +
                                 " SELECT * FROM (SELECT ? as repourl,? as login,? as reponame,? as isf,? as upurl,? as belo,? as id1, ? as id2) AS tmp" +
@@ -142,7 +142,7 @@ public class AnalyzingPRs {
                                 "SELECT repoURL FROM repository WHERE repoURL = ?" +
                                 ") LIMIT 1";
 
-                        preparedStmt = conn.prepareStatement(query);
+                         preparedStmt = conn.prepareStatement(query);
                         preparedStmt.setString(1, forkURL);
                         preparedStmt.setString(2, author);
                         preparedStmt.setString(3, forkURL.split("/")[1]);
@@ -154,7 +154,7 @@ public class AnalyzingPRs {
                         preparedStmt.setString(9, forkURL);
                         System.out.println(preparedStmt.toString());
                         preparedStmt.execute();
-
+                        preparedStmt.close();
 
                         /** put commit into commit_TABLE**/
                         for (String commit : commitSet) {
@@ -243,7 +243,7 @@ public class AnalyzingPRs {
 
                     }
                 }
-                preparedStmt.close();
+
                 conn.close();
             }
 
@@ -361,16 +361,16 @@ public class AnalyzingPRs {
 
     public static void main(String[] args) {
         current_dir = System.getProperty("user.dir");
-
+        user = "shuruiz";
         if (current_OS.indexOf("mac") >= 0) {
             dir = "/Users/shuruiz/Box Sync/queryGithub/";
-            myUrl = "jdbc:mysql://localhost:3306/Fork";
-            user = "root";
+            myUrl = "jdbc:mysql://localhost:3307/fork";
+
         } else {
 //            output_dir = "/home/feature/shuruiz/ForkData";
             dir = "/usr0/home/shuruiz/queryGithub/";
             myUrl = "jdbc:mysql://localhost:3306/fork";
-            user = "shuruiz";
+
         }
 
 

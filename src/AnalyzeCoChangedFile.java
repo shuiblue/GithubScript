@@ -33,22 +33,22 @@ public class AnalyzeCoChangedFile {
     static HashSet<String> stopFileSet = new HashSet<>();
     static String output_dir;
     static String current_OS = System.getProperty("os.name").toLowerCase();
-    //    static String analyzingRepoOrFork = "repo";
+//        static String analyzingRepoOrFork = "repo";
     static String analyzingRepoOrFork = "fork";
     String myUrl;
     String user;
 
     public AnalyzeCoChangedFile() {
-
+        user = "shuruiz";
         if (current_OS.indexOf("mac") >= 0) {
             output_dir = "/Users/shuruiz/Box Sync/ForkData";
-            myUrl = "jdbc:mysql://localhost:3306/Fork";
-            user = "root";
+            myUrl = "jdbc:mysql://localhost:3307/fork";
+
         } else {
 //            output_dir = "/home/feature/shuruiz/ForkData";
             output_dir = "/usr0/home/shuruiz/ForkData";
             myUrl = "jdbc:mysql://localhost:3306/fork";
-            user = "shuruiz";
+
         }
 
         if (analyzingRepoOrFork.equals("repo")) {
@@ -402,7 +402,7 @@ public class AnalyzeCoChangedFile {
                                     String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, num_changedFiles, authorName, email, data_update_at, upstreamURL,repoID,belongToRepoID)" +
                                             "  SELECT *" +
                                             "  FROM (SELECT" +
-                                            "          ? AS a,? AS b, ? AS c, ? as d, ? as e,? as f, ? as g ) AS tmp" +
+                                            "          ? AS a,? AS b, ? AS c, ? as d, ? as e,? as f, ? as g ,? as x, ? as y) AS tmp" +
                                             "  WHERE NOT EXISTS(" +
                                             "      SELECT commitSHA" +
                                             "      FROM fork.commit AS cc" +
@@ -426,7 +426,7 @@ public class AnalyzeCoChangedFile {
                                     preparedStmt.setString(10, sha);
 
                                     System.out.println(preparedStmt.toString());
-                                    preparedStmt.execute();
+                                    System.out.println("affect : "+preparedStmt.executeUpdate()+" rows");
 
 
 
@@ -441,7 +441,7 @@ public class AnalyzeCoChangedFile {
                                     preparedStmt.setString(3, email);
                                     preparedStmt.setString(4, String.valueOf(now));
                                     preparedStmt.setString(5, sha);
-                                    preparedStmt.execute();
+                                    System.out.println("affect : "+preparedStmt.executeUpdate()+" rows");
                                 }
                             } catch (SQLException e) {
                                 e.printStackTrace();
@@ -552,7 +552,9 @@ public class AnalyzeCoChangedFile {
                                     preparedStmt.setInt(17, readmeAdded);
                                     preparedStmt.setInt(18, commitshaID);
                                     preparedStmt.setInt(19, index_d);
-                                    preparedStmt.executeUpdate();
+
+                                    System.out.println(preparedStmt.toString());
+                                    System.out.println("affect : "+preparedStmt.executeUpdate()+" rows");
 
                                 } catch (SQLException e) {
                                     e.printStackTrace();

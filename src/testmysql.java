@@ -45,21 +45,21 @@ public class testmysql {
 
 
             /**  insert code change loc  **/
-            String[] ownCode_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/noSync.csv").split("\n");
-            for (int i =1;i< ownCode_array.length;i++) {
-
-                String repo = ownCode_array[i];
-                if(repo.contains("TRUE")) {
-                    String[] repoInfo = repo.split(",");
-                    String insertQuery = "UPDATE fork.Final SET fork.Final.activeFork_no_sync = ? WHERE repoURL = ?";
-
-                    preparedStmt = conn.prepareStatement(insertQuery);
-                    preparedStmt.setString(1, repoInfo[4]);
-                    preparedStmt.setString(2, repoInfo[1].replace("\"", ""));
-                    System.out.println(preparedStmt.toString());
-                    preparedStmt.execute();
-                }
-            }
+//            String[] ownCode_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/noSync.csv").split("\n");
+//            for (int i =1;i< ownCode_array.length;i++) {
+//
+//                String repo = ownCode_array[i];
+//                if(repo.contains("TRUE")) {
+//                    String[] repoInfo = repo.split(",");
+//                    String insertQuery = "UPDATE fork.Final SET fork.Final.activeFork_no_sync = ? WHERE repoURL = ?";
+//
+//                    preparedStmt = conn.prepareStatement(insertQuery);
+//                    preparedStmt.setString(1, repoInfo[4]);
+//                    preparedStmt.setString(2, repoInfo[1].replace("\"", ""));
+//                    System.out.println(preparedStmt.toString());
+//                    preparedStmt.execute();
+//                }
+//            }
             /**  insert code change loc  **/
 //            String[] loc_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/file_codechange_median.csv").split("\n");
 //            for (int i =1;i< loc_array.length;i++) {
@@ -74,20 +74,20 @@ public class testmysql {
 //                    preparedStmt.execute();
 //
 //            }
-            /**  insert ratio of ADDED file **/
-//            String[] easiness_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/easiness.csv").split("\n");
-//            for (int i =1;i< easiness_array.length;i++) {
-//                String repo = easiness_array[i];
-//                String[] repoInfo = repo.split(",");
-//                    String insertQuery = "UPDATE fork.Final SET easiness_mergePR = ? WHERE repoURL = ?";
-//
-//                    preparedStmt = conn.prepareStatement(insertQuery);
-//                    preparedStmt.setString(1, repoInfo[2]);
-//                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
-//                    System.out.println(preparedStmt.toString());
-//                    preparedStmt.execute();
-//
-//            }
+            /**  easiness **/
+            String[] easiness_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/easiness.csv").split("\n");
+            for (int i =1;i< easiness_array.length;i++) {
+                String repo = easiness_array[i];
+                String[] repoInfo = repo.split(",");
+                    String insertQuery = "UPDATE fork.Final SET Easiness_mergePR_mean = ? WHERE repoURL = ?";
+
+                    preparedStmt = conn.prepareStatement(insertQuery);
+                    preparedStmt.setString(1, repoInfo[2]);
+                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
+                    System.out.println(preparedStmt.toString());
+                    preparedStmt.execute();
+
+            }
             /**  insert ratio of merged pr  **/
 //            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status.csv").split("\n");
 //            for (String repo : modularity_array) {
@@ -99,7 +99,7 @@ public class testmysql {
 //                    preparedStmt.setString(1, repoInfo[4]);
 //                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
 //                    System.out.println(preparedStmt.toString());
-//                    preparedStmt.execute();
+//                    System.out.println(preparedStmt.executeUpdate());
 //
 //                }
 //            }
