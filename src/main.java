@@ -34,8 +34,8 @@ public class main {
             current_dir = "/Users/shuruiz/Box Sync/queryGithub/";
 
         } else {
-//            output_dir = "/home/feature/shuruiz/ForkData";
-            current_dir = "/usr0/home/shuruiz/queryGithub/";
+            current_dir = "/home/feature/shuruiz/ForkData";
+//            current_dir = "/usr0/home/shuruiz/queryGithub/";
 
         }
 
