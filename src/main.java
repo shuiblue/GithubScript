@@ -29,15 +29,6 @@ public class main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-         String current_OS = System.getProperty("os.name").toLowerCase();
-        if (current_OS.indexOf("mac") >= 0) {
-            current_dir = "/Users/shuruiz/Box Sync/queryGithub/";
-
-        } else {
-            current_dir = "/home/feature/shuruiz/ForkData";
-//            current_dir = "/usr0/home/shuruiz/queryGithub/";
-
-        }
 
 
         for (String repoUrl : repoList) {
