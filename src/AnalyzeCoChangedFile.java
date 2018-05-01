@@ -33,8 +33,8 @@ public class AnalyzeCoChangedFile {
     static HashSet<String> stopFileSet = new HashSet<>();
     static String output_dir;
     static String current_OS = System.getProperty("os.name").toLowerCase();
-//        static String analyzingRepoOrFork = "repo";
-    static String analyzingRepoOrFork = "fork";
+        static String analyzingRepoOrFork = "repo";
+//    static String analyzingRepoOrFork = "fork";
     String myUrl;
     String user;
 
@@ -195,14 +195,14 @@ public class AnalyzeCoChangedFile {
                                 /** only analyze added and modified files, ignoring deleted, renamed files**/
                                 if (changeType.equals("ADD") || changeType.equals("MODIFY")) {
                                     String fileName = diff.getNewPath();
-                                    if (!isStopFile(fileName)) {
+//                                    if (!isStopFile(fileName)) {
                                         commit_fileSet.add(fileName);
                                         for (Edit edit : df.toFileHeader(diff).toEditList()) {
                                             linesDeleted += edit.getEndA() - edit.getBeginA();
                                             linesAdded += edit.getEndB() - edit.getBeginB();
                                         }
                                         io.writeTofile(sha + "," + changeType + "," + diff.getNewPath() + "," + linesAdded + "," + linesDeleted + "\n", filepath);
-                                    }
+//                                    }
                                 }
                             }
 
@@ -228,7 +228,7 @@ public class AnalyzeCoChangedFile {
 
         ArrayList<String> fileList = new ArrayList<>();
         fileList.addAll(fileSET);
-        fileList.removeAll(stopFileSet);
+//        fileList.removeAll(stopFileSet);
 
 
         /** generating graph, node--file, edge -- co-changed relation */
@@ -305,7 +305,7 @@ public class AnalyzeCoChangedFile {
                 + " , files in total: " + fileList.size() + "\n------\n", historyDirPath + "/repoModularity.csv");
         System.out.println(repoUrl + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
                 + (filesTotal * filesTotal - filesTotal) + " , " + commitSET.size() + " unique commits in total, all branches has " + total + " commits , files in total: " + fileList.size() + "\n------\n");
-        io.writeTofile(repoUrl + "," + modularity * 100 + "\n", historyDirPath + "/" + threshold + "_repo_ECI.csv");
+        io.writeTofile(repoUrl + "," + modularity * 100 + "\n", historyDirPath + "/" + threshold + "_repo_ECI_all_file.csv");
 
     }
 
