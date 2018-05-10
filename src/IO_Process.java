@@ -136,19 +136,18 @@ public class IO_Process {
 
 
     public int getRepoId(String repoURL) {
-        String myDriver = "com.mysql.jdbc.Driver";
         String myUrl ,user;
         int repoID = -1;
         if (current_OS.indexOf("mac") >= 0) {
-            myUrl = "jdbc:mysql://localhost:3306/Fork";
-            user = "root";
+            myUrl = "jdbc:mysql://localhost:3307/fork";
+            user = "shuruiz";
         } else {
             myUrl = "jdbc:mysql://localhost:3306/fork";
             user = "shuruiz";
         }
         try {
 
-            Connection    conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
             PreparedStatement preparedStmt;
 
             String selectRepoID = "SELECT id from fork.repository where repoURL = ?";
@@ -159,7 +158,6 @@ public class IO_Process {
             if (rs.next()) {
                 repoID = rs.getInt("id");
             }
-//            preparedStmt.close();
             conn.close();
         } catch (SQLException e) {
             e.printStackTrace();

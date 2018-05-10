@@ -54,7 +54,6 @@ public class AnalyzeCoChangedFile {
         if (analyzingRepoOrFork.equals("repo")) {
             stopFileSet.add("gitignore");
             stopFileSet.add("license");
-//            stopFileSet.add("readme");
             stopFileSet.add("/dev/null");
             stopFileSet.add(".pdf");
             stopFileSet.add(".mk");
@@ -69,21 +68,17 @@ public class AnalyzeCoChangedFile {
             stopFileSet.add(".css");
             stopFileSet.add(".html");
             stopFileSet.add("changelog");
-//            stopFileSet.add(".js");
             stopFileSet.add(".rst");
             stopFileSet.add(".sch");
             stopFileSet.add(".ino");
-//            stopFileSet.add(".md");
             stopFileSet.add(".sh");
             stopFileSet.add(".dll");
             stopFileSet.add(".svn-base");
             stopFileSet.add(".bin");
+            stopFileSet.add(".png");
             stopFileSet.add(".xml");
+            stopFileSet.add(".DS_Store");
         }
-//        stopFileSet.add("example_configurations");
-//        stopFileSet.add("config");
-//        stopFileSet.add(".h");
-//        stopFileSet.add("arduinoaddons");
     }
 
     static public void main(String[] args) {
