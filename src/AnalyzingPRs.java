@@ -561,8 +561,8 @@ public class AnalyzingPRs {
             for (String repoURL : repos) {
                 System.out.println(repoURL);
                 int repoID = io.getRepoId(repoURL);
-                analyzingPRs.insertPR(repoURL, repoID);
-//                analyzingPRs.insertForkasPRauthor(repoURL, repoID);
+//                analyzingPRs.insertPR(repoURL, repoID);
+                analyzingPRs.insertForkasPRauthor(repoURL, repoID);
 //                analyzingPRs.insertCommitInPR(repoURL, repoID);
 //                analyzingPRs.insertPR_Commit_mapping(repoURL, repoID);
 
