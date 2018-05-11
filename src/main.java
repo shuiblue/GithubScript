@@ -20,7 +20,18 @@ public class main {
         current_dir = System.getProperty("user.dir");
         System.out.println("current dir = " + current_dir);
 
-        tmpDirPath = "/Users/shuruiz/Box Sync/ForkData";
+
+        String current_OS = System.getProperty("os.name").toLowerCase();
+        current_dir = System.getProperty("user.dir");
+//        tmpDirPath = current_dir + "/cloneRepos/";
+
+        if (current_OS.indexOf("mac") >= 0) {
+            tmpDirPath = "/Users/shuruiz/Box Sync/ForkData";
+        } else {
+            tmpDirPath = "/home/feature/shuruiz/ForkData";
+
+        }
+
 
 
         String[] repoList = {};
