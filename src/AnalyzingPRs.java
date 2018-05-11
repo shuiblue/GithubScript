@@ -83,7 +83,20 @@ public class AnalyzingPRs {
 
                 PreparedStatement preparedStmt = null;
                 int count = 0;
-                for (int s = pr_json.length - 1; s >= 0; s--) {
+                String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, upstreamURL, data_update_at, repoID, belongToRepoID)" +
+                        "  SELECT *" +
+                        "  FROM (SELECT" +
+                        "          ? AS a,? AS b, ? AS c, ? AS d,? AS x, ? AS y) AS tmp" +
+                        "  WHERE NOT EXISTS(" +
+                        "      SELECT commitSHA" +
+                        "      FROM fork.commit AS cc" +
+                        "      WHERE cc.commitSHA = ?" +
+                        "  )" +
+                        "  LIMIT 1";
+
+                preparedStmt = conn.prepareStatement(update_commit_query);
+
+                for (int s = pr_json.length - 1; s >=  0; s--) {
                     String json_string = pr_json[s];
                     int pr_id = Integer.parseInt(io.removeBrackets(pr_num[s]).replace("{\"number\": ", "").replace("}", "").trim());
                     System.out.println(s);
@@ -106,18 +119,6 @@ public class AnalyzingPRs {
                             commitSet.add(commit);
                         }
                     }
-                    String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, upstreamURL, data_update_at, repoID, belongToRepoID)" +
-                            "  SELECT *" +
-                            "  FROM (SELECT" +
-                            "          ? AS a,? AS b, ? AS c, ? AS d,? AS x, ? AS y) AS tmp" +
-                            "  WHERE NOT EXISTS(" +
-                            "      SELECT commitSHA" +
-                            "      FROM fork.commit AS cc" +
-                            "      WHERE cc.commitSHA = ?" +
-                            "  )" +
-                            "  LIMIT 1";
-
-                    preparedStmt = conn.prepareStatement(update_commit_query);
 
                     for (String commit : commitSet) {
                         System.out.println("forkURL " + forkURL + " commit " + commit);
@@ -170,6 +171,22 @@ public class AnalyzingPRs {
 
                 PreparedStatement preparedStmt = null;
                 int count = 0;
+                String insert_commit_query = " INSERT INTO fork.pr_commit (commitsha_id,repoID,pull_request_id)" +
+                        "  SELECT *" +
+                        "  FROM (SELECT" +
+                        "          ? AS a,? AS b, ? AS c ) AS tmp" +
+                        "  WHERE NOT EXISTS(" +
+                        "      SELECT *" +
+                        "      FROM fork.pr_commit AS cc" +
+                        "      WHERE cc.commitsha_id = ?" +
+                        "      AND cc.repoID = ?" +
+                        "      AND cc.pull_request_id = ?" +
+                        "  )" +
+                        "  LIMIT 1";
+
+
+                preparedStmt = conn.prepareStatement(insert_commit_query);
+
                 for (int s = pr_json.length - 1; s >= 0; s--) {
                     String json_string = pr_json[s];
                     int pr_id = Integer.parseInt(io.removeBrackets(pr_num[s]).replace("{\"number\": ", "").replace("}", "").trim());
@@ -188,21 +205,6 @@ public class AnalyzingPRs {
                             commitSet.add(commit);
                         }
                     }
-                    String insert_commit_query = " INSERT INTO fork.pr_commit (commitsha_id,repoID,pull_request_id)" +
-                            "  SELECT *" +
-                            "  FROM (SELECT" +
-                            "          ? AS a,? AS b, ? AS c ) AS tmp" +
-                            "  WHERE NOT EXISTS(" +
-                            "      SELECT *" +
-                            "      FROM fork.pr_commit AS cc" +
-                            "      WHERE cc.commitsha_id = ?" +
-                            "      AND cc.repoID = ?" +
-                            "      AND cc.pull_request_id = ?" +
-                            "  )" +
-                            "  LIMIT 1";
-
-
-                    preparedStmt = conn.prepareStatement(insert_commit_query);
 
                     for (String commit : commitSet) {
                         int sha_id = getSHAID(commit);
@@ -582,8 +584,8 @@ public class AnalyzingPRs {
                 int repoID = io.getRepoId(repoURL);
 //                analyzingPRs.insertPR(repoURL, repoID);
 //                analyzingPRs.insertForkasPRauthor(repoURL, repoID);
-//                analyzingPRs.insertCommitInPR(repoURL, repoID);
-                analyzingPRs.insertPR_Commit_mapping(repoURL, repoID);
+                analyzingPRs.insertCommitInPR(repoURL, repoID);
+//                analyzingPRs.insertPR_Commit_mapping(repoURL, repoID);
 
 
             }
