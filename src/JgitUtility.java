@@ -36,8 +36,9 @@ public class JgitUtility {
         if (current_OS.indexOf("mac") >= 0) {
             output_dir = "/Users/shuruiz/Box Sync/ForkData";
         } else {
-//                        output_dir = "/home/feature/shuruiz/ForkData";
-            output_dir = "/usr0/home/shuruiz/ForkData";
+            //feature 6
+           output_dir = "/home/feature/shuruiz/ForkData";
+//        feature server    output_dir = "/usr0/home/shuruiz/ForkData";
         }
 
 
