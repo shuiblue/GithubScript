@@ -8,7 +8,7 @@ import java.util.*;
  * Created by shuruiz on 12/8/17.
  */
 public class main {
-    static String current_dir;
+    static String current_dir, tmpDirPath;
     static int maxAnalyzedForkNum = 100;
     static boolean hasTimeConstraint = false;
 
@@ -19,6 +19,9 @@ public class main {
         IO_Process io = new IO_Process();
         current_dir = System.getProperty("user.dir");
         System.out.println("current dir = " + current_dir);
+
+        tmpDirPath = "/Users/shuruiz/Box Sync/ForkData";
+
 
         String[] repoList = {};
         /** get repo list **/
@@ -60,7 +63,7 @@ public class main {
                 String[] activeForkList = {};
                 try {
 
-                    activeForkList = io.readResult(current_dir + "/result/" + repoUrl + "/ActiveForklist.txt").split("\n");
+                    activeForkList = io.readResult(tmpDirPath + "/result/" + repoUrl + "/ActiveForklist.txt").split("\n");
                     System.out.println(activeForkList.length + " forks");
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -70,8 +73,8 @@ public class main {
                 System.out.println("graph-based...");
                 StringBuilder sb_result = new StringBuilder();
                 sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
-                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.csv");
-                io.rewriteFile(sb_result.toString(), current_dir + "/result/" + repoUrl + "/graph_result.txt");
+                io.rewriteFile(sb_result.toString(), tmpDirPath + "/result/" + repoUrl + "/graph_result.csv");
+                io.rewriteFile(sb_result.toString(), tmpDirPath + "/result/" + repoUrl + "/graph_result.txt");
                 for (String forkInfo : activeForkList) {
                     System.out.println("FORK: " + forkInfo);
                     graphBasedClassifier.analyzeCommitHistory(forkInfo, repoUrl);

@@ -33,9 +33,22 @@ public class GraphBasedClassifier {
     HashSet<String> checkedCommitsBeforeForking;
 
     GraphBasedClassifier() {
+         String current_OS = System.getProperty("os.name").toLowerCase();
         current_dir = System.getProperty("user.dir");
 //        tmpDirPath = current_dir + "/cloneRepos/";
-        tmpDirPath = "/home/feature/shuruiz/ForkData/cloneRepos/";
+
+        if (current_OS.indexOf("mac") >= 0) {
+            tmpDirPath = "/Users/shuruiz/Box Sync/ForkData/cloneRepos/";
+
+        } else {
+            tmpDirPath = "/home/feature/shuruiz/ForkData/cloneRepos/";
+
+        }
+
+
+
+
+
     }
 
 
@@ -440,9 +453,15 @@ public class GraphBasedClassifier {
                 String[] latestCommit = commitDate_result[0].split(" ");
                 String latestCommitSHA = latestCommit[0];
                 String latestCommitDate = latestCommit[1];
+                if(!latestCommitDate.startsWith("20")){
+                    System.out.println("latestCommitDate:" + latestCommitDate);
+                    sb_ignoreBranches.append(branch + "," + latestCommitSHA + "\n");
+                    continue;
+                }
 
                 ZonedDateTime latestCommitDated_time = ZonedDateTime.parse(latestCommitDate);
                 System.out.println("latestCommitDated_time:" + latestCommitDated_time);
+
 
                 if (!forkpointDate.equals("") && branchArray.length > 1) {
                     ZonedDateTime forkpointDate_time = ZonedDateTime.parse(forkpointDate);
