@@ -345,7 +345,6 @@ public class AnalyzeCoChangedFile {
             used = end - start;
             System.out.println("removeRedundantCommits ONLYf :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
             for (int i = 1; i < forkListInfo.length; i++) {
-//                for (int i = 91; i < forkListInfo.length; i++) {
                 String forkINFO = forkListInfo[i];
                 String forkurl = forkINFO.split(",")[0];
                 pathname = tmpDirPath + forkurl + "/";
@@ -354,16 +353,15 @@ public class AnalyzeCoChangedFile {
                 JgitUtility jg = new JgitUtility();
                 ArrayList<String> branchList = jg.cloneRepo(forkurl);
                 File branchListFile = new File(pathname + forkurl.split("/")[0] + "_branchList.txt");
-                if (branchListFile.exists() &&branchList.size() == 0) {
+                if (branchListFile.exists() && branchList.size() == 0) {
                     branchList.addAll(Arrays.asList(io.readResult(pathname + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
-                }else{
+                } else {
                     System.out.println("fork is not available");
                 }
 
                 if (branchList.size() == 0) {
                     continue;
                 }
-                System.out.println(branchList.size() + " branches");
                 Repository repo = new FileRepository(pathname + ".git");
 
                 Git git = new Git(repo);
@@ -518,7 +516,7 @@ public class AnalyzeCoChangedFile {
                 }
                 end = System.nanoTime();
                 used = end - start;
-                System.out.println("update commit :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+                System.out.println("update  getCodechangedLOC :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
 
                 io.executeQuery(preparedStmt);
                 conn.commit();
@@ -567,7 +565,6 @@ public class AnalyzeCoChangedFile {
             for (int i = 1; i < forkListInfo.length; i++) {
                 String forkINFO = forkListInfo[i];
                 String forkurl = forkINFO.split(",")[0];
-
                 pathname = tmpDirPath + forkurl + "/";
 
 
@@ -581,7 +578,6 @@ public class AnalyzeCoChangedFile {
                 if (branchList.size() == 0) {
                     continue;
                 }
-                System.out.println(branchList.size() + " branches");
                 Repository repo = new FileRepository(pathname + ".git");
 
                 Git git = new Git(repo);
@@ -625,14 +621,12 @@ public class AnalyzeCoChangedFile {
 
                     int count_update = 0;
                     int count_insert = 0;
-
+                    start = System.nanoTime();
                     for (String sha : codeChangeCommits) {
-                        start = System.nanoTime();
                         RevCommit commit = getCommit(sha, repo, git, branchList);
                         if (commit != null && commit.getParentCount() > 0) {
 
                             String author_fullName = io.normalize(commit.getAuthorIdent().getName());
-                            System.out.println(author_fullName);
                             String email = commit.getAuthorIdent().getEmailAddress();
 
                             RevCommit parent;
@@ -646,10 +640,8 @@ public class AnalyzeCoChangedFile {
                             df.setDetectRenames(true);
                             diffs = df.scan(parent.getTree(), commit.getTree());
 
-                            HashSet<String> commit_fileSet = new HashSet<>();
                             if (diffs.size() < 100) {
                                 int commitid = io.getcommitID(sha);
-
 
 
                                 if (commitid == -1) {
@@ -690,18 +682,14 @@ public class AnalyzeCoChangedFile {
 
                         }
 
-                        end = System.nanoTime();
-                        used = end - start;
-                        System.out.println("update commit :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
-                        conn.commit();
 
-                        System.out.println("count_update" + count_update);
+                        System.out.println("count_update " + count_update);
                         if (++count_update % batchSize == 0) {
                             io.executeQuery(preparedStmt_update);
                             conn.commit();
 
                         }
-                        System.out.println("count_insert" + count_insert);
+                        System.out.println("count_insert " + count_insert);
                         if (++count_insert % batchSize == 0) {
                             io.executeQuery(preparedStmt_insert);
                             conn.commit();
@@ -710,7 +698,7 @@ public class AnalyzeCoChangedFile {
                     }
                     end = System.nanoTime();
                     used = end - start;
-                    System.out.println("update commit :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+                    System.out.println("update commit from a fork :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
 
                     io.executeQuery(preparedStmt_update);
                     io.executeQuery(preparedStmt_insert);
@@ -772,12 +760,15 @@ public class AnalyzeCoChangedFile {
     public RevCommit getCommit(String idString, Repository repository, Git git, ArrayList<String> branchList) {
         for (String branchName : branchList) {
             try {
-                git.checkout().
-                        setCreateBranch(true).
-                        setName(branchName).
-                        setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
-                        setStartPoint("origin/" + branchName).
-                        call();
+
+                if (!git.branchList().getRepository().getAllRefs().keySet().contains("refs/heads/" + branchName)) {
+                    git.checkout().
+                            setCreateBranch(true).
+                            setName(branchName).
+                            setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+                            setStartPoint("origin/" + branchName).
+                            call();
+                }
                 ObjectId o1 = repository.resolve(idString);
                 if (o1 != null) {
                     RevWalk walk = new RevWalk(repository);
@@ -787,6 +778,7 @@ public class AnalyzeCoChangedFile {
                     System.err.println("Could not get commit with SHA :" + idString);
                 }
             } catch (Exception e) {
+
                 continue;
             }
         }

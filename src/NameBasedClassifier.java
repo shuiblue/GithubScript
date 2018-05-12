@@ -22,7 +22,22 @@ public class NameBasedClassifier {
         final String current_dir = System.getProperty("user.dir");
         System.out.println("current dir = " + current_dir);
         result_dir = current_dir + "/result/";
-        tmpDirPath = current_dir + "/cloneRepos/";
+        String current_OS = System.getProperty("os.name").toLowerCase();
+//        tmpDirPath = current_dir + "/cloneRepos/";
+
+        if (current_OS.indexOf("mac") >= 0) {
+            tmpDirPath = "/Users/shuruiz/Box Sync/ForkData/cloneRepos/";
+            result_dir = "/Users/shuruiz/Box Sync/ForkData";
+
+        } else {
+            tmpDirPath = "/home/feature/shuruiz/ForkData/cloneRepos/";
+            result_dir = "/home/feature/shuruiz/ForkData";
+
+        }
+
+
+
+
         try {
             token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
         } catch (IOException e) {
