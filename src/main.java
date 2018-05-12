@@ -53,16 +53,19 @@ public class main {
                 System.out.println("get all active forks of repo: " + repoName);
 //
                 File all_activeFork = new File(tmpDirPath + "/result/" + repoUrl + "/all_ActiveForklist.txt");
+                File selected_activeFork = new File(tmpDirPath + "/result/" + repoUrl + "/ActiveForklist.txt");
 
                 if(!all_activeFork.exists()) {
 
                     /**  get active forks using github api **/
                     String all_activeForkList = nameBasedClassifier.getActiveForkList(repoUrl, hasTimeConstraint);
                     io.rewriteFile(all_activeForkList, tmpDirPath + "/result/" + repoUrl + "/ActiveForklist.txt");
+                }
 
-                    /**  randomize forks from active_fork_list **/
+                String all_activeForkList = "";
+                /**  randomize forks from active_fork_list **/
                     try {
-                        all_activeForkList = io.readResult(tmpDirPath + "/result/" + repoUrl + "/ActiveForklist.txt");
+                         all_activeForkList = io.readResult(tmpDirPath + "/result/" + repoUrl + "/ActiveForklist.txt");
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -74,9 +77,6 @@ public class main {
                         System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
                         nameBasedClassifier.getRamdomForks(repoUrl, maxAnalyzedForkNum);
                     }
-                }else {
-
-                }
                 /** analyze commit history **/
                 String[] activeForkList = {};
                 try {

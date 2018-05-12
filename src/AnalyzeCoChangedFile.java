@@ -122,9 +122,16 @@ public class AnalyzeCoChangedFile {
                     e.printStackTrace();
                 }
             } else if (analyzingRepoOrFork.equals("fork")) {
+                acc.updateCommitFromGraphResult(repoUrl);
                 acc.getCodechangedLOC(repoUrl);
             }
         }
+        /** remove local copy of fork**/
+//        try {
+//            io.deleteDir(new File(tmpDirPath));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
 
@@ -316,12 +323,10 @@ public class AnalyzeCoChangedFile {
     private void getCodechangedLOC(String repoUrl) {
 
         IO_Process io = new IO_Process();
-        String[] forkListInfo = {};
+        String[] forkListInfo;
         try {
-            Connection conn = null;
+            Connection conn;
             PreparedStatement preparedStmt = null;
-
-//            forkListInfo = io.readResult(resultDirPath + repoUrl + "/pr_graph_info.csv").split("\n");
             forkListInfo = io.readResult(resultDirPath + repoUrl + "/graph_result.txt").split("\n");
 
             conn = DriverManager.getConnection(myUrl, user, "shuruiz");
@@ -339,19 +344,24 @@ public class AnalyzeCoChangedFile {
             end = System.nanoTime();
             used = end - start;
             System.out.println("removeRedundantCommits ONLYf :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
-            int onlyf_boolean, f2u_boolean;
-            for (int i = 80; i < forkListInfo.length; i++) {
+            for (int i = 1; i < forkListInfo.length; i++) {
+//                for (int i = 91; i < forkListInfo.length; i++) {
                 String forkINFO = forkListInfo[i];
                 String forkurl = forkINFO.split(",")[0];
-
                 pathname = tmpDirPath + forkurl + "/";
-
 
                 /** clone fork **/
                 JgitUtility jg = new JgitUtility();
                 ArrayList<String> branchList = jg.cloneRepo(forkurl);
+                File branchListFile = new File(pathname + forkurl.split("/")[0] + "_branchList.txt");
+                if (branchListFile.exists() &&branchList.size() == 0) {
+                    branchList.addAll(Arrays.asList(io.readResult(pathname + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
+                }else{
+                    System.out.println("fork is not available");
+                }
+
                 if (branchList.size() == 0) {
-                    branchList.addAll(Arrays.asList(io.readResult(pathname + repoUrl.split("/")[0] + "_branchList.txt").split("\n")));
+                    continue;
                 }
                 System.out.println(branchList.size() + " branches");
                 Repository repo = new FileRepository(pathname + ".git");
@@ -363,28 +373,39 @@ public class AnalyzeCoChangedFile {
                 RevWalk rw = new RevWalk(repo);
                 DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
                 LocalDateTime now = LocalDateTime.now();
-
                 String[] commitType = {"onlyF", "F2U"};
+
                 for (String type : commitType) {
 
                     if (type.equals("onlyF")) {
                         codeChangeCommits.addAll(onlyF_map.get(forkurl));
-                        onlyf_boolean = 1;
-                        f2u_boolean = 0;
                     } else {
                         codeChangeCommits.addAll(F2U_map.get(forkurl));
-                        onlyf_boolean = 0;
-                        f2u_boolean = 1;
                     }
 
-                    System.out.println("analyzing " + type + " commits...");
+                    int count = 0;
+                    String insert_changedFile_query = " INSERT INTO fork.commit_changedFiles (" +
+                            "added_files_list  , added_files_num  , modify_files_list, modify_files_num , renamed_files_list ,renamed_files_num ,copied_files_list ," +
+                            " copied_files_num, deleted_files_list , deleted_files_num , add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commitSHA_id,readme_loc )" +
+                            "  SELECT *" +
+                            "  FROM (SELECT" +
+                            "          ? AS a1,? AS a2,? AS a3,? AS a4,?  AS a17,? AS a5,? AS a6," +
+                            "? AS a7,? AS a8,? AS a9,? AS a10,? AS a11,? AS a12,? AS a13,? AS a14,? AS a15,? AS a16 ) AS tmp" +
+                            "  WHERE NOT EXISTS(" +
+                            "      SELECT *" +
+                            "      FROM fork.commit_changedFiles AS cc" +
+                            "      WHERE cc.commitsha_id = ?" +
+                            "      AND cc.index_changedFile = ?" +
+                            "  )" +
+                            "  LIMIT 1";
+                    preparedStmt = conn.prepareStatement(insert_changedFile_query);
+
+
                     for (String sha : codeChangeCommits) {
                         RevCommit commit = getCommit(sha, repo, git, branchList);
                         if (commit != null && commit.getParentCount() > 0) {
-
                             String author_fullName = io.normalize(commit.getAuthorIdent().getName());
                             System.out.println(author_fullName);
-                            String email = commit.getAuthorIdent().getEmailAddress();
 
                             RevCommit parent;
                             List<DiffEntry> diffs;
@@ -399,82 +420,8 @@ public class AnalyzeCoChangedFile {
 
                             HashSet<String> commit_fileSet = new HashSet<>();
                             if (diffs.size() < 100) {
-                                int commitid = io.getcommitID(sha);
-
-                                start = System.nanoTime();
-
-                                if (commitid == -1) {
-                                    System.out.println("inserting new commit ... from fork " + forkurl + "  " + sha);
-                                    String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, num_changedFiles, authorName, email, data_update_at, upstreamURL,repoID,belongToRepoID,only_f,f2u)" +
-                                            "  SELECT *" +
-                                            "  FROM (SELECT" +
-                                            "          ? AS a,? AS b, ? AS c, ? AS d, ? AS e,? AS f, ? AS g ,? AS x, ? AS y,? AS type, ? AS type2) AS tmp" +
-                                            "  WHERE NOT EXISTS(" +
-                                            "      SELECT commitSHA" +
-                                            "      FROM fork.commit AS cc" +
-                                            "      WHERE cc.commitSHA = ?" +
-                                            "  )" +
-                                            "  LIMIT 1";
-
-                                    int repoID = io.getRepoId(forkurl);
-                                    int projectID = io.getRepoId(repoUrl);
-
-                                    preparedStmt = conn.prepareStatement(update_commit_query);
-                                    preparedStmt.setString(1, sha);
-                                    preparedStmt.setString(2, forkurl);
-                                    preparedStmt.setInt(3, diffs.size());
-                                    preparedStmt.setString(4, author_fullName);
-                                    preparedStmt.setString(5, email);
-                                    preparedStmt.setString(6, String.valueOf(now));
-                                    preparedStmt.setString(7, repoUrl);
-                                    preparedStmt.setInt(8, repoID);
-                                    preparedStmt.setInt(9, projectID);
-                                    preparedStmt.setInt(10, onlyf_boolean);
-                                    preparedStmt.setInt(11, f2u_boolean);
-                                    preparedStmt.setString(12, sha);
-
-                                    System.out.println(preparedStmt.toString());
-                                    System.out.println("insert new commit, affect : " + preparedStmt.executeUpdate() + " rows");
-
-                                } else {
-                                    System.out.println("updating existing commit ... ");
-                                    String insert_changedFile_query = " UPDATE commit" +
-                                            " SET num_changedFiles = ?, authorName = ?, email = ?, data_update_at = ?, only_f = ?, f2u = ? " +
-                                            " WHERE commitSHA =?";
-
-                                    preparedStmt = conn.prepareStatement(insert_changedFile_query);
-                                    preparedStmt.setInt(1, diffs.size());
-                                    preparedStmt.setString(2, author_fullName);
-                                    preparedStmt.setString(3, email);
-                                    preparedStmt.setString(4, String.valueOf(now));
-                                    preparedStmt.setInt(5, onlyf_boolean);
-                                    preparedStmt.setInt(6, f2u_boolean);
-                                    preparedStmt.setString(7, sha);
-                                    System.out.println(" updated commit info , affect : " + preparedStmt.executeUpdate() + " rows");
-                                }
-                                end = System.nanoTime();
-                                used = end - start;
-                                System.out.println("update commit :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
-
-
                                 start = System.nanoTime();
                                 System.out.println("insert commit change file info .... ");
-                                int count = 0;
-                                String insert_changedFile_query = " INSERT INTO fork.commit_changedFiles (" +
-                                        "added_files_list  , added_files_num  , modify_files_list, modify_files_num , renamed_files_list ,renamed_files_num ,copied_files_list ," +
-                                        " copied_files_num, deleted_files_list , deleted_files_num , add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commitSHA_id,readme_loc )" +
-                                        "  SELECT *" +
-                                        "  FROM (SELECT" +
-                                        "          ? AS a1,? AS a2,? AS a3,? AS a4,?  AS a17,? AS a5,? AS a6," +
-                                        "? AS a7,? AS a8,? AS a9,? AS a10,? AS a11,? AS a12,? AS a13,? AS a14,? AS a15,? AS a16 ) AS tmp" +
-                                        "  WHERE NOT EXISTS(" +
-                                        "      SELECT *" +
-                                        "      FROM fork.commit_changedFiles AS cc" +
-                                        "      WHERE cc.commitsha_id = ?" +
-                                        "      AND cc.index_changedFile = ?" +
-                                        "  )" +
-                                        "  LIMIT 1";
-                                preparedStmt = conn.prepareStatement(insert_changedFile_query);
                                 for (int index_d = 1; index_d <= diffs.size(); index_d++) {
                                     HashSet<String> addFileSet = new HashSet();
                                     HashSet<String> deleteFileSet = new HashSet();
@@ -564,21 +511,17 @@ public class AnalyzeCoChangedFile {
 
                                     }
                                 }
-                                end = System.nanoTime();
-                                used = end - start;
-                                System.out.println("update commit :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
-
-                                io.executeQuery(preparedStmt);
-                                conn.commit();
-
 
                             }
-
                         }
-
-
                     }
                 }
+                end = System.nanoTime();
+                used = end - start;
+                System.out.println("update commit :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+
+                io.executeQuery(preparedStmt);
+                conn.commit();
 
             }
             preparedStmt.close();
@@ -590,10 +533,198 @@ public class AnalyzeCoChangedFile {
             e.printStackTrace();
         }
 
-        /** remove local copy of fork**/
+
+    }
+
+
+    private void updateCommitFromGraphResult(String repoUrl) {
+
+        IO_Process io = new IO_Process();
+        String[] forkListInfo = {};
         try {
-            io.deleteDir(new File(tmpDirPath));
+            Connection conn = null;
+            PreparedStatement preparedStmt_insert = null;
+            PreparedStatement preparedStmt_update = null;
+
+            forkListInfo = io.readResult(resultDirPath + repoUrl + "/graph_result.txt").split("\n");
+
+            conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            conn.setAutoCommit(false);
+
+
+            long start = System.nanoTime();
+            HashMap<String, List<String>> F2U_map = removeRedundantCommits(forkListInfo, "F2U");
+            long end = System.nanoTime();
+            long used = end - start;
+            System.out.println("removeRedundantCommits F2U :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+
+            start = System.nanoTime();
+            HashMap<String, List<String>> onlyF_map = removeRedundantCommits(forkListInfo, "onlyF");
+            end = System.nanoTime();
+            used = end - start;
+            System.out.println("removeRedundantCommits ONLYf :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+            int onlyf_boolean, f2u_boolean;
+            for (int i = 1; i < forkListInfo.length; i++) {
+                String forkINFO = forkListInfo[i];
+                String forkurl = forkINFO.split(",")[0];
+
+                pathname = tmpDirPath + forkurl + "/";
+
+
+                /** clone fork **/
+                JgitUtility jg = new JgitUtility();
+                ArrayList<String> branchList = jg.cloneRepo(forkurl);
+                if (branchList.size() == 0) {
+                    branchList.addAll(Arrays.asList(io.readResult(pathname + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
+                }
+
+                if (branchList.size() == 0) {
+                    continue;
+                }
+                System.out.println(branchList.size() + " branches");
+                Repository repo = new FileRepository(pathname + ".git");
+
+                Git git = new Git(repo);
+
+                /** Get contribution code : onlyF and F2U  **/
+                HashSet<String> codeChangeCommits = new HashSet<>();
+                RevWalk rw = new RevWalk(repo);
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+                LocalDateTime now = LocalDateTime.now();
+
+                String[] commitType = {"onlyF", "F2U"};
+                for (String type : commitType) {
+
+                    if (type.equals("onlyF")) {
+                        codeChangeCommits.addAll(onlyF_map.get(forkurl));
+                        onlyf_boolean = 1;
+                        f2u_boolean = 0;
+                    } else {
+                        codeChangeCommits.addAll(F2U_map.get(forkurl));
+                        onlyf_boolean = 0;
+                        f2u_boolean = 1;
+                    }
+
+                    System.out.println("analyzing " + type + " commits...");
+                    String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, num_changedFiles, authorName, email, data_update_at, upstreamURL,repoID,belongToRepoID,only_f,f2u)" +
+                            "  SELECT *" +
+                            "  FROM (SELECT" +
+                            "          ? AS a,? AS b, ? AS c, ? AS d, ? AS e,? AS f, ? AS g ,? AS x, ? AS y,? AS type, ? AS type2) AS tmp" +
+                            "  WHERE NOT EXISTS(" +
+                            "      SELECT commitSHA" +
+                            "      FROM fork.commit AS cc" +
+                            "      WHERE cc.commitSHA = ?" +
+                            "  )" +
+                            "  LIMIT 1";
+                    preparedStmt_insert = conn.prepareStatement(update_commit_query);
+                    String insert_changedFile_query = " UPDATE commit" +
+                            " SET num_changedFiles = ?, authorName = ?, email = ?, data_update_at = ?, only_f = ?, f2u = ? " +
+                            " WHERE commitSHA =?";
+
+                    preparedStmt_update = conn.prepareStatement(insert_changedFile_query);
+
+                    int count_update = 0;
+                    int count_insert = 0;
+
+                    for (String sha : codeChangeCommits) {
+                        start = System.nanoTime();
+                        RevCommit commit = getCommit(sha, repo, git, branchList);
+                        if (commit != null && commit.getParentCount() > 0) {
+
+                            String author_fullName = io.normalize(commit.getAuthorIdent().getName());
+                            System.out.println(author_fullName);
+                            String email = commit.getAuthorIdent().getEmailAddress();
+
+                            RevCommit parent;
+                            List<DiffEntry> diffs;
+                            DiffFormatter df;
+
+                            parent = rw.parseCommit(commit.getParent(0).getId());
+                            df = new DiffFormatter(DisabledOutputStream.INSTANCE);
+                            df.setRepository(repo);
+                            df.setDiffComparator(RawTextComparator.DEFAULT);
+                            df.setDetectRenames(true);
+                            diffs = df.scan(parent.getTree(), commit.getTree());
+
+                            HashSet<String> commit_fileSet = new HashSet<>();
+                            if (diffs.size() < 100) {
+                                int commitid = io.getcommitID(sha);
+
+
+
+                                if (commitid == -1) {
+                                    System.out.println("inserting new commit ... from fork " + forkurl + "  " + sha);
+
+                                    int repoID = io.getRepoId(forkurl);
+                                    int projectID = io.getRepoId(repoUrl);
+                                    preparedStmt_insert.setString(1, sha);
+                                    preparedStmt_insert.setString(2, forkurl);
+                                    preparedStmt_insert.setInt(3, diffs.size());
+                                    preparedStmt_insert.setString(4, author_fullName);
+                                    preparedStmt_insert.setString(5, email);
+                                    preparedStmt_insert.setString(6, String.valueOf(now));
+                                    preparedStmt_insert.setString(7, repoUrl);
+                                    preparedStmt_insert.setInt(8, repoID);
+                                    preparedStmt_insert.setInt(9, projectID);
+                                    preparedStmt_insert.setInt(10, onlyf_boolean);
+                                    preparedStmt_insert.setInt(11, f2u_boolean);
+                                    preparedStmt_insert.setString(12, sha);
+
+                                    System.out.println(preparedStmt_insert.toString());
+                                    preparedStmt_insert.addBatch();
+//                                    System.out.println("insert new commit, affect : " + preparedStmt.executeUpdate() + " rows");
+
+                                } else {
+                                    System.out.println("updating existing commit ... ");
+                                    preparedStmt_update.setInt(1, diffs.size());
+                                    preparedStmt_update.setString(2, author_fullName);
+                                    preparedStmt_update.setString(3, email);
+                                    preparedStmt_update.setString(4, String.valueOf(now));
+                                    preparedStmt_update.setInt(5, onlyf_boolean);
+                                    preparedStmt_update.setInt(6, f2u_boolean);
+                                    preparedStmt_update.setString(7, sha);
+                                    preparedStmt_update.addBatch();
+                                }
+
+                            }
+
+                        }
+
+                        end = System.nanoTime();
+                        used = end - start;
+                        System.out.println("update commit :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+                        conn.commit();
+
+                        System.out.println("count_update" + count_update);
+                        if (++count_update % batchSize == 0) {
+                            io.executeQuery(preparedStmt_update);
+                            conn.commit();
+
+                        }
+                        System.out.println("count_insert" + count_insert);
+                        if (++count_insert % batchSize == 0) {
+                            io.executeQuery(preparedStmt_insert);
+                            conn.commit();
+
+                        }
+                    }
+                    end = System.nanoTime();
+                    used = end - start;
+                    System.out.println("update commit :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+
+                    io.executeQuery(preparedStmt_update);
+                    io.executeQuery(preparedStmt_insert);
+                    conn.commit();
+                }
+
+            }
+            preparedStmt_insert.close();
+            preparedStmt_update.close();
+            conn.close();
+
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }

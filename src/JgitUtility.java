@@ -58,6 +58,7 @@ public class JgitUtility {
 
         IO_Process io = new IO_Process();
         localDirPath = output_dir + "/cloneRepos/";
+        System.out.print( localDirPath +"\n");
 //        localDirPath = current_dir + "/cloneRepos/";
         String clone_url = github_url + repo_uri + ".git";
 

@@ -324,6 +324,7 @@ public class AnalyzingPRs {
                     preparedStmt.setInt(13, pr_id);
                     preparedStmt.addBatch();
                     System.out.println("forkURL " + forkURL + " pr " + pr_id);
+                    System.out.println("count " + count);
 
                     if (++count % batchSize == 0) {
                         io.executeQuery(preparedStmt);
@@ -572,7 +573,7 @@ public class AnalyzingPRs {
                 int repoID = io.getRepoId(repoURL);
                 analyzingPRs.insertPR(repoURL, repoID);
 //                analyzingPRs.insertForkasPRauthor(repoURL, repoID);
-                analyzingPRs.insertCommitInPR(repoURL, repoID);
+//                analyzingPRs.insertCommitInPR(repoURL, repoID);
 //                analyzingPRs.insertPR_Commit_mapping(repoURL, repoID);
 
 
