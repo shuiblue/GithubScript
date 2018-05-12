@@ -27,11 +27,11 @@ public class NameBasedClassifier {
 
         if (current_OS.indexOf("mac") >= 0) {
             tmpDirPath = "/Users/shuruiz/Box Sync/ForkData/cloneRepos/";
-            result_dir = "/Users/shuruiz/Box Sync/ForkData";
+            result_dir = "/Users/shuruiz/Box Sync/ForkData/";
 
         } else {
             tmpDirPath = "/home/feature/shuruiz/ForkData/cloneRepos/";
-            result_dir = "/home/feature/shuruiz/ForkData";
+            result_dir = "/home/feature/shuruiz/ForkData/";
 
         }
 
