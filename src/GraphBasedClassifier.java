@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 public class GraphBasedClassifier {
 
     static String tmpDirPath;
-    static String current_dir;
+    static String current_dir,result_dir;
     HashMap<String, ArrayList<String>> fork_HistoryMap, upstream_HistoryMap;
     HashSet<String> fork_mergeCommitSet, upstream_mergeCommitSet;
     String forkPointCommitSHA = "";
@@ -39,9 +39,11 @@ public class GraphBasedClassifier {
 
         if (current_OS.indexOf("mac") >= 0) {
             tmpDirPath = "/Users/shuruiz/Box Sync/ForkData/cloneRepos/";
+            result_dir = "/Users/shuruiz/Box Sync/ForkData";
 
         } else {
             tmpDirPath = "/home/feature/shuruiz/ForkData/cloneRepos/";
+            result_dir = "/home/feature/shuruiz/ForkData";
 
         }
     }
@@ -97,8 +99,8 @@ public class GraphBasedClassifier {
                 sb_result.append(forkUrl + "," + upstreamUrl + ",0,0,0,0,[],[],[],[]\n");
                 StringBuilder sb_result_csv = new StringBuilder();
                 sb_result_csv.append(forkUrl + "," + upstreamUrl + ",0,0,0,0,\n");
-                io.writeTofile(sb_result_csv.toString(), current_dir + "/result/" + repoURL + "/graph_result.csv");
-                io.writeTofile(sb_result.toString(), current_dir + "/result/" + repoURL + "/graph_result.txt");
+                io.writeTofile(sb_result_csv.toString(), result_dir + "/result/" + repoURL + "/graph_result.csv");
+                io.writeTofile(sb_result.toString(), result_dir + "/result/" + repoURL + "/graph_result.txt");
                 return;
 
             }
@@ -181,7 +183,7 @@ public class GraphBasedClassifier {
         }
 
         io.writeTofile(forkUrl + "," + upstreamUrl + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
-                fork2Upstream.size() + "," + upstream2Fork.size() + "," + "\n", current_dir + "/result/" + repoURL + "/graph_result.csv");
+                fork2Upstream.size() + "," + upstream2Fork.size() + "," + "\n", result_dir + "/result/" + repoURL + "/graph_result.csv");
 
         io.writeTofile(forkUrl + "," + upstreamUrl + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
                         fork2Upstream.size() + "," + upstream2Fork.size() + "," +
@@ -189,11 +191,11 @@ public class GraphBasedClassifier {
                         onlyUpstream.toString().replace(",", "/") + "," +
                         fork2Upstream.toString().replace(",", "/") + "," +
                         upstream2Fork.toString().replace(",", "/") + "\n"
-                , current_dir + "/result/" + repoURL + "/graph_result.txt");
+                , result_dir + "/result/"+ repoURL + "/graph_result.txt");
 
         /** remove local copy of fork**/
         try {
-            io.deleteDir(new File(current_dir + "/cloneRepos/" + forkUrl));
+            io.deleteDir(new File(tmpDirPath  + "/cloneRepos/" + forkUrl));
         } catch (IOException e) {
             e.printStackTrace();
         }
