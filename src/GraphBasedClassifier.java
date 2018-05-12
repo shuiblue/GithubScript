@@ -44,11 +44,6 @@ public class GraphBasedClassifier {
             tmpDirPath = "/home/feature/shuruiz/ForkData/cloneRepos/";
 
         }
-
-
-
-
-
     }
 
 

@@ -340,7 +340,7 @@ public class AnalyzeCoChangedFile {
             used = end - start;
             System.out.println("removeRedundantCommits ONLYf :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
             int onlyf_boolean, f2u_boolean;
-            for (int i = 1; i < forkListInfo.length; i++) {
+            for (int i = 80; i < forkListInfo.length; i++) {
                 String forkINFO = forkListInfo[i];
                 String forkurl = forkINFO.split(",")[0];
 
