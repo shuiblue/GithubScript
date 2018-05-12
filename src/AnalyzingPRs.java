@@ -96,7 +96,7 @@ public class AnalyzingPRs {
 
                 preparedStmt = conn.prepareStatement(update_commit_query);
 
-                for (int s = pr_json.length - 1; s >=  0; s--) {
+                for (int s = pr_json.length - 1; s >= 0; s--) {
                     String json_string = pr_json[s];
                     int pr_id = Integer.parseInt(io.removeBrackets(pr_num[s]).replace("{\"number\": ", "").replace("}", "").trim());
                     System.out.println(s);
@@ -133,14 +133,14 @@ public class AnalyzingPRs {
 
                         System.out.println("count" + count);
                         if (++count % batchSize == 0) {
-                            executeQuery(preparedStmt);
+                            io.executeQuery(preparedStmt);
                             conn.commit();
 
                         }
                     }
 
                 }
-                executeQuery(preparedStmt);
+                io.executeQuery(preparedStmt);
                 conn.commit();
                 preparedStmt.close();
                 conn.close();
@@ -209,7 +209,7 @@ public class AnalyzingPRs {
                     for (String commit : commitSet) {
                         int sha_id = getSHAID(commit);
                         if (sha_id == -1) {
-                            System.out.print("forkURL " + forkURL +" commit is -1 !!! ");
+                            System.out.print("forkURL " + forkURL + " commit is -1 !!! ");
                         }
                         int fork_id = io.getRepoId(forkURL);
                         preparedStmt.setInt(1, sha_id);
@@ -223,14 +223,14 @@ public class AnalyzingPRs {
                         System.out.println("count " + count);
 
                         if (++count % batchSize == 0) {
-                            executeQuery(preparedStmt);
+                            io.executeQuery(preparedStmt);
                             conn.commit();
                         }
 
                     }
 
                 }
-                executeQuery(preparedStmt);
+                io.executeQuery(preparedStmt);
                 conn.commit();
                 preparedStmt.close();
                 conn.close();
@@ -326,11 +326,11 @@ public class AnalyzingPRs {
                     System.out.println("forkURL " + forkURL + " pr " + pr_id);
 
                     if (++count % batchSize == 0) {
-                        executeQuery(preparedStmt);
+                        io.executeQuery(preparedStmt);
                         conn.commit();
                     }
                 }
-                executeQuery(preparedStmt);
+                io.executeQuery(preparedStmt);
                 conn.commit();
                 preparedStmt.close();
                 conn.close();
@@ -344,7 +344,7 @@ public class AnalyzingPRs {
     }
 
 
-    public  void insertForkasPRauthor(String repoUrl, int projectID) {
+    public void insertForkasPRauthor(String repoUrl, int projectID) {
         String[] pr_json, pr_num = {};
         IO_Process io = new IO_Process();
         HashMap<String, String> forkPRstring_map = new HashMap<>();
@@ -395,13 +395,13 @@ public class AnalyzingPRs {
                         System.out.println("forkURL " + forkURL);
 
                         if (++count % batchSize == 0) {
-                            executeQuery(preparedStmt);
+                            io.executeQuery(preparedStmt);
                             conn.commit();
                         }
 
                     }
                 }
-                executeQuery(preparedStmt);
+                io.executeQuery(preparedStmt);
                 conn.commit();
                 preparedStmt.close();
                 conn.close();
@@ -414,18 +414,6 @@ public class AnalyzingPRs {
             e.printStackTrace();
         }
 
-    }
-
-    public void executeQuery(PreparedStatement preparedStmt) throws SQLException {
-        int[] numUpdates = preparedStmt.executeBatch();
-        for (int i = 0; i < numUpdates.length; i++) {
-            if (numUpdates[i] == -2)
-                System.out.println("Execution " + i +
-                        ": unknown number of rows updated");
-            else
-                System.out.println("Execution " + i +
-                        "successful: " + numUpdates[i] + " rows updated");
-        }
     }
 
 
@@ -582,7 +570,7 @@ public class AnalyzingPRs {
             for (String repoURL : repos) {
                 System.out.println(repoURL);
                 int repoID = io.getRepoId(repoURL);
-//                analyzingPRs.insertPR(repoURL, repoID);
+                analyzingPRs.insertPR(repoURL, repoID);
 //                analyzingPRs.insertForkasPRauthor(repoURL, repoID);
                 analyzingPRs.insertCommitInPR(repoURL, repoID);
 //                analyzingPRs.insertPR_Commit_mapping(repoURL, repoID);

@@ -13,10 +13,8 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by shuruiz on 4/7/17.
@@ -55,6 +53,9 @@ public class JgitUtility {
         ArrayList<String> branchList= new ArrayList<>();
         System.out.println("cloning repo: " + repo_uri+" ...");
 
+
+        long start = System.nanoTime();
+
         IO_Process io = new IO_Process();
         localDirPath = output_dir + "/cloneRepos/";
 //        localDirPath = current_dir + "/cloneRepos/";
@@ -67,11 +68,8 @@ public class JgitUtility {
 
         if (!dir_git.exists()) {
             dir.mkdir();
-//            CredentialsProvider cp = new UsernamePasswordCredentialsProvider( "shuiblue", "shuiblue218" );
-//            git.pull().setCredentialsProvider( cp ).call();
             try {
                 Git git = Git.cloneRepository()
-//                        .setCredentialsProvider( cp )
                         .setURI(clone_url)
                         .setCloneAllBranches(true)
                         .setDirectory(dir)
@@ -87,12 +85,6 @@ public class JgitUtility {
                 for (int i = 1; i < call.size(); i++) {
                     Ref ref = call.get(i);
                     String branchName = ref.getName().replace("refs/remotes/origin/", "");
-//                    git.checkout().
-//                            setCreateBranch(true).
-//                            setName(branchName).
-//                            setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
-//                            setStartPoint("origin/" + branchName).
-//                            call();
                     sb_branches.append(branchName + "\n");
                     branchList.add(branchName);
                 }
@@ -105,6 +97,9 @@ public class JgitUtility {
         } else {
             System.out.println(repo_uri + " already exist!");
         }
+        long end = System.nanoTime();
+        long used = end - start;
+        System.out.println("clone repo " + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
 
         return branchList;
     }

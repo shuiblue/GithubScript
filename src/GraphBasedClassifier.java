@@ -222,7 +222,6 @@ public class GraphBasedClassifier {
             System.out.println("target: " + target);
             dijkstra.execute(new Vertex(target));
                 HashMap<Vertex, Integer> tmp_distance_map = (HashMap<Vertex, Integer>) dijkstra.getDistance();
-
                 long end = System.nanoTime();
                 long used = end - start;
                 System.out.println("dijkstra :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");

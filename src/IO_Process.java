@@ -5,8 +5,10 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -136,7 +138,7 @@ public class IO_Process {
 
 
     public int getRepoId(String repoURL) {
-        String myUrl ,user;
+        String myUrl, user;
         int repoID = -1;
         if (current_OS.indexOf("mac") >= 0) {
             myUrl = "jdbc:mysql://localhost:3307/fork";
@@ -150,7 +152,7 @@ public class IO_Process {
             Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
             PreparedStatement preparedStmt;
 
-            String selectRepoID = "SELECT id from fork.repository where repoURL = ?";
+            String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL = ?";
             preparedStmt = conn.prepareStatement(selectRepoID);
             preparedStmt.setString(1, repoURL);
             ResultSet rs = preparedStmt.executeQuery();
@@ -165,4 +167,61 @@ public class IO_Process {
         return repoID;
 
     }
+
+    public void executeQuery(PreparedStatement preparedStmt) throws SQLException {
+        int[] numUpdates = preparedStmt.executeBatch();
+        for (int i = 0; i < numUpdates.length; i++) {
+            if (numUpdates[i] == -2)
+                System.out.println("Execution " + i +
+                        ": unknown number of rows updated");
+            else
+                System.out.println("Execution " + i +
+                        "successful: " + numUpdates[i] + " rows updated");
+        }
+    }
+
+    public int getcommitID(String sha) {
+        int commitshaID = -1;
+        String myUrl, user = "shuruiz";
+        if (current_OS.indexOf("mac") >= 0) {
+            myUrl = "jdbc:mysql://localhost:3307/fork";
+        } else {
+            myUrl = "jdbc:mysql://localhost:3306/fork";
+        }
+        try {
+
+            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+
+            String commitshaID_QUERY = "SELECT id FROM commit WHERE commitSHA = ?";
+            PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY);
+            preparedStmt.setString(1, sha);
+
+            ResultSet rs = preparedStmt.executeQuery();
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            while (rs.next()) {               // Position the cursor                  4
+                commitshaID = rs.getInt(1);        // Retrieve the first column valu
+            }
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return commitshaID;
+    }
+
+    public String normalize(String str) {
+        str = Normalizer.normalize(str, Normalizer.Form.NFD);
+        str = str.replaceAll("[^\\p{ASCII}]", "");
+        return str;
+    }
+
+
+    static public void main(String[] args) {
+        IO_Process io = new IO_Process();
+        System.out.print(io.normalize("Michał Putkowski"));
+    }
+
 }
