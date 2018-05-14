@@ -1,4 +1,14 @@
 import org.apache.commons.io.FileUtils;
+import org.eclipse.jgit.api.CreateBranchCommand;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.diff.RawTextComparator;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.util.io.DisabledOutputStream;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -6,8 +16,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,6 +29,29 @@ import java.util.stream.Stream;
  */
 public class IO_Process {
     static String current_OS = System.getProperty("os.name").toLowerCase();
+    String dir = "", token;
+    String myUrl, user = "shuruiz";
+    static String github_api_repo = "https://api.github.com/repos/";
+    String current_dir = System.getProperty("user.dir");
+
+    public IO_Process() {
+
+        if (current_OS.indexOf("mac") >= 0) {
+            dir = "/Users/shuruiz/Box Sync/queryGithub/";
+            myUrl = "jdbc:mysql://localhost:3307/fork";
+
+        } else {
+            dir = "/usr0/home/shuruiz/queryGithub/";
+            myUrl = "jdbc:mysql://localhost:3306/fork";
+        }
+
+        try {
+            token = readResult(current_dir + "/input/token.txt").trim();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public void writeTofile(String content, String filepath) {
 
@@ -85,6 +120,54 @@ public class IO_Process {
     }
 
 
+    ArrayList<String> getForkListFromRepoTable(String repoUrl) {
+        ArrayList<String> forkList = new ArrayList<>();
+
+        try {
+
+            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            PreparedStatement preparedStmt;
+
+            String selectRepoID = "SELECT repoURL FROM fork.repository WHERE belongToRepo = ? AND isFork = TRUE ";
+            preparedStmt = conn.prepareStatement(selectRepoID);
+            preparedStmt.setString(1, repoUrl);
+            ResultSet rs = preparedStmt.executeQuery();
+
+            while (rs.next()) {
+                forkList.add(String.valueOf(rs.getString("repoURL")));
+            }
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return forkList;
+
+    }
+
+
+    public ArrayList<String> getProjectURL() {
+        ArrayList<String> repoList = new ArrayList<>();
+
+        try {
+
+            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            PreparedStatement preparedStmt;
+
+            String selectRepoID = "SELECT id FROM fork.repository WHERE isFork = FALSE ";
+            preparedStmt = conn.prepareStatement(selectRepoID);
+            ResultSet rs = preparedStmt.executeQuery();
+
+            if (rs.next()) {
+                repoList.add(String.valueOf(rs.getInt("id")));
+            }
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return repoList;
+
+    }
+
     public String exeCmd(String[] cmd, String pathname) {
 
         ProcessBuilder process = new ProcessBuilder(cmd);
@@ -100,7 +183,8 @@ public class IO_Process {
             String line = null;
             try {
                 while ((line = reader.readLine()) != null) {
-                    builder.append(line);
+                    builder.append("aa: "+line);
+                    System.out.println(line);
                     builder.append(System.getProperty("line.separator"));
                 }
             } catch (IOException e) {
@@ -138,15 +222,7 @@ public class IO_Process {
 
 
     public int getRepoId(String repoURL) {
-        String myUrl, user;
         int repoID = -1;
-        if (current_OS.indexOf("mac") >= 0) {
-            myUrl = "jdbc:mysql://localhost:3307/fork";
-            user = "shuruiz";
-        } else {
-            myUrl = "jdbc:mysql://localhost:3306/fork";
-            user = "shuruiz";
-        }
         try {
 
             Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
@@ -164,11 +240,108 @@ public class IO_Process {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
+        if (repoID == -1) {
+            insertRepo(repoURL);
+        }
+
         return repoID;
 
     }
 
+    private void insertRepo(String repoUrl) {
+        GithubApiParser githubApiParser = new GithubApiParser();
+        System.out.println("get fork info: " + repoUrl);
+        String repoInfo = githubApiParser.getForkInfo(repoUrl).toString();
+        Connection conn = null;
+        String query = "  INSERT INTO repository ( repoURL,loginID,repoName,isFork,UpstreamURL,belongToRepo,upstreamID,projectID," +
+                "num_of_forks, created_at,pushed_at, size,language,ownerID,public_repos," +
+                "public_gists ,followers  , following  ,user_type  )" +
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String upstreamURL = "";
+        int upstreamID = -1;
+
+        try {
+            conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            PreparedStatement preparedStmt = conn.prepareStatement(query);
+            String forkUrl = github_api_repo + repoUrl + "?access_token=" + token;
+            JsonUtility jsonUtility = new JsonUtility();
+            ArrayList<String> fork_info_json = null;
+            try {
+                fork_info_json = jsonUtility.readUrl(forkUrl);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (fork_info_json.size() > 0) {
+                JSONObject fork_jsonObj = new JSONObject(fork_info_json.get(0));
+                String owner_url = (String) ((JSONObject) fork_jsonObj.get("owner")).get("url");
+                boolean isFork = (boolean) fork_jsonObj.get("fork");
+                if (isFork) {
+                    upstreamURL = (String) ((JSONObject) fork_jsonObj.get("parent")).get("full_name");
+                    upstreamID = getRepoId(upstreamURL);
+                }
+                ArrayList<String> owner_info_json = null;
+                try {
+                    owner_info_json = jsonUtility.readUrl(owner_url + "?access_token=" + token);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                String language = null;
+                if (fork_jsonObj.get("language") != null) {
+                    language = String.valueOf(fork_jsonObj.get("language"));
+                }
+                JSONObject owner_jsonObj = new JSONObject(owner_info_json.get(0));
+//                repoURL
+                preparedStmt.setString(1, repoUrl);
+                // loginID
+                preparedStmt.setString(2, String.valueOf(owner_jsonObj.get("login")));
+                // repoName
+                preparedStmt.setString(3, repoUrl.split("/")[1]);
+                // isFork
+                preparedStmt.setBoolean(4, isFork);
+                // UpstreamURL,
+                preparedStmt.setString(5, upstreamURL);
+
+                // belongToRepo,
+                preparedStmt.setString(6, upstreamURL);
+                // upstreamID,
+                preparedStmt.setInt(7, upstreamID);
+                // projectID
+                preparedStmt.setInt(8, upstreamID);
+                // num_of_forks
+                preparedStmt.setInt(9, (Integer) fork_jsonObj.get("forks_count"));
+                // created_at
+                preparedStmt.setString(10, (String) owner_jsonObj.get("created_at"));
+                // pushed_at
+                preparedStmt.setString(11, (String) fork_jsonObj.get("pushed_at"));
+                // size
+                preparedStmt.setString(12, String.valueOf(fork_jsonObj.get("size")));
+                // language
+                preparedStmt.setString(13, language);
+                // ownerID
+                preparedStmt.setString(14, String.valueOf(owner_jsonObj.get("login")));
+                // public_repos
+                preparedStmt.setString(15, String.valueOf(owner_jsonObj.get("public_repos")));
+                // public_gists
+                preparedStmt.setString(16, String.valueOf(owner_jsonObj.get("public_gists")));
+                // followers
+                preparedStmt.setString(17, String.valueOf(owner_jsonObj.get("followers")));
+                // following
+                preparedStmt.setString(18, String.valueOf(owner_jsonObj.get("following")));
+                // user_type
+                preparedStmt.setString(19, String.valueOf(owner_jsonObj.get("type")));
+                System.out.println("insert " + preparedStmt.executeUpdate() + " repo");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
     public void executeQuery(PreparedStatement preparedStmt) throws SQLException {
+        long start = System.nanoTime();
         int[] numUpdates = preparedStmt.executeBatch();
         for (int i = 0; i < numUpdates.length; i++) {
             if (numUpdates[i] == -2)
@@ -178,38 +351,46 @@ public class IO_Process {
                 System.out.println("Execution " + i +
                         "successful: " + numUpdates[i] + " rows updated");
         }
+        long end = System.nanoTime();
+        long used = end - start;
+        System.out.println("execute " + numUpdates.length + " query  :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
     }
 
     public int getcommitID(String sha) {
-        int commitshaID = -1;
+//        long start = System.nanoTime();
         String myUrl, user = "shuruiz";
         if (current_OS.indexOf("mac") >= 0) {
             myUrl = "jdbc:mysql://localhost:3307/fork";
         } else {
             myUrl = "jdbc:mysql://localhost:3306/fork";
         }
+        Connection conn;
         try {
 
-            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            conn = DriverManager.getConnection(myUrl, user, "shuruiz");
 
             String commitshaID_QUERY = "SELECT id FROM commit WHERE commitSHA = ?";
             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY);
             preparedStmt.setString(1, sha);
 
             ResultSet rs = preparedStmt.executeQuery();
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+//            rs.setFetchSize(250);
             while (rs.next()) {               // Position the cursor                  4
-                commitshaID = rs.getInt(1);        // Retrieve the first column valu
+                int commitshaID = rs.getInt(1);
+                if (commitshaID != -1) {
+                    conn.close();
+//                    long end = System.nanoTime();
+//                    System.out.println("get commit id " + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+
+                    return commitshaID;
+                }
             }
             conn.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return commitshaID;
+
+        return -1;
     }
 
     public String normalize(String str) {
@@ -218,10 +399,72 @@ public class IO_Process {
         return str;
     }
 
+    public List<DiffEntry> getCommitDiff(RevCommit commit, Repository repo) {
+//        long start_getdiff = System.nanoTime();
+
+        RevCommit parent;
+        DiffFormatter df;
+        RevWalk rw = new RevWalk(repo);
+        try {
+            if (commit.getParentCount() > 0) {
+                parent = rw.parseCommit(commit.getParent(0).getId());
+                df = getDiffFormat(repo);
+//            long end_getdiff = System.nanoTime();
+//            System.out.println("get diff:" + TimeUnit.NANOSECONDS.toMillis(end_getdiff - start_getdiff) + " ms");
+
+                return df.scan(parent.getTree(), commit.getTree());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public DiffFormatter getDiffFormat(Repository repo) {
+        DiffFormatter df;
+        df = new DiffFormatter(DisabledOutputStream.INSTANCE);
+        df.setRepository(repo);
+        df.setDiffComparator(RawTextComparator.DEFAULT);
+        df.setDetectRenames(true);
+        return df;
+    }
+
 
     static public void main(String[] args) {
         IO_Process io = new IO_Process();
         System.out.print(io.normalize("Michał Putkowski"));
+    }
+
+    public RevCommit getCommit(String idString, Repository repository, Git git, ArrayList<String> branchList) {
+        long start_getcommitFrombranch = System.nanoTime();
+        for (String branchName : branchList) {
+            try {
+
+                if (!git.branchList().getRepository().getAllRefs().keySet().contains("refs/heads/" + branchName)) {
+                    git.checkout().
+                            setCreateBranch(true).
+                            setName(branchName).
+                            setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+                            setStartPoint("origin/" + branchName).
+                            call();
+                }
+                ObjectId o1 = repository.resolve(idString);
+                if (o1 != null) {
+                    RevWalk walk = new RevWalk(repository);
+                    RevCommit commit = walk.parseCommit(o1);
+
+                    long end_getcommitFrombranch = System.nanoTime();
+                    System.out.println("get commit From branch: " + TimeUnit.NANOSECONDS.toMillis(end_getcommitFrombranch - start_getcommitFrombranch) + " ms");
+                    return commit;
+                } else {
+                    System.err.println("Could not get commit with SHA :" + idString);
+                }
+            } catch (Exception e) {
+
+                continue;
+            }
+        }
+        return null;
     }
 
 }

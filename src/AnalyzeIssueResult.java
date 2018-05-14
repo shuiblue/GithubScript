@@ -16,7 +16,10 @@ public class AnalyzeIssueResult {
     static String user;
     static String current_OS = System.getProperty("os.name").toLowerCase();
 
+
+
     static public void main(String[] args) {
+        int batchSize = 100;
         AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
 
         current_dir = System.getProperty("user.dir");
@@ -44,7 +47,7 @@ public class AnalyzeIssueResult {
         /** get repo list **/
 
         try {
-            repoList = io.readResult(current_dir + "/input/repoList.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/issueList.txt").split("\n");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -53,21 +56,13 @@ public class AnalyzeIssueResult {
         for (String repo : repoList) {
             String myDriver = "com.mysql.jdbc.Driver";
             try {
-                Connection        conn = DriverManager.getConnection(myUrl, user, "shuruiz");
-                PreparedStatement preparedStmt;
+                Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+                conn.setAutoCommit(false);
+                int RepoID = io.getRepoId(repo);
 
-                String selectRepoID = "SELECT id from fork.repository where repoURL = ?";
-                preparedStmt = conn.prepareStatement(selectRepoID);
-                preparedStmt.setString(1, repo);
-                ResultSet rs = preparedStmt.executeQuery();
-                int RepoID = -1;
-                if (rs.next()) {
-                    RepoID = rs.getInt("id");
-                }
                 if (RepoID != -1) {
 
-                    String issue_dir = output_dir+ repo + "/linked_issue_info.txt";
-                    String pr_issue_dir =output_dir + repo + "/pr_comments.txt";
+                    String issue_dir = output_dir + repo + "/linked_issue_info.txt";
 
                     // create a mysql database connection
                     Class.forName(myDriver);
@@ -76,24 +71,25 @@ public class AnalyzeIssueResult {
                     if (f.exists()) {
                         // do something
 
-                        System.out.println("repo --- "+repo);
+                        System.out.println("repo --- " + repo);
                         String[] issueList = io.readResult(issue_dir).split("\n");
+
+                        String query = "  INSERT INTO fork.ISSUE (issue_id, author, closed, created_at, updated_at, closed_at, title,projectID) " +
+
+                                " SELECT * FROM (SELECT ? AS a,? AS b,? AS c,? AS d,? AS e,? AS f, ? AS ds,? AS de) AS tmp" +
+                                " WHERE NOT EXISTS (" +
+                                " SELECT * FROM  fork.ISSUE WHERE projectID = ? AND issue_id = ?" +
+                                ") LIMIT 1";
+
+
+                        PreparedStatement preparedStmt = conn.prepareStatement(query);
+                        ;
+                        int count = 0;
                         for (String is : issueList) {
                             if (!is.contains("null") && is.contains("[{")) {
 //                                String query = "  INSERT into fork.ISSUE (issue_id, author, closed, created_at, updated_at, closed_at, title,repoID) " +
 //                                        "VALUES (?,?,?,?,?,?,?,?)";
 
-                                String query = "  INSERT into fork.ISSUE (issue_id, author, closed, created_at, updated_at, closed_at, title,projectID) " +
-
-                                        " SELECT * FROM (SELECT ? as a,? as b,? as c,? as d,? as e,? as f, ? as ds,? as de) AS tmp" +
-                                        " WHERE NOT EXISTS (" +
-                                        " SELECT * FROM  fork.ISSUE WHERE projectID = ? AND issue_id = ?" +
-                                        ") LIMIT 1";
-
-
-
-
-                                preparedStmt = conn.prepareStatement(query);
 
                                 String[] issue_arr = is.split("----")[1].replace("[{", "").replace("}]", "").split(", \"");
 
@@ -109,49 +105,27 @@ public class AnalyzeIssueResult {
                                 preparedStmt.setInt(8, RepoID);
                                 preparedStmt.setInt(9, RepoID);
                                 preparedStmt.setInt(10, issueID);
-                                preparedStmt.execute();
-                            }
-                        }
+                                System.out.println(preparedStmt.toString());
+                                preparedStmt.addBatch();
 
-                        System.out.println("start pr_issue...");
-                        String[] pr_issue_List = io.readResult(pr_issue_dir).split("\n");
-                        HashSet<Integer> checkedIssue = new HashSet<>();
-                        for (String pr : pr_issue_List) {
-                            if (pr.contains("#")) {
-                                int pr_num = Integer.parseInt(pr.trim().split("----")[0]);
+                                System.out.println("count" + count);
+                                if (++count % batchSize == 0) {
+                                    io.executeQuery(preparedStmt);
+                                    conn.commit();
 
-
-                                String[] issueLinkedList = pr.split("----")[1].split(",");
-                                for (String issue : issueLinkedList) {
-                                    int issue_num = Integer.parseInt(issue.replace("#", ""));
-                                    if (!checkedIssue.contains(issue_num)) {
-                                        checkedIssue.add(issue_num);
-
-
-                                        String query = "  INSERT into fork.PR_TO_ISSUE (repoID, pull_request_id, issue_id) " +
-//                                                "VALUES (?,?,?)";
-                                                " SELECT * FROM (SELECT ? as a,? as b,? as c) AS tmp" +
-                                                " WHERE NOT EXISTS (" +
-                                                "SELECT * FROM fork.PR_TO_ISSUE WHERE repoID = ? AND pull_request_id=? AND issue_id = ?" +
-                                                ") LIMIT 1";
-
-
-                                        preparedStmt = conn.prepareStatement(query);
-                                        preparedStmt.setInt(1, RepoID);
-                                        preparedStmt.setInt(2, pr_num);
-                                        preparedStmt.setInt(3, issue_num);
-                                        preparedStmt.setInt(4, RepoID);
-                                        preparedStmt.setInt(5, pr_num);
-                                        preparedStmt.setInt(6, issue_num);
-                                        preparedStmt.execute();
-//                                        System.out.println("insert to prTOissue " + issue);
-
-                                    }
                                 }
                             }
                         }
-                    }
-                    else {
+                        io.executeQuery(preparedStmt);
+                        conn.commit();
+                        preparedStmt.close();
+                        conn.close();
+
+                        System.out.println("start pr_issue...");
+
+
+                        updatePr_issue_table(repo);
+                    } else {
                         System.out.println(repo);
                     }
                 }
@@ -165,6 +139,69 @@ public class AnalyzeIssueResult {
             }
 
 
+        }
+
+
+    }
+
+    private static void updatePr_issue_table(String repo) {
+        int batchSize = 100;
+        IO_Process io = new IO_Process();
+        int repoID = io.getRepoId(repo);
+        HashSet<Integer> checkedIssue = new HashSet<>();
+        String pr_issue_dir = output_dir + repo + "/pr_comments.txt";
+        String[] pr_issue_List = new String[0];
+        Connection conn;
+        String query = "  INSERT INTO fork.PR_TO_ISSUE (repoID, pull_request_id, issue_id) " +
+//                                                "VALUES (?,?,?)";
+                " SELECT * FROM (SELECT ? AS a,? AS b,? AS c) AS tmp" +
+                " WHERE NOT EXISTS (" +
+                "SELECT * FROM fork.PR_TO_ISSUE WHERE repoID = ? AND pull_request_id=? AND issue_id = ?" +
+                ") LIMIT 1";
+        try {
+            conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            conn.setAutoCommit(false);
+            pr_issue_List = io.readResult(pr_issue_dir).split("\n");
+            PreparedStatement preparedStmt = conn.prepareStatement(query);
+            int count = 0;
+            for (String pr : pr_issue_List) {
+                if (pr.contains("#")) {
+                    int pr_num = Integer.parseInt(pr.trim().split("----")[0]);
+
+
+                    String[] issueLinkedList = pr.split("----")[1].split(",");
+                    for (String issue : issueLinkedList) {
+                        int issue_num = Integer.parseInt(issue.replace("#", ""));
+                        if (!checkedIssue.contains(issue_num)) {
+                            checkedIssue.add(issue_num);
+                            preparedStmt.setInt(1, repoID);
+                            preparedStmt.setInt(2, pr_num);
+                            preparedStmt.setInt(3, issue_num);
+                            preparedStmt.setInt(4, repoID);
+                            preparedStmt.setInt(5, pr_num);
+                            preparedStmt.setInt(6, issue_num);
+                            preparedStmt.addBatch();
+                            System.out.println(preparedStmt.toString());
+
+                            System.out.println("count" + count);
+                            if (++count % batchSize == 0) {
+                                io.executeQuery(preparedStmt);
+                                conn.commit();
+
+                            }
+
+                        }
+                    }
+                }
+            }
+            io.executeQuery(preparedStmt);
+            conn.commit();
+            preparedStmt.close();
+            conn.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
 
