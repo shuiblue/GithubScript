@@ -1,4 +1,5 @@
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -18,9 +19,9 @@ import java.sql.*;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -30,15 +31,20 @@ import java.util.stream.Stream;
 public class IO_Process {
     static String current_OS = System.getProperty("os.name").toLowerCase();
     String token;
-    String dir, user, pwd, myUrl;
+    String user, pwd, myUrl;
     static String github_api_repo = "https://api.github.com/repos/";
+    static String github_url = "https://github.com/";
     String current_dir = System.getProperty("user.dir");
+    static String working_dir, pr_dir, output_dir, clone_dir;
 
     public IO_Process() {
 
         try {
             String[] paramList = readResult(current_dir + "/input/dir-param.txt").split("\n");
-            dir = paramList[0];
+            working_dir = paramList[0];
+            pr_dir = working_dir + "queryGithub/";
+            output_dir = working_dir + "ForkData/";
+            clone_dir = output_dir + "clones/";
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
@@ -145,19 +151,16 @@ public class IO_Process {
     public ArrayList<String> getProjectURL() {
         ArrayList<String> repoList = new ArrayList<>();
 
-        try {
+        String selectRepoID = "SELECT repoURL FROM fork.repository WHERE isFork = FALSE ";
 
-            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
-            PreparedStatement preparedStmt;
+        try (Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+             PreparedStatement preparedStmt = conn.prepareStatement(selectRepoID);) {
 
-            String selectRepoID = "SELECT id FROM fork.repository WHERE isFork = FALSE ";
-            preparedStmt = conn.prepareStatement(selectRepoID);
-            ResultSet rs = preparedStmt.executeQuery();
-
-            if (rs.next()) {
-                repoList.add(String.valueOf(rs.getInt("id")));
+            try (ResultSet rs = preparedStmt.executeQuery()) {
+                while (rs.next()) {
+                    repoList.add(rs.getString("repoURL"));
+                }
             }
-            conn.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -180,8 +183,8 @@ public class IO_Process {
             String line = null;
             try {
                 while ((line = reader.readLine()) != null) {
-                    builder.append("aa: " + line);
-                    System.out.println(line);
+                    builder.append(line);
+//                    System.out.println(line);
                     builder.append(System.getProperty("line.separator"));
                 }
             } catch (IOException e) {
@@ -222,7 +225,7 @@ public class IO_Process {
         int repoID = -1;
         try {
 
-            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            Connection conn = DriverManager.getConnection(myUrl, user, pwd);
             PreparedStatement preparedStmt;
 
             String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL = ?";
@@ -239,14 +242,46 @@ public class IO_Process {
         }
 
         if (repoID == -1) {
-            insertRepo(repoURL);
+            String upstreamUrl = insertRepo(repoURL);
+//        todo    cloneRepo(repoURL, upstreamUrl);
         }
 
         return repoID;
 
     }
 
-    private void insertRepo(String repoUrl) {
+    private void cloneRepo(String forkUrl, String projectURL) {
+        String projectName = projectURL.split("/")[0];
+        IO_Process io = new IO_Process();
+        File upstreamFile = new File(clone_dir + projectURL + ".git");
+        if (!upstreamFile.exists()) {
+            String creadDirCMD = "mkdir -p " + clone_dir + projectURL;
+            io.exeCmd(creadDirCMD.split(" "), clone_dir);
+            System.out.println("mkdir -p " + projectURL);
+            String cloneCMD = "git clone " + github_url + projectURL + ".git";
+            io.exeCmd(cloneCMD.split(" "), clone_dir + projectName + "/");
+        } else {
+            System.out.println("upstream exists!");
+        }
+
+        HashSet<String> clonedFork = new HashSet<>();
+        forkUrl = io.getForkURL(forkUrl);
+        String forkName = "";
+        if (!clonedFork.contains(forkUrl)) {
+            clonedFork.add(forkUrl);
+            System.out.println(forkUrl);
+            forkName = io.getForkURL(forkUrl.split("/")[0]);
+            String cloneForkCmd = "git remote add " + forkName + " " + github_url + forkUrl + ".git";
+            io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
+        }
+
+        String fetchAll = "git fetch " + forkName;
+        System.out.println(io.exeCmd(fetchAll.split(" "), clone_dir + projectURL + "/"));
+
+
+    }
+
+    private String insertRepo(String repoUrl) {
         GithubApiParser githubApiParser = new GithubApiParser();
         System.out.println("get fork info: " + repoUrl);
         String repoInfo = githubApiParser.getForkInfo(repoUrl).toString();
@@ -333,7 +368,7 @@ public class IO_Process {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
+        return upstreamURL;
 
     }
 
@@ -427,11 +462,6 @@ public class IO_Process {
     }
 
 
-    static public void main(String[] args) {
-        IO_Process io = new IO_Process();
-        System.out.print(io.normalize("Michał Putkowski"));
-    }
-
     public RevCommit getCommit(String idString, Repository repository, Git git, ArrayList<String> branchList) {
         long start_getcommitFrombranch = System.nanoTime();
         for (String branchName : branchList) {
@@ -464,31 +494,57 @@ public class IO_Process {
         return null;
     }
 
-    public String getOutputDir(String machineName) {
-        String output_dir;
-        if (machineName.equals("local")) {
-            System.out.println("local machine");
-            output_dir = "/Users/shuruiz/Work/ForkData";
-        } else if (machineName.equals("featureServer")) {
-            System.out.println("feature server");
-            output_dir = "/usr0/home/shuruiz/ForkData";
-        } else {
-            System.out.println("feature 6 or other");
-            output_dir = "/home/feature/shuruiz/ForkData";
+    public String getForkURL(JSONObject pr_info) {
+        String forkURL = pr_info.get("forkURL").toString();
+        if (forkURL.contains(":")) {
+            String[] arr = forkURL.split("/");
+            String[] loginID = arr[0].split(":");
+            forkURL = loginID[0] + "/" + arr[1];
         }
-        return output_dir;
+        return forkURL;
     }
 
-    public String getDBurl(String machineName) {
-        String db_url;
-        if (machineName.equals("local")) {
-            System.out.println("local machine");
-            db_url = "jdbc:mysql://localhost:3307/fork";
+
+    public String getForkURL(String originForkurl) {
+        if (originForkurl.contains(":")) {
+            String[] arr = originForkurl.split("/");
+            String[] loginID = arr[0].split(":");
+            return loginID[0] + "/" + arr[1];
         } else {
-            System.out.println("feature server");
-            db_url = "jdbc:mysql://localhost:3306/fork";
+            return originForkurl;
         }
-        return db_url;
+    }
+
+
+    public ArrayList<String> getCommitFromCMD(String sha, String forkURL, String repoUrl) {
+        String[] cmd_getline = {"/bin/sh",
+                "-c",
+                "git log -1 --numstat " + sha + " | egrep ^[[:digit:]]+ | egrep -v ^1[[:space:]]+1[[:space:]]+"};
+
+        String[] changedfiles = exeCmd(cmd_getline, clone_dir + repoUrl).split("\n");
+
+        String[] cmd_getStatus = {"/bin/sh",
+                "-c", "git log -1 --name-status " + sha + " --pretty=\"\""};
+
+        String[] status = exeCmd(cmd_getStatus, clone_dir + repoUrl).split("\n");
+
+        if(status[0].contains("fatal: bad object")){
+            return  null;
+        }
+        ArrayList<String> changedFileResult = new ArrayList<>();
+        for (int i = 0; i < changedfiles.length; i++) {
+            String file = changedfiles[i];
+            file += "\t" + status[i].split("\t")[0];
+            changedFileResult.add(file);
+        }
+
+        return changedFileResult;
+    }
+
+
+    static public void main(String[] args) {
+        IO_Process io = new IO_Process();
+        io.getCommitFromCMD("9b63430f349f70", "", "MarlinFirmware/Marlin/");
     }
 }
 

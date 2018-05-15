@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 public class AnalyzingPRs {
 
     static String working_dir, pr_dir, output_dir, clone_dir;
-    static String current_dir = System.getProperty("user.dir");
+
     static String myUrl;
     static String user, pwd;
     static String myDriver = "com.mysql.jdbc.Driver";
@@ -33,6 +33,7 @@ public class AnalyzingPRs {
 
     AnalyzingPRs() {
         IO_Process io = new IO_Process();
+        String current_dir = System.getProperty("user.dir");
         try {
             String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
             working_dir = paramList[0];
@@ -52,7 +53,7 @@ public class AnalyzingPRs {
     public static void main(String[] args) {
         IO_Process io = new IO_Process();
         AnalyzingPRs analyzingPRs = new AnalyzingPRs();
-
+        String current_dir = System.getProperty("user.dir");
         String selectSQL = " SELECT repoURL FROM fork.repository";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(selectSQL)) {
@@ -88,30 +89,30 @@ public class AnalyzingPRs {
                 long end = System.nanoTime();
                 System.out.println("get repo ID :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
 
-                System.out.println("inserting pr..");
-                start = System.nanoTime();
-                analyzingPRs.insertPR(repoURL, repoID);
-                end = System.nanoTime();
-                System.out.println("inserting prs of a repo :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+//                System.out.println("inserting pr..");
+//                start = System.nanoTime();
+//                analyzingPRs.insertPR(repoURL, repoID);
+//                end = System.nanoTime();
+//                System.out.println("inserting prs of a repo :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+////
+//                System.out.println("inserting fork from pr..");
+//                start = System.nanoTime();
+//                analyzingPRs.insertForkasPRauthor(repoURL, repoID);
+//                end = System.nanoTime();
+//                System.out.println("inserting forks based on pr author :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
 
-                System.out.println("inserting fork from pr..");
-                start = System.nanoTime();
-                analyzingPRs.insertForkasPRauthor(repoURL, repoID);
-                end = System.nanoTime();
-                System.out.println("inserting forks based on pr author :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-
-                System.out.println("inserting commit in pr..");
-                start = System.nanoTime();
-                analyzingPRs.insertCommitInPR(repoURL, repoID);
-                end = System.nanoTime();
-                System.out.println("inserting commits for all prs :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-
-                System.out.println("inserting pr_commit mapping..");
-                start = System.nanoTime();
-                analyzingPRs.insertPR_Commit_mapping(repoURL, repoID);
-                end = System.nanoTime();
-                System.out.println("inserting pr_commits mapping for all :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-
+//                System.out.println("inserting commit in pr..");
+//                start = System.nanoTime();
+//                analyzingPRs.insertCommitInPR(repoURL, repoID);
+//                end = System.nanoTime();
+//                System.out.println("inserting commits for all prs :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+//
+//                System.out.println("inserting pr_commit mapping..");
+//                start = System.nanoTime();
+//                analyzingPRs.insertPR_Commit_mapping(repoURL, repoID);
+//                end = System.nanoTime();
+//                System.out.println("inserting pr_commits mapping for all :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+//
 
                 System.out.println("analyze changed file in commit ..");
                 start = System.nanoTime();
@@ -169,7 +170,7 @@ public class AnalyzingPRs {
                     json_string = json_string.split("----")[1];
                     JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
 
-                    String forkURL = getForkURL(pr_info);
+                    String forkURL = io.getForkURL(pr_info);
 
                     int forkID = io.getRepoId(forkURL);
                     if (forkID == -1) {
@@ -222,6 +223,173 @@ public class AnalyzingPRs {
         IO_Process io = new IO_Process();
         LocalDateTime now = LocalDateTime.now();
 
+        String insert_changedFile_query = " INSERT INTO fork.tmp_marlin_commit_changedFiles (" +
+                "added_files_list  , added_files_num  , modify_files_list, modify_files_num , renamed_files_list ,renamed_files_num ,copied_files_list ," +
+                " copied_files_num, deleted_files_list , deleted_files_num , " +
+                "add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commitSHA_id,readme_loc )" +
+                "  SELECT *" +
+                "  FROM (SELECT" +
+                "          ? AS a1,? AS a2,? AS a3,? AS a4,?  AS a17,? AS a5,? AS a6," +
+                "? AS a7,? AS a8,? AS a9,? AS a10,? AS a11,? AS a12,? AS a13,? AS a14,? AS a15,? AS a16 ) AS tmp" +
+                "  WHERE NOT EXISTS(" +
+                "      SELECT *" +
+                "      FROM fork.commit_changedFiles AS cc" +
+                "      WHERE cc.commitsha_id = ?" +
+                "      AND cc.index_changedFile = ?" +
+                "  )" +
+                "  LIMIT 1";
+
+        try (
+                Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                PreparedStatement preparedStmt = conn.prepareStatement(insert_changedFile_query);
+        ) {
+            conn.setAutoCommit(false);
+            String pr_json_string = io.readResult(pr_dir + repoUrl + "/pr.txt");
+            if (pr_json_string.contains("----")) {
+                pr_json = pr_json_string.split("\n");
+                int count = 0;
+
+
+                for (int s = pr_json.length - 1; s >= 0; s--) {
+                    System.out.println("start to analyzing " + s + "pr..");
+                    String json_string = pr_json[s];
+                    String pr_id = json_string.split("----")[0];
+                    json_string = json_string.split("----")[1];
+                    JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
+
+                    String forkURL = io.getForkURL(pr_info);
+                    if (!forkURL.equals("")) {
+                        System.out.println("from fork:" + forkURL);
+                        int forkID = io.getRepoId(forkURL);
+                        if (forkID == -1) {
+                            System.out.println("id = -1!!! fork: " + forkURL);
+                        }
+
+                        /** put commit into commit_TABLE**/
+                        HashSet<String> commitSet = new HashSet<>();
+                        String[] commitArray = (io.removeBrackets(pr_info.get("commit_list").toString().replaceAll("\"", ""))).split(",");
+                        for (String commit : commitArray) {
+                            if (!commit.equals("")) {
+                                commitSet.add(commit);
+                            }
+                        }
+                        HashSet<String> commit_fileSet = new HashSet<>();
+                        long start = System.nanoTime();
+                        for (String sha : commitSet) {
+                            System.out.println(sha + "," + forkURL + "," + pr_id);
+                            long start_getcommit = System.nanoTime();
+                            ArrayList<String> changedfiles = io.getCommitFromCMD(sha, forkURL, repoUrl);
+                            if (changedfiles == null) {
+                                System.out.println("commit does not exist in local git history");
+                                io.writeTofile(sha + "," + forkURL + "," + pr_id + "\n", output_dir + "lostCommit.txt");
+                                continue;
+                            } else if (changedfiles.size() == 1) {
+                                if (changedfiles.get(0).trim().equals("")) {
+                                    System.out.println("no commit in pr");
+                                    io.writeTofile(sha + "," + forkURL + "," + pr_id + "\n", output_dir + "noCommit.txt");
+
+                                } else {
+                                    System.out.println("git commit result is empty, but should not");
+                                    io.writeTofile(sha + "," + forkURL + "," + pr_id + "\n", output_dir + "EmptyResult_Commit.txt");
+
+                                }
+                                continue;
+
+                            }
+
+                            long end_getcommit = System.nanoTime();
+                            System.out.println("get a  commit changed file from cmd:" + TimeUnit.NANOSECONDS.toMillis(end_getcommit - start_getcommit) + " ms");
+                            int index_d = 0;
+                            for (String file : changedfiles) {
+                                index_d++;
+                                String[] arr = file.split("\t");
+                                int addLine = Integer.parseInt(arr[0]);
+                                int deleteLine = Integer.parseInt(arr[1]);
+                                String fileName = arr[2];
+                                String changeType = arr[3];
+
+                                HashSet<String> addFileSet = new HashSet();
+                                HashSet<String> deleteFileSet = new HashSet();
+                                HashSet<String> renameFileSet = new HashSet();
+                                HashSet<String> modifyFileSet = new HashSet();
+                                HashSet<String> copyFileSet = new HashSet();
+                                int readmeAdded = 0;
+                                int addFile_linesAdded = 0;
+                                int modifyFile_linesAdded = 0;
+                                commit_fileSet.add(fileName);
+                                if (fileName.toLowerCase().contains("readme")) {
+                                    readmeAdded += addLine;
+                                }
+
+                                if (changeType.equals("A")) {
+                                    addFileSet.add(fileName);
+                                    addFile_linesAdded = addLine;
+                                } else if (changeType.equals("C")) {
+                                    copyFileSet.add(fileName);
+                                } else if (changeType.equals("D")) {
+                                    deleteFileSet.add(fileName);
+                                } else if (changeType.equals("M")) {
+                                    modifyFile_linesAdded = addLine;
+                                    modifyFileSet.add(fileName);
+                                } else if (changeType.equals("R")) {
+                                    renameFileSet.add(fileName);
+                                }
+
+                                /**   upsdate commit information into table**/
+
+                                int commitshaID = io.getcommitID(sha);
+
+                                preparedStmt.setString(1, addFileSet.toString());
+                                preparedStmt.setInt(2, addFileSet.size());
+                                preparedStmt.setString(3, modifyFileSet.toString());
+                                preparedStmt.setInt(4, modifyFileSet.size());
+                                preparedStmt.setString(5, renameFileSet.toString());
+                                preparedStmt.setInt(6, renameFileSet.size());
+                                preparedStmt.setString(7, copyFileSet.toString());
+                                preparedStmt.setInt(8, copyFileSet.size());
+                                preparedStmt.setString(9, deleteFileSet.toString());
+                                preparedStmt.setInt(10, deleteFileSet.size());
+                                preparedStmt.setInt(11, addFile_linesAdded);
+                                preparedStmt.setInt(12, modifyFile_linesAdded);
+                                preparedStmt.setInt(13, deleteLine);
+                                preparedStmt.setString(14, String.valueOf(now));
+                                preparedStmt.setInt(15, index_d);
+                                preparedStmt.setInt(16, commitshaID);
+                                preparedStmt.setInt(17, readmeAdded);
+                                preparedStmt.setInt(18, commitshaID);
+                                preparedStmt.setInt(19, index_d);
+                                preparedStmt.addBatch();
+
+                                if (++count % batchSize == 0) {
+                                    io.executeQuery(preparedStmt);
+                                    conn.commit();
+
+                                }
+                            }
+                        }
+                        long end = System.nanoTime();
+                        System.out.println("generating insert querys for a commit  :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+                    }
+                }
+                io.executeQuery(preparedStmt);
+                conn.commit();
+                preparedStmt.close();
+                conn.close();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void analyzeChangedFile_old(String repoUrl, int projectID) {
+        String[] pr_json;
+        IO_Process io = new IO_Process();
+        LocalDateTime now = LocalDateTime.now();
+
         //clone upstream
         JgitUtility jg = new JgitUtility();
         ArrayList<String> upstream_branchList = jg.cloneRepo(repoUrl);
@@ -259,7 +427,7 @@ public class AnalyzingPRs {
                     json_string = json_string.split("----")[1];
                     JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
 
-                    String forkURL = getForkURL(pr_info);
+                    String forkURL = io.getForkURL(pr_info);
 
                     if (!forkURL.equals("")) {
                         System.out.println(forkURL);
@@ -445,7 +613,7 @@ public class AnalyzingPRs {
                     json_string = json_string.split("----")[1];
                     JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
 
-                    String forkURL = getForkURL(pr_info);
+                    String forkURL = io.getForkURL(pr_info);
 
                     /** put commit into commit_TABLE**/
                     HashSet<String> commitSet = new HashSet<>();
@@ -531,7 +699,7 @@ public class AnalyzingPRs {
                     String closed_at = pr_info.get("closed_at").toString();
                     String closed = pr_info.get("closed").toString();
                     String merged = pr_info.get("merged").toString();
-                    String forkURL = getForkURL(pr_info);
+                    String forkURL = io.getForkURL(pr_info);
 
                     int forkID = io.getRepoId(forkURL);
                     preparedStmt.setInt(1, projectID);
@@ -595,7 +763,7 @@ public class AnalyzingPRs {
                     JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
 
                     String author = pr_info.get("author").toString();
-                    String forkURL = getForkURL(pr_info);
+                    String forkURL = io.getForkURL(pr_info);
                     if (!forkURL.equals("")) {
 
                         preparedStmt.setString(1, forkURL);
@@ -655,13 +823,4 @@ public class AnalyzingPRs {
     }
 
 
-    public String getForkURL(JSONObject pr_info) {
-        String forkURL = pr_info.get("forkURL").toString();
-        if (forkURL.contains(":")) {
-            String[] arr = forkURL.split("/");
-            String[] loginID = arr[0].split(":");
-            forkURL = loginID[0] + "/" + arr[1];
-        }
-        return forkURL;
-    }
 }

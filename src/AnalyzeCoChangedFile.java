@@ -24,19 +24,31 @@ import java.util.concurrent.TimeUnit;
  * Created by shuruiz on 2/27/18.
  */
 public class AnalyzeCoChangedFile {
-    static String tmpDirPath,pathname, historyDirPath,resultDirPath,current_dir,output_dir;
+//    static String tmpDirPath,pathname, historyDirPath,resultDirPath,current_dir,output_dir;
+
+    static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath, resultDirPath;
+
     static HashSet<String> stopFileSet = new HashSet<>();
-    static String current_OS = System.getProperty("os.name").toLowerCase();
-    static String myUrl,user,pwd;
+
+    static String myUrl, user, pwd;
     final int batchSize = 100;
 
     //    static String analyzingRepoOrFork = "repo";
     static String analyzingRepoOrFork = "fork";
+
     public AnalyzeCoChangedFile() {
         IO_Process io = new IO_Process();
+        String current_dir = System.getProperty("user.dir");
         try {
             String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
-            output_dir = paramList[0];
+            working_dir = paramList[0];
+            pr_dir = working_dir + "queryGithub/";
+            output_dir = working_dir + "ForkData/";
+            clone_dir = output_dir + "clones/";
+            historyDirPath = output_dir + "commitHistory/";
+            resultDirPath = output_dir + "result/";
+
+
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
@@ -79,16 +91,13 @@ public class AnalyzeCoChangedFile {
 
     static public void main(String[] args) {
         AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
-        tmpDirPath = output_dir + "/cloneRepos/";
-        historyDirPath = output_dir + "/commitHistory/";
-        resultDirPath = output_dir + "/result/";
+
         IO_Process io = new IO_Process();
         String[] repoList = {};
-        current_dir = System.getProperty("user.dir");
         io.rewriteFile("", resultDirPath + "File_history.csv");
 
         /** get repo list **/
-
+        String current_dir = System.getProperty("user.dir");
         try {
             repoList = io.readResult(current_dir + "/input/repoList.txt").split("\n");
 
@@ -126,18 +135,18 @@ public class AnalyzeCoChangedFile {
                 for (int i = 1; i < forkListInfo.length; i++) {
                     String forkINFO = forkListInfo[i];
                     String forkurl = forkINFO.split(",")[0];
-                    pathname = tmpDirPath + forkurl + "/";
+                    String repoCloneDir = clone_dir + forkurl + "/";
 
                     /** clone fork **/
                     ArrayList<String> branchList = jg.cloneRepo(forkurl);
-                    File branchListFile = new File(pathname + forkurl.split("/")[0] + "_branchList.txt");
+                    File branchListFile = new File(repoCloneDir + forkurl.split("/")[0] + "_branchList.txt");
                     if (!branchListFile.exists()) {
                         System.out.println("fork is not available");
                         continue;
                     }
                     if (branchList.size() == 0) {
                         try {
-                            branchList.addAll(Arrays.asList(io.readResult(pathname + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
+                            branchList.addAll(Arrays.asList(io.readResult(clone_dir + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -151,7 +160,6 @@ public class AnalyzeCoChangedFile {
                 }
 
 
-
             }
         }
         /** remove local copy of fork**/
@@ -163,7 +171,6 @@ public class AnalyzeCoChangedFile {
     }
 
 
-
     /***
      * This function calculates modularity for each project by generating support matrix
      * @param repoUrl
@@ -172,13 +179,13 @@ public class AnalyzeCoChangedFile {
      */
     public void measureModularity(String repoUrl) throws IOException, GitAPIException {
         System.out.println("analyzing repo: " + repoUrl);
-        pathname = tmpDirPath + repoUrl + "/";
+        String repoCloneDir = clone_dir + repoUrl + "/";
 
         String filepath = historyDirPath + repoUrl + "/changedFile_history.csv";
         HashMap<HashSet<String>, Integer> result = new HashMap<>();
         IO_Process io = new IO_Process();
         io.rewriteFile("", filepath);
-        Repository repo = new FileRepository(pathname + ".git");
+        Repository repo = new FileRepository(repoCloneDir + ".git");
         io.rewriteFile("", historyDirPath + repoUrl + "/commitSize_file.csv");
 
         io.rewriteFile("", historyDirPath + repoUrl + "/SC_table.csv");
@@ -361,7 +368,7 @@ public class AnalyzeCoChangedFile {
             conn.setAutoCommit(false);
 
             /** Get contribution code : onlyF and F2U  **/
-            Repository repo = new FileRepository(pathname + ".git");
+            Repository repo = new FileRepository(clone_dir + ".git");
             Git git = new Git(repo);
             RevWalk rw = new RevWalk(repo);
 
@@ -386,7 +393,7 @@ public class AnalyzeCoChangedFile {
             preparedStmt = conn.prepareStatement(insert_changedFile_query);
 
             for (String sha : codeChangeCommits) {
-                RevCommit commit =io.getCommit(sha, repo, git, branchList);
+                RevCommit commit = io.getCommit(sha, repo, git, branchList);
 
 
                 if (commit != null && commit.getParentCount() > 0) {
@@ -510,7 +517,7 @@ public class AnalyzeCoChangedFile {
             Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
             conn.setAutoCommit(false);
 
-            Repository repo = new FileRepository(pathname + ".git");
+            Repository repo = new FileRepository(clone_dir + ".git");
             Git git = new Git(repo);
 
             /** Get contribution code : onlyF and F2U  **/
@@ -624,7 +631,7 @@ public class AnalyzeCoChangedFile {
             Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
             conn.setAutoCommit(false);
 
-            Repository repo = new FileRepository(pathname + ".git");
+            Repository repo = new FileRepository(clone_dir + ".git");
             Git git = new Git(repo);
 
             /** Get contribution code : onlyF and F2U  **/
@@ -705,7 +712,7 @@ public class AnalyzeCoChangedFile {
         for (int i = 1; i < forkListInfo.length; i++) {
             String forkINFO = forkListInfo[i];
             String forkurl = forkINFO.split(",")[0];
-            pathname = tmpDirPath + forkurl + "/";
+            String repoCloneDir = clone_dir + forkurl + "/";
             /** Get contribution code : onlyF and F2U  **/
             String[] columns = forkINFO.split(",");
             ArrayList<String> commits;
@@ -768,7 +775,6 @@ public class AnalyzeCoChangedFile {
         return commitsFromPr;
 
     }
-
 
 
     public HashSet<HashSet<String>> getAllPairs_string(HashSet<String> set) {

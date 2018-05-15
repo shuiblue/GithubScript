@@ -15,7 +15,7 @@ import java.util.*;
  * Created by Alvin Alexander, http://alvinalexander.com
  */
 public class testmysql {
-    static String dir, user, pwd, myUrl, token;
+    static String  user, pwd, myUrl, token;
     static String current_dir = System.getProperty("user.dir");
 
     public static void main(String[] args) {
@@ -31,7 +31,6 @@ public class testmysql {
             IO_Process io = new IO_Process();
             try {
                 String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
-                dir = paramList[0];
                 myUrl = paramList[1];
                 user = paramList[2];
                 pwd = paramList[3];

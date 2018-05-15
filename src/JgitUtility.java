@@ -23,26 +23,24 @@ public class JgitUtility {
     static String github_url = "https://github.com/";
     static String token;
     static String localDirPath;
-    static String current_dir;
-    static String clone_dir;
-
-
-    static String output_dir;
-    static String current_OS = System.getProperty("os.name").toLowerCase();
+    static String working_dir, pr_dir, output_dir, clone_dir;
 
     public JgitUtility() {
-
+        String current_dir = System.getProperty("user.dir");
         IO_Process io = new IO_Process();
         try {
             String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
-            output_dir = paramList[0];
+            working_dir = paramList[0];
+            pr_dir = working_dir + "queryGithub/";
+            output_dir = working_dir + "ForkData/";
+            clone_dir = output_dir + "clones/";
             token = io.readResult(current_dir + "/input/token.txt").trim();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        clone_dir = output_dir + "/clones/";
-        localDirPath = output_dir + "/cloneRepos/";
+        clone_dir = output_dir + "clones/";
+        localDirPath = output_dir + "cloneRepos/";
         current_dir = System.getProperty("user.dir");
         try {
             token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
@@ -123,11 +121,16 @@ public class JgitUtility {
         String cloneCMD = "git clone " + github_url + projectURL + ".git";
         io.exeCmd(cloneCMD.split(" "), clone_dir + projectName + "/");
 
+        HashSet<String> clonedFork = new HashSet<>();
         for (String forkUrl : forkList) {
-            String forkName = forkUrl.split("/")[0];
-            String cloneForkCmd = "git remote add " + forkName + " " + github_url + forkUrl + ".git";
-            System.out.println("clone " + forkUrl + "under " + clone_dir + projectURL + "/");
-            io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
+            forkUrl = io.getForkURL(forkUrl);
+            if (!clonedFork.contains(forkUrl)) {
+                clonedFork.add(forkUrl);
+                System.out.println(forkUrl);
+                String forkName = io.getForkURL(forkUrl.split("/")[0]);
+                String cloneForkCmd = "git remote add " + forkName + " " + github_url + forkUrl + ".git";
+                io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
+            }
         }
 
         String fetchAll = "git fetch --all";
@@ -137,11 +140,9 @@ public class JgitUtility {
 
     public static void main(String[] args) {
         IO_Process io = new IO_Process();
-        output_dir = io.getOutputDir(args[0]);
 
         ArrayList<String> projectList = io.getProjectURL();
         for (String projectUrl : projectList) {
-//        String projectUrl = "Smoothieware/Smoothieware";
             ArrayList<String> forkList = io.getForkListFromRepoTable(projectUrl);
             JgitUtility jg = new JgitUtility();
             jg.cloneRepo_cmd(forkList, projectUrl);
