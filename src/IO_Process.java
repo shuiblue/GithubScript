@@ -29,27 +29,24 @@ import java.util.stream.Stream;
  */
 public class IO_Process {
     static String current_OS = System.getProperty("os.name").toLowerCase();
-    String dir = "", token;
-    String myUrl, user = "shuruiz";
+    String token;
+    String dir, user, pwd, myUrl;
     static String github_api_repo = "https://api.github.com/repos/";
     String current_dir = System.getProperty("user.dir");
 
     public IO_Process() {
 
-        if (current_OS.indexOf("mac") >= 0) {
-            dir = "/Users/shuruiz/Box Sync/queryGithub/";
-            myUrl = "jdbc:mysql://localhost:3307/fork";
-
-        } else {
-            dir = "/usr0/home/shuruiz/queryGithub/";
-            myUrl = "jdbc:mysql://localhost:3306/fork";
-        }
-
         try {
+            String[] paramList = readResult(current_dir + "/input/dir-param.txt").split("\n");
+            dir = paramList[0];
+            myUrl = paramList[1];
+            user = paramList[2];
+            pwd = paramList[3];
             token = readResult(current_dir + "/input/token.txt").trim();
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
 
@@ -183,7 +180,7 @@ public class IO_Process {
             String line = null;
             try {
                 while ((line = reader.readLine()) != null) {
-                    builder.append("aa: "+line);
+                    builder.append("aa: " + line);
                     System.out.println(line);
                     builder.append(System.getProperty("line.separator"));
                 }
@@ -467,4 +464,33 @@ public class IO_Process {
         return null;
     }
 
+    public String getOutputDir(String machineName) {
+        String output_dir;
+        if (machineName.equals("local")) {
+            System.out.println("local machine");
+            output_dir = "/Users/shuruiz/Work/ForkData";
+        } else if (machineName.equals("featureServer")) {
+            System.out.println("feature server");
+            output_dir = "/usr0/home/shuruiz/ForkData";
+        } else {
+            System.out.println("feature 6 or other");
+            output_dir = "/home/feature/shuruiz/ForkData";
+        }
+        return output_dir;
+    }
+
+    public String getDBurl(String machineName) {
+        String db_url;
+        if (machineName.equals("local")) {
+            System.out.println("local machine");
+            db_url = "jdbc:mysql://localhost:3307/fork";
+        } else {
+            System.out.println("feature server");
+            db_url = "jdbc:mysql://localhost:3306/fork";
+        }
+        return db_url;
+    }
 }
+
+
+

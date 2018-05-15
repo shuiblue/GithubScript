@@ -12,10 +12,8 @@ public class AnalyzeIssueResult {
     static String pathname, historyDirPath;
     static HashSet<String> stopFileSet = new HashSet<>();
     static String output_dir;
-    static String myUrl;
-    static String user;
+    static String myUrl, user, pwd;
     static String current_OS = System.getProperty("os.name").toLowerCase();
-
 
 
     static public void main(String[] args) {
@@ -23,24 +21,21 @@ public class AnalyzeIssueResult {
         AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
 
         current_dir = System.getProperty("user.dir");
+        IO_Process io = new IO_Process();
+        try {
+            String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
+            output_dir = paramList[0];
+            myUrl = paramList[1];
+            user = paramList[2];
+            pwd = paramList[3];
 
-        user = "shuruiz";
-        if (current_OS.indexOf("mac") >= 0) {
-            output_dir = "/Users/shuruiz/Box Sync/queryGithub/";
-            myUrl = "jdbc:mysql://localhost:3307/fork";
-
-        } else {
-//            output_dir = "/home/feature/shuruiz/ForkData";
-            output_dir = "/usr0/home/shuruiz/queryGithub/";
-            myUrl = "jdbc:mysql://localhost:3306/fork";
-
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
 
         tmpDirPath = output_dir + "/cloneRepos/";
         historyDirPath = output_dir + "/commitHistory/";
         resultDirPath = output_dir + "/result/";
-        IO_Process io = new IO_Process();
         String[] repoList = {};
         io.rewriteFile("", resultDirPath + "File_history.csv");
 
@@ -56,7 +51,7 @@ public class AnalyzeIssueResult {
         for (String repo : repoList) {
             String myDriver = "com.mysql.jdbc.Driver";
             try {
-                Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+                Connection conn = DriverManager.getConnection(myUrl, user, pwd);
                 conn.setAutoCommit(false);
                 int RepoID = io.getRepoId(repo);
 

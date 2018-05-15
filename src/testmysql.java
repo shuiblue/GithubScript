@@ -15,6 +15,8 @@ import java.util.*;
  * Created by Alvin Alexander, http://alvinalexander.com
  */
 public class testmysql {
+    static String dir, user, pwd, myUrl, token;
+    static String current_dir = System.getProperty("user.dir");
 
     public static void main(String[] args) {
         AnalyzingPRs analyzingPRs = new AnalyzingPRs();
@@ -22,26 +24,28 @@ public class testmysql {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
         String current_OS = System.getProperty("os.name").toLowerCase();
-        String myUrl, user;
         try {
             String myDriver = "com.mysql.jdbc.Driver";
 
-            if (current_OS.indexOf("mac") >= 0) {
-                myUrl = "jdbc:mysql://localhost:3307/fork";
-                user = "shuruiz";
-            } else {
-//            output_dir = "/home/feature/shuruiz/ForkData";
-                myUrl = "jdbc:mysql://localhost:3306/fork";
-                user = "shuruiz";
+
+            IO_Process io = new IO_Process();
+            try {
+                String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
+                dir = paramList[0];
+                myUrl = paramList[1];
+                user = paramList[2];
+                pwd = paramList[3];
+                token = io.readResult(current_dir + "/input/token.txt").trim();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
 
-            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            Connection conn = DriverManager.getConnection(myUrl, user, pwd);
             PreparedStatement preparedStmt = null;
 
             // create a mysql database connection
             Class.forName(myDriver);
-            IO_Process io = new IO_Process();
 
 
             /**  insert duplicate pr info  **/

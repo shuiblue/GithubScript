@@ -27,22 +27,22 @@ public class AnalyzeCoChangedFile {
     static String tmpDirPath,pathname, historyDirPath,resultDirPath,current_dir,output_dir;
     static HashSet<String> stopFileSet = new HashSet<>();
     static String current_OS = System.getProperty("os.name").toLowerCase();
-    static String myUrl,user;
+    static String myUrl,user,pwd;
     final int batchSize = 100;
 
     //    static String analyzingRepoOrFork = "repo";
     static String analyzingRepoOrFork = "fork";
     public AnalyzeCoChangedFile() {
-        user = "shuruiz";
-        if (current_OS.indexOf("mac") >= 0) {
-            output_dir = "/Users/shuruiz/Box Sync/ForkData";
-            myUrl = "jdbc:mysql://localhost:3307/fork";
+        IO_Process io = new IO_Process();
+        try {
+            String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
+            output_dir = paramList[0];
+            myUrl = paramList[1];
+            user = paramList[2];
+            pwd = paramList[3];
 
-        } else {
-//            output_dir = "/home/feature/shuruiz/ForkData";
-            output_dir = "/usr0/home/shuruiz/ForkData";
-            myUrl = "jdbc:mysql://localhost:3306/fork";
-
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         if (analyzingRepoOrFork.equals("repo")) {

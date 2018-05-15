@@ -32,13 +32,15 @@ public class JgitUtility {
 
     public JgitUtility() {
 
-        if (current_OS.indexOf("mac") >= 0) {
-            output_dir = "/Users/shuruiz/Work/ForkData";
-        } else {
-            //feature 6
-            output_dir = "/home/feature/shuruiz/ForkData";
-//        feature server    output_dir = "/usr0/home/shuruiz/ForkData";
+        IO_Process io = new IO_Process();
+        try {
+            String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
+            output_dir = paramList[0];
+            token = io.readResult(current_dir + "/input/token.txt").trim();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
         clone_dir = output_dir + "/clones/";
         localDirPath = output_dir + "/cloneRepos/";
         current_dir = System.getProperty("user.dir");
@@ -134,12 +136,14 @@ public class JgitUtility {
     }
 
     public static void main(String[] args) {
-        JgitUtility jg = new JgitUtility();
         IO_Process io = new IO_Process();
+        output_dir = io.getOutputDir(args[0]);
+
         ArrayList<String> projectList = io.getProjectURL();
         for (String projectUrl : projectList) {
 //        String projectUrl = "Smoothieware/Smoothieware";
             ArrayList<String> forkList = io.getForkListFromRepoTable(projectUrl);
+            JgitUtility jg = new JgitUtility();
             jg.cloneRepo_cmd(forkList, projectUrl);
         }
 

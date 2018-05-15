@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -7,11 +8,9 @@ public class findHardFork {
 
     static ArrayList<String> stopRepoList = new ArrayList<>();
     static ArrayList<String> stopForkName = new ArrayList<>();
-
+    static String myUrl, user,pwd;
     findHardFork() {
         stopForkName.add("io.js");
-
-
         stopRepoList.add("docker");
         stopRepoList.add("node-v0.x-archive");
         stopRepoList.add("hubpress.io");
@@ -33,26 +32,28 @@ public class findHardFork {
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
-        String current_OS = System.getProperty("os.name").toLowerCase();
-        String myUrl, user;
+
 
         String myDriver = "com.mysql.jdbc.Driver";
 
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
-        if (current_OS.indexOf("mac") >= 0) {
-            myUrl = "jdbc:mysql://localhost:3307/fork";
-            user = "shuruiz";
-        } else {
-//            output_dir = "/home/feature/shuruiz/ForkData";
-            myUrl = "jdbc:mysql://localhost:3306/fork";
-            user = "shuruiz";
+        try {
+             String current_dir = System.getProperty("user.dir");
+            String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
+            myUrl = paramList[1];
+            user = paramList[2];
+            pwd = paramList[3];
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
 
 
         Connection conn = null;
         try {
-            conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+            conn = DriverManager.getConnection(myUrl, user, pwd);
             PreparedStatement preparedStmt = null;
 
             // create a mysql database connection
