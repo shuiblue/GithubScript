@@ -157,6 +157,7 @@ public class JgitUtility {
             if (forkList.size() > 0) {
                 jg.cloneRepo_cmd(forkList, projectUrl);
             }
+            io.writeTofile(projectUrl+"\n",output_dir+"finish_clone.txt");
         }
 
 
