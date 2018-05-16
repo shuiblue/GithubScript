@@ -140,8 +140,15 @@ public class JgitUtility {
 
     public static void main(String[] args) {
         IO_Process io = new IO_Process();
+//        ArrayList<String> projectList = io.getProjectURL();
+        String current_dir = System.getProperty("user.dir");
+        String[] projectList = {};
+        try {
+            projectList = io.readResult(current_dir + "/input/cloneRepoList.txt").split("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        ArrayList<String> projectList = io.getProjectURL();
         for (String projectUrl : projectList) {
             ArrayList<String> forkList = io.getForkListFromRepoTable(projectUrl);
             JgitUtility jg = new JgitUtility();
