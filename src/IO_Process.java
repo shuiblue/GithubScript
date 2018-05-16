@@ -622,10 +622,11 @@ public class IO_Process {
                 String[] pr_json = pr_json_string.split("\n");
                 for (int s = pr_json.length - 1; s >= 0; s--) {
                     String json_string = pr_json[s];
-                    String[] arr = json_string.split("----");
+                    String[] arr = json_string.split("----\\[");
                     if (arr.length > 1) {
                         json_string = arr[1];
-                        JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
+                        System.out.println(arr[0]);
+                        JSONObject pr_info = new JSONObject(json_string.substring(0, json_string.lastIndexOf("]")));
                         String forkUrl = io.getForkURL(pr_info);
                         forkList.add(forkUrl);
                         if (forkUrl.equals("")) {
