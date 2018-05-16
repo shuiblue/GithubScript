@@ -125,6 +125,7 @@ public class AnalyzingPRs {
                         System.out.println("analyze changed file in commit  :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
                     }
                 }
+                io.writeTofile(projectUrl+"\n",output_dir+"/finish_PRanalysis.txt");
             }
 
         } catch (ClassNotFoundException e) {
