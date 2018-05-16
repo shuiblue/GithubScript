@@ -1,5 +1,3 @@
-import org.apache.solr.common.util.Hash;
-import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -16,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -454,7 +451,7 @@ public class AnalyzeCoChangedFile {
 
                             /**   upsdate commit information into table**/
 
-                            int commitshaID = io.getcommitID(sha);
+                            int commitshaID = io.getCommitID(sha);
 
                             preparedStmt.setString(1, addFileSet.toString());
                             preparedStmt.setInt(2, addFileSet.size());
@@ -558,7 +555,7 @@ public class AnalyzeCoChangedFile {
                         List<DiffEntry> diffs = io.getCommitDiff(commit, repo);
 
                         if (diffs.size() < 100) {
-                            int commitid = io.getcommitID(sha);
+                            int commitid = io.getCommitID(sha);
                             if (commitid == -1) {
                                 int repoID = io.getRepoId(forkurl);
                                 int projectID = io.getRepoId(repoUrl);
@@ -667,7 +664,7 @@ public class AnalyzeCoChangedFile {
                         List<DiffEntry> diffs = io.getCommitDiff(commit, repo);
 
                         if (diffs.size() < 100) {
-                            int commitid = io.getcommitID(sha);
+                            int commitid = io.getCommitID(sha);
                             if (commitid != -1) {
                                 System.out.println("updating existing commit ... ");
                                 preparedStmt_update.setInt(1, diffs.size());
