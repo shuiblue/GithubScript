@@ -632,7 +632,7 @@ public class IO_Process {
                             System.out.println("fork url is empty .");
                         }
                     }else{
-                        io.writeTofile(projectUrl + "\n", output_dir + "incomplete_pr_api.txt");
+                        io.writeTofile(projectUrl+" , "+json_string + "\n", output_dir + "incomplete_pr_api.txt");
                     }
                 }
             }
