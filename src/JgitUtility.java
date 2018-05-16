@@ -150,9 +150,13 @@ public class JgitUtility {
         }
 
         for (String projectUrl : projectList) {
-            ArrayList<String> forkList = io.getForkListFromRepoTable(projectUrl);
+            ArrayList<String> forkList = new ArrayList<>();
+            // io.getForkListFromRepoTable(projectUrl);
+            forkList.addAll(io.getForkListFromPRlist(projectUrl));
             JgitUtility jg = new JgitUtility();
-            jg.cloneRepo_cmd(forkList, projectUrl);
+            if (forkList.size() > 0) {
+                jg.cloneRepo_cmd(forkList, projectUrl);
+            }
         }
 
 

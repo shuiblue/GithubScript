@@ -605,6 +605,37 @@ public class IO_Process {
     }
 
 
+    public HashSet<String> getForkListFromPRlist(String projectUrl) {
+        String filePath = pr_dir + projectUrl + "/pr.txt";
+        HashSet<String> forkList = new HashSet<>();
+        IO_Process io = new IO_Process();
+        File prFile = new File(filePath);
+        if(prFile.exists()) {
+            String pr_json_string = null;
+            try {
+
+                pr_json_string = io.readResult(filePath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (pr_json_string.contains("----")) {
+                String[] pr_json = pr_json_string.split("\n");
+                for (int s = pr_json.length - 1; s >= 0; s--) {
+                    String json_string = pr_json[s];
+                    json_string = json_string.split("----")[1];
+                    JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
+                    String forkUrl = io.getForkURL(pr_info);
+                    forkList.add(forkUrl);
+                    if (forkUrl.equals("")) {
+                        System.out.println("fork url is empty .");
+                    }
+                }
+            }
+        }else{
+            io.writeTofile(projectUrl+"\n",output_dir+"miss_pr_api.txt");
+        }
+     return forkList;
+    }
 }
 
 
