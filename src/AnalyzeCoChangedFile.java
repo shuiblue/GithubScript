@@ -45,7 +45,6 @@ public class AnalyzeCoChangedFile {
             historyDirPath = output_dir + "commitHistory/";
             resultDirPath = output_dir + "result/";
 
-
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
@@ -55,32 +54,11 @@ public class AnalyzeCoChangedFile {
         }
 
         if (analyzingRepoOrFork.equals("repo")) {
-            stopFileSet.add("gitignore");
-            stopFileSet.add("license");
-            stopFileSet.add("/dev/null");
-            stopFileSet.add(".pdf");
-            stopFileSet.add(".mk");
-            stopFileSet.add(".xlsx");
-            stopFileSet.add(".png");
-            stopFileSet.add(".fon");
-            stopFileSet.add(".hex");
-            stopFileSet.add(".tst");
-            stopFileSet.add(".elf");
-            stopFileSet.add(".txt");
-            stopFileSet.add(".ini");
-            stopFileSet.add(".css");
-            stopFileSet.add(".html");
-            stopFileSet.add("changelog");
-            stopFileSet.add(".rst");
-            stopFileSet.add(".sch");
-            stopFileSet.add(".ino");
-            stopFileSet.add(".sh");
-            stopFileSet.add(".dll");
-            stopFileSet.add(".svn-base");
-            stopFileSet.add(".bin");
-            stopFileSet.add(".png");
-            stopFileSet.add(".xml");
-            stopFileSet.add(".DS_Store");
+            try {
+                stopFileSet.addAll(Arrays.asList(io.readResult(current_dir + "input/StopFiles.txt").split("\n")));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -109,55 +87,43 @@ public class AnalyzeCoChangedFile {
 
         JgitUtility jg = new JgitUtility();
         for (String repoUrl : repoList) {
-
-            if (analyzingRepoOrFork.equals("repo")) {
-                jg.cloneRepo(repoUrl);
-                try {
-                    acc.measureModularity(repoUrl);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (GitAPIException e) {
-                    e.printStackTrace();
-                }
-            } else if (analyzingRepoOrFork.equals("fork")) {
-                String[] forkListInfo = new String[0];
-                try {
-                    forkListInfo = io.readResult(resultDirPath + repoUrl + "/graph_result.txt").split("\n");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                HashMap<String, HashMap<String, List<String>>> forkOwnCode = getForkOwnCode(forkListInfo);
-
-                for (int i = 1; i < forkListInfo.length; i++) {
-                    String forkINFO = forkListInfo[i];
-                    String forkurl = forkINFO.split(",")[0];
-                    String repoCloneDir = clone_dir + forkurl + "/";
-
-                    /** clone fork **/
-                    ArrayList<String> branchList = jg.cloneRepo(forkurl);
-                    File branchListFile = new File(repoCloneDir + forkurl.split("/")[0] + "_branchList.txt");
-                    if (!branchListFile.exists()) {
-                        System.out.println("fork is not available");
-                        continue;
-                    }
-                    if (branchList.size() == 0) {
-                        try {
-                            branchList.addAll(Arrays.asList(io.readResult(clone_dir + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    System.out.println("insert commit...");
-                    acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
-                    System.out.println("update existing commit...");
-                    acc.updateCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
-                    System.out.println("analyzing changed files...");
-                    acc.getCodechangedLOC(repoUrl, forkOwnCode, forkurl, branchList);
-                }
-
-
+            String[] forkListInfo = new String[0];
+            try {
+                forkListInfo = io.readResult(resultDirPath + repoUrl + "/graph_result.txt").split("\n");
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+
+            HashMap<String, HashMap<String, List<String>>> forkOwnCode = getForkOwnCode(forkListInfo);
+
+            for (int i = 1; i < forkListInfo.length; i++) {
+                String forkINFO = forkListInfo[i];
+                String forkurl = forkINFO.split(",")[0];
+                String repoCloneDir = clone_dir + forkurl + "/";
+
+                /** clone fork **/
+                ArrayList<String> branchList = jg.cloneRepo(forkurl);
+                File branchListFile = new File(repoCloneDir + forkurl.split("/")[0] + "_branchList.txt");
+                if (!branchListFile.exists()) {
+                    System.out.println("fork is not available");
+                    continue;
+                }
+                if (branchList.size() == 0) {
+                    try {
+                        branchList.addAll(Arrays.asList(io.readResult(clone_dir + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                System.out.println("insert commit...");
+                acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
+                System.out.println("update existing commit...");
+                acc.updateCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
+                System.out.println("analyzing changed files...");
+                acc.getCodechangedLOC(repoUrl, forkOwnCode, forkurl, branchList);
+            }
+
+
         }
         /** remove local copy of fork**/
 //        try {
@@ -174,177 +140,6 @@ public class AnalyzeCoChangedFile {
      * @throws IOException
      * @throws GitAPIException
      */
-    public void measureModularity(String repoUrl) throws IOException, GitAPIException {
-        System.out.println("analyzing repo: " + repoUrl);
-        String repoCloneDir = clone_dir + repoUrl + "/";
-
-        String filepath = historyDirPath + repoUrl + "/changedFile_history.csv";
-        HashMap<HashSet<String>, Integer> result = new HashMap<>();
-        IO_Process io = new IO_Process();
-        io.rewriteFile("", filepath);
-        Repository repo = new FileRepository(repoCloneDir + ".git");
-        io.rewriteFile("", historyDirPath + repoUrl + "/commitSize_file.csv");
-
-        io.rewriteFile("", historyDirPath + repoUrl + "/SC_table.csv");
-
-
-        Git git = new Git(repo);
-        List<Ref> branches = git.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
-        HashSet<String> commitSET = new HashSet<>();
-        HashSet<String> fileSET = new HashSet<>();
-        ArrayList<HashSet<String>> changedFile_Set = new ArrayList<>();
-
-        /** this threshold is used for filtering out 20% large commits **/
-        int threshold = 10;
-//        if (repoUrl.equals("MarlinFirmware/Marlin")) {
-//            threshold = 36;
-//        } else if (repoUrl.equals("Smoothieware/Smoothieware")) {
-//            threshold = 14;
-//        }
-
-
-        int total = 0;
-        for (Ref branch : branches) {
-            String branchName = branch.getName();
-            Iterable<RevCommit> commits = git.log().add(repo.resolve(branchName.replace("refs/", ""))).call();
-
-
-            for (RevCommit commit : commits) {
-                if (commit.getParentCount() == 1) {
-                    total++;
-                    String sha = commit.getName();
-                    if (!commitSET.contains(sha)) {
-                        commitSET.add(sha);
-                        RevWalk rw = new RevWalk(repo);
-                        RevCommit parent = rw.parseCommit(commit.getParent(0).getId());
-                        DiffFormatter df = new DiffFormatter(DisabledOutputStream.INSTANCE);
-                        df.setRepository(repo);
-                        df.setDiffComparator(RawTextComparator.DEFAULT);
-                        df.setDetectRenames(true);
-                        List<DiffEntry> diffs = df.scan(parent.getTree(), commit.getTree());
-                        int linesAdded = 0;
-                        int linesDeleted = 0;
-                        HashSet<String> commit_fileSet = new HashSet<>();
-
-                        if (diffs.size() < threshold) {
-                            for (DiffEntry diff : diffs) {
-                                String changeType = diff.getChangeType().name();
-                                /** only analyze added and modified files, ignoring deleted, renamed files**/
-                                if (changeType.equals("ADD") || changeType.equals("MODIFY")) {
-                                    String fileName = diff.getNewPath();
-//                                    if (!isStopFile(fileName)) {
-                                    commit_fileSet.add(fileName);
-                                    for (Edit edit : df.toFileHeader(diff).toEditList()) {
-                                        linesDeleted += edit.getEndA() - edit.getBeginA();
-                                        linesAdded += edit.getEndB() - edit.getBeginB();
-                                    }
-                                    io.writeTofile(sha + "," + changeType + "," + diff.getNewPath() + "," + linesAdded + "," + linesDeleted + "\n", filepath);
-//                                    }
-                                }
-                            }
-
-                            if (commit_fileSet.size() > 0) {
-                                io.writeTofile(repoUrl + "," + sha + "," + diffs.size() + "\n", historyDirPath + repoUrl + "/commitSize_file.csv");
-
-                            }
-
-                            if (commit_fileSet.size() == 1) {
-                                fileSET.addAll(commit_fileSet);
-                                changedFile_Set.add(commit_fileSet);
-                            } else if (commit_fileSet.size() > 1) {
-
-                                fileSET.addAll(commit_fileSet);
-                                HashSet<HashSet<String>> pairs = getAllPairs_string(commit_fileSet);
-                                changedFile_Set.addAll(pairs);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        ArrayList<String> fileList = new ArrayList<>();
-        fileList.addAll(fileSET);
-//        fileList.removeAll(stopFileSet);
-
-
-        /** generating graph, node--file, edge -- co-changed relation */
-//        StringBuilder sb = new StringBuilder();
-//        sb.append("*Vertices " + fileList.size() + "\n");
-//        for (int i = 1; i <= fileList.size(); i++) {
-//            sb.append(i + " \"" + fileList.get(i - 1) + "\"\n");
-//        }
-//        sb.append("*Arcs\n");
-
-
-        /**  init support matrix **/
-        System.out.println(" init support matrix");
-        float[][] support_matrix = new float[fileList.size()][fileList.size()];
-        for (int i = 0; i < fileList.size(); i++) {
-            for (int j = 0; j < fileList.size(); j++) {
-                support_matrix[i][j] = 0;
-            }
-        }
-
-        System.out.println(" support matrix, changed file set size: " + changedFile_Set.size());
-        int index = 0;
-        for (HashSet<String> co_changedFiles : changedFile_Set) {
-            System.out.println(index++);
-            List<String> list = new ArrayList<>();
-            list.addAll(co_changedFiles);
-            String a = list.get(0);
-            int index_a = fileList.indexOf(a);
-            if (co_changedFiles.size() == 2) {
-                String b = list.get(1);
-                int index_b = fileList.indexOf(b);
-                support_matrix[index_a][index_b] += 1;
-                support_matrix[index_b][index_a] += 1;
-                support_matrix[index_a][index_a] += 1;
-                support_matrix[index_b][index_b] += 1;
-
-
-                /** generating graph, node--file, edge -- co-changed relation */
-//                sb.append((index_a + 1) + "," + (index_b + 1) + "\n");
-            } else if (co_changedFiles.size() == 1) {
-                support_matrix[index_a][index_a] += 1;
-            }
-
-
-        }
-/** generating graph, node--file, edge -- co-changed relation */
-//        /** generating graph, node--file, edge -- co-changed relation */
-//        io.rewriteFile(sb.toString(), historyDirPath + repoUrl + "/CoChangedFileGraph.pajek.net");
-
-
-        System.out.println(" confidence matrix");
-        int count_bigger_than_zero = 0;
-        for (int i = 0; i < fileList.size(); i++) {
-            float appearance = support_matrix[i][i];
-
-            support_matrix[i][i] = 1;
-            for (int j = 0; j < fileList.size(); j++) {
-                if (i != j && support_matrix[i][j] > 2) {
-                    float support = support_matrix[i][j];
-                    support_matrix[i][j] = support_matrix[i][j] / appearance;
-                    io.writeTofile(fileList.get(i) + "," + fileList.get(j) + "," + support + "," + support_matrix[i][j] + "," + appearance + "\n", historyDirPath + repoUrl + "/SC_table.csv");
-                    count_bigger_than_zero++;
-                }
-            }
-
-        }
-
-
-        int filesTotal = fileList.size();
-        System.out.println("write to file");
-        float modularity = (float) count_bigger_than_zero / (filesTotal * filesTotal - filesTotal);
-        io.writeTofile(repoUrl + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
-                + (filesTotal * filesTotal - filesTotal) + " , " + commitSET.size() + " unique commits in total, all branches has " + total + " commits\n"
-                + " , files in total: " + fileList.size() + "\n------\n", historyDirPath + "/repoModularity.csv");
-        System.out.println(repoUrl + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
-                + (filesTotal * filesTotal - filesTotal) + " , " + commitSET.size() + " unique commits in total, all branches has " + total + " commits , files in total: " + fileList.size() + "\n------\n");
-        io.writeTofile(repoUrl + "," + modularity * 100 + "\n", historyDirPath + "/" + threshold + "_repo_ECI_all_file.csv");
-
-    }
 
 
     /**

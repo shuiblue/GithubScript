@@ -276,9 +276,20 @@ public class IO_Process {
      * below function are querying data from database
      **/
 
-    public void executeQuery(PreparedStatement preparedStmt) throws SQLException {
+    public void executeQuery(PreparedStatement preparedStmt)  {
         long start = System.nanoTime();
-        int[] numUpdates = preparedStmt.executeBatch();
+        int[] numUpdates = new int[0];
+        try {
+            numUpdates = preparedStmt.executeBatch();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e1) {
+                writeTofile( e1.getMessage()+"\n",output_dir+"/Transaction_error.txt");
+            }
+            executeQuery(preparedStmt);
+        }
         for (int i = 0; i < numUpdates.length; i++) {
             if (numUpdates[i] == -2)
                 System.out.println("Execution " + i +
@@ -613,7 +624,6 @@ public class IO_Process {
         if (prFile.exists()) {
             String pr_json_string = null;
             try {
-
                 pr_json_string = io.readResult(filePath);
             } catch (IOException e) {
                 e.printStackTrace();
