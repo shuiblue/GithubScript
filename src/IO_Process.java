@@ -610,7 +610,7 @@ public class IO_Process {
         HashSet<String> forkList = new HashSet<>();
         IO_Process io = new IO_Process();
         File prFile = new File(filePath);
-        if(prFile.exists()) {
+        if (prFile.exists()) {
             String pr_json_string = null;
             try {
 
@@ -622,19 +622,24 @@ public class IO_Process {
                 String[] pr_json = pr_json_string.split("\n");
                 for (int s = pr_json.length - 1; s >= 0; s--) {
                     String json_string = pr_json[s];
-                    json_string = json_string.split("----")[1];
-                    JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
-                    String forkUrl = io.getForkURL(pr_info);
-                    forkList.add(forkUrl);
-                    if (forkUrl.equals("")) {
-                        System.out.println("fork url is empty .");
+                    String[] arr = json_string.split("----");
+                    if (arr.length > 1) {
+                        json_string = arr[1];
+                        JSONObject pr_info = new JSONObject(json_string.substring(1, json_string.lastIndexOf("]")));
+                        String forkUrl = io.getForkURL(pr_info);
+                        forkList.add(forkUrl);
+                        if (forkUrl.equals("")) {
+                            System.out.println("fork url is empty .");
+                        }
+                    }else{
+                        io.writeTofile(projectUrl + "\n", output_dir + "incomplete_pr_api.txt");
                     }
                 }
             }
-        }else{
-            io.writeTofile(projectUrl+"\n",output_dir+"miss_pr_api.txt");
+        } else {
+            io.writeTofile(projectUrl + "\n", output_dir + "miss_pr_api.txt");
         }
-     return forkList;
+        return forkList;
     }
 }
 
