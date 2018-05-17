@@ -276,19 +276,19 @@ public class IO_Process {
      * below function are querying data from database
      **/
 
-    public void executeQuery(PreparedStatement preparedStmt)  {
+    public synchronized void executeQuery(PreparedStatement preparedStmt)  {
         long start = System.nanoTime();
         int[] numUpdates = new int[0];
         try {
             numUpdates = preparedStmt.executeBatch();
         } catch (SQLException e) {
             e.printStackTrace();
-            try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e1) {
-                writeTofile( e1.getMessage()+"\n",output_dir+"/Transaction_error.txt");
-            }
-            executeQuery(preparedStmt);
+//            try {
+//                Thread.sleep(10000);
+//            } catch (InterruptedException e1) {
+//                writeTofile( e1.getMessage()+"\n",output_dir+"/Transaction_error.txt");
+//            }
+//            executeQuery(preparedStmt);
         }
         for (int i = 0; i < numUpdates.length; i++) {
             if (numUpdates[i] == -2)

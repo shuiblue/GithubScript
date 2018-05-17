@@ -2,6 +2,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -113,6 +114,7 @@ public class AnalyzingPRs {
                                 System.out.println("inserting commit in pr.... from fork " + forkUrl);
                                 start = System.nanoTime();
                                 analyzingPRs.insertCommitInPR(forkID, projectID, commitSet, now);
+//                                analyzingPRs.tmp_insertCommitInPR(forkID, projectID, commitSet, now);
                                 end = System.nanoTime();
                                 System.out.println("inserting commits for all prs :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
 
@@ -123,6 +125,7 @@ public class AnalyzingPRs {
                                 System.out.println("inserting pr_commit mapping... from fork " + forkUrl);
                                 start = System.nanoTime();
                                 analyzingPRs.insertPR_Commit_mapping(projectID, pr_id, forkID, commitSet, sha_commitID_map);
+//                                analyzingPRs.tmp_insertPR_Commit_mapping(projectID, pr_id, forkID, commitSet, sha_commitID_map);
                                 end = System.nanoTime();
                                 System.out.println("inserting pr_commits mapping for all :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
 
@@ -188,6 +191,69 @@ public class AnalyzingPRs {
             io.executeQuery(preparedStmt);
             conn.commit();
 
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        long end_commit = System.nanoTime();
+        System.out.println("insert commits from ONE PR :" + TimeUnit.NANOSECONDS.toMillis(end_commit - start_commit) + " ms");
+    }
+
+    public static UUID asUuid(byte[] bytes) {
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        long firstLong = bb.getLong();
+        long secondLong = bb.getLong();
+        return new UUID(firstLong, secondLong);
+    }
+
+    public static byte[] asBytes(UUID uuid) {
+        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
+        bb.putLong(uuid.getMostSignificantBits());
+        bb.putLong(uuid.getLeastSignificantBits());
+        return bb.array();
+    }
+
+
+    public void tmp_insertCommitInPR(int forkID, int projectID, HashSet<String> commitSet, LocalDateTime now) {
+        IO_Process io = new IO_Process();
+
+        String update_commit_query = " INSERT INTO fork.tmp_commit (commitSHA, repoID, data_update_at, belongToRepoID,uuid)" +
+                "  SELECT *" +
+                "  FROM (SELECT" +
+                "          ? AS a,? AS b, ? AS c, ? AS d, UNHEX(?) as uid) AS tmp" +
+                "  WHERE NOT EXISTS(" +
+                "      SELECT commitSHA" +
+                "      FROM fork.commit AS cc" +
+                "      WHERE cc.commitSHA = ?" +
+                "  )" +
+                "  LIMIT 1";
+        long start_commit = System.nanoTime();
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(update_commit_query)) {
+            conn.setAutoCommit(false);
+            /** put commit into commit_TABLE**/
+            int count = 0;
+            while (count<2) {
+                String uuid = RandomUtil.unique();
+                for (String commit : commitSet) {
+//                    UUID uuid = UUID.fromString(commit);
+                    preparedStmt.setString(1, commit);
+                    preparedStmt.setInt(2, forkID);
+                    preparedStmt.setString(3, String.valueOf(now));
+                    preparedStmt.setInt(4, projectID);
+                    preparedStmt.setString(5, commit);
+                    preparedStmt.setBytes(6, uuid.getBytes());
+                    preparedStmt.addBatch();
+
+                    if (++count % batchSize == 0) {
+                        io.executeQuery(preparedStmt);
+                        conn.commit();
+                    }
+
+                }
+                io.executeQuery(preparedStmt);
+                conn.commit();
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -384,6 +450,54 @@ public class AnalyzingPRs {
             }
             io.executeQuery(preparedStmt);
             conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void tmp_insertPR_Commit_mapping(int projectID, int pr_id, int fork_id, HashSet<String> commitSet, HashMap<String, Integer> sha_commitID_map) {
+        IO_Process io = new IO_Process();
+        String insert_commit_query = " INSERT INTO fork.tmp_pr_commit (commitsha_id,repoID,pull_request_id)" +
+                "  SELECT *" +
+                "  FROM (SELECT" +
+                "          ? AS a,? AS b, ? AS c ) AS tmp" +
+                "  WHERE NOT EXISTS(" +
+                "      SELECT *" +
+                "      FROM fork.pr_commit AS cc" +
+                "      WHERE cc.commitsha_id = ?" +
+                "      AND cc.repoID = ?" +
+                "      AND cc.pull_request_id = ?" +
+                "  )" +
+                "  LIMIT 1";
+        try (
+                Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                PreparedStatement preparedStmt = conn.prepareStatement(insert_commit_query);
+        ) {
+            conn.setAutoCommit(false);
+            /** put commit into commit_TABLE**/
+            int count = 0;
+            while (count<2) {
+                for (String sha : commitSet) {
+                    int commitID = sha_commitID_map.get(sha);
+
+                    preparedStmt.setInt(1, commitID);
+                    preparedStmt.setInt(2, fork_id);
+                    preparedStmt.setInt(3, pr_id);
+                    preparedStmt.setInt(4, commitID);
+                    preparedStmt.setInt(5, fork_id);
+                    preparedStmt.setInt(6, pr_id);
+                    preparedStmt.addBatch();
+                    System.out.println(" commit " + sha + " pr" + pr_id);
+
+                    if (++count % batchSize == 0) {
+                        io.executeQuery(preparedStmt);
+                        conn.commit();
+                    }
+                }
+                io.executeQuery(preparedStmt);
+                conn.commit();
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
