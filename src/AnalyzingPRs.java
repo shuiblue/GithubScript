@@ -1,5 +1,6 @@
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -56,82 +57,88 @@ public class AnalyzingPRs {
                 long end = System.nanoTime();
                 System.out.println("get repo ID :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
 
+                String filePath = pr_dir + projectUrl + "/pr.txt";
+                HashSet<String> forkList = new HashSet<>();
+                File prFile = new File(filePath);
+                if (prFile.exists()) {
+                    String pr_json_string = io.readResult(filePath);
+                    if (pr_json_string.contains("----")) {
+                        String[] pr_json = pr_json_string.split("\n");
+                        for (int s = pr_json.length - 1; s >= 0; s--) {
+                            String json_string = pr_json[s];
+                            String[] arr = json_string.split("----\\[");
+                            if (arr.length > 1) {
+                                int pr_id = Integer.parseInt(arr[0].trim());
+                                json_string = arr[1];
+                                System.out.println(pr_id);
 
-                String pr_json_string = io.readResult(pr_dir + projectUrl + "/pr.txt");
-                if (pr_json_string.contains("----")) {
-                    String[] pr_json = pr_json_string.split("\n");
-                    for (int s = pr_json.length - 1; s >= 0; s--) {
-                        String json_string = pr_json[s];
-                        String[] arr = json_string.split("----\\[");
-                        if (arr.length > 1) {
-                            int pr_id = Integer.parseInt(arr[0].trim());
-                            json_string = arr[1];
-                            System.out.println(pr_id);
+                                JSONObject pr_info = new JSONObject(json_string.substring(0, json_string.lastIndexOf("]")));
+                                String forkUrl = io.getForkURL(pr_info);
 
-                            JSONObject pr_info = new JSONObject(json_string.substring(0, json_string.lastIndexOf("]")));
-                            String forkUrl = io.getForkURL(pr_info);
-
-                            int forkID = -1;
-                            if (!forkUrl.equals("")) {
-                                forkID = io.getRepoId(forkUrl);
-                                if (forkID == -1) {
-                                    io.insertNewRepo(projectID, forkUrl);
+                                int forkID = -1;
+                                if (!forkUrl.equals("")) {
+                                    forkID = io.getRepoId(forkUrl);
+                                    if (forkID == -1) {
+                                        io.insertNewRepo(projectID, forkUrl);
+                                    }
+                                } else {
+                                    System.out.println("fork url is empty .");
                                 }
-                            } else {
-                                System.out.println("fork url is empty .");
-                            }
 
 
-                            String author = pr_info.get("author").toString();
-                            HashSet<String> commitSet = new HashSet<>();
-                            String[] commitArray = (io.removeBrackets(pr_info.get("commit_list").toString().replaceAll("\"", ""))).split(",");
-                            for (String commit : commitArray) {
-                                if (!commit.equals("")) {
-                                    commitSet.add(commit);
+                                String author = pr_info.get("author").toString();
+                                HashSet<String> commitSet = new HashSet<>();
+                                String[] commitArray = (io.removeBrackets(pr_info.get("commit_list").toString().replaceAll("\"", ""))).split(",");
+                                for (String commit : commitArray) {
+                                    if (!commit.equals("")) {
+                                        commitSet.add(commit);
+                                    }
                                 }
-                            }
 
 
-                            System.out.println("inserting pr..");
-                            start = System.nanoTime();
-                            analyzingPRs.insertPR(projectID, pr_id, pr_info, forkID, now);
-                            end = System.nanoTime();
-                            System.out.println("inserting prs of a repo :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-//
-                            if (!forkUrl.equals("")) {
-                                System.out.println("inserting fork from pr..");
+                                System.out.println("inserting pr..");
                                 start = System.nanoTime();
-                                analyzingPRs.insertForkasPRauthor(projectID, author, forkUrl, now);
+                                analyzingPRs.insertPR(projectID, pr_id, pr_info, forkID, now);
                                 end = System.nanoTime();
-                                System.out.println("inserting forks based on pr author :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+                                System.out.println("inserting prs of a repo :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+//
+                                if (!forkUrl.equals("")) {
+                                    System.out.println("inserting fork from pr..");
+                                    start = System.nanoTime();
+                                    analyzingPRs.insertForkasPRauthor(projectID, author, forkUrl, now);
+                                    end = System.nanoTime();
+                                    System.out.println("inserting forks based on pr author :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+                                }
+
+                                System.out.println("inserting commit in pr.... from fork " + forkUrl);
+                                start = System.nanoTime();
+                                analyzingPRs.insertCommitInPR(forkID, projectID, commitSet, now);
+                                end = System.nanoTime();
+                                System.out.println("inserting commits for all prs :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+
+                                /**get CommitIdMap **/
+                                HashMap<String, Integer> sha_commitID_map = io.getCommitIdMap(commitSet);
+
+
+                                System.out.println("inserting pr_commit mapping... from fork " + forkUrl);
+                                start = System.nanoTime();
+                                analyzingPRs.insertPR_Commit_mapping(projectID, pr_id, forkID, commitSet, sha_commitID_map);
+                                end = System.nanoTime();
+                                System.out.println("inserting pr_commits mapping for all :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+
+                                System.out.println("analyze changed file in commit .. from fork " + forkUrl);
+                                start = System.nanoTime();
+                                analyzingPRs.analyzeChangedFile(projectUrl, pr_id, forkUrl, commitSet, sha_commitID_map);
+                                end = System.nanoTime();
+
+                                System.out.println("analyze changed file in commit  :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
                             }
-
-                            System.out.println("inserting commit in pr.... from fork " + forkUrl);
-                            start = System.nanoTime();
-                            analyzingPRs.insertCommitInPR(forkID, projectID, commitSet, now);
-                            end = System.nanoTime();
-                            System.out.println("inserting commits for all prs :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-
-                            /**get CommitIdMap **/
-                            HashMap<String, Integer> sha_commitID_map = io.getCommitIdMap(commitSet);
-
-
-                            System.out.println("inserting pr_commit mapping... from fork " + forkUrl);
-                            start = System.nanoTime();
-                            analyzingPRs.insertPR_Commit_mapping(projectID, pr_id, forkID, commitSet, sha_commitID_map);
-                            end = System.nanoTime();
-                            System.out.println("inserting pr_commits mapping for all :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-
-                            System.out.println("analyze changed file in commit .. from fork " + forkUrl);
-                            start = System.nanoTime();
-                            analyzingPRs.analyzeChangedFile(projectUrl, pr_id, forkUrl, commitSet, sha_commitID_map);
-                            end = System.nanoTime();
-
-                            System.out.println("analyze changed file in commit  :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
                         }
                     }
+                    io.writeTofile(projectUrl + "\n", output_dir + "/finish_PRanalysis.txt");
+                } else {
+                    io.writeTofile(projectUrl + "\n", output_dir + "miss_pr_api.txt");
                 }
-                io.writeTofile(projectUrl + "\n", output_dir + "/finish_PRanalysis.txt");
             }
 
         } catch (ClassNotFoundException e) {
@@ -141,6 +148,7 @@ public class AnalyzingPRs {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
 
