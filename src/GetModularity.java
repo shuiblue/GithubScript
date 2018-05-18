@@ -39,7 +39,7 @@ public class GetModularity {
             user = paramList[2];
             pwd = paramList[3];
 
-            stopFileSet.addAll(Arrays.asList(io.readResult(current_dir + "input/StopFiles.txt").split("\n")));
+            stopFileSet.addAll(Arrays.asList(io.readResult(current_dir + "/input/StopFiles.txt").split("\n")));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -84,13 +84,13 @@ public class GetModularity {
 
     /***
      * This function calculates modularity for each project by generating support matrix
-     * @param repoUrl
+     * @param projectURL
      * @throws IOException
      * @throws GitAPIException
      */
-    public void measureModularity(String repoUrl, int threshold, boolean filterOutStopFile) {
-        String repoCloneDir = clone_dir + repoUrl + "/";
-        String filepath = historyDirPath + repoUrl + "/changedFile_history.csv";
+    public void measureModularity(String projectURL, int threshold, boolean filterOutStopFile) {
+        String repoCloneDir = clone_dir + projectURL + "/";
+        String filepath = historyDirPath + projectURL + "/changedFile_history.csv";
 
         IO_Process io = new IO_Process();
         io.rewriteFile("", filepath);
@@ -100,8 +100,18 @@ public class GetModularity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        io.rewriteFile("", historyDirPath + repoUrl + "/commitSize_file.csv");
-        io.rewriteFile("", historyDirPath + repoUrl + "/SC_table.csv");
+        io.rewriteFile("", historyDirPath + projectURL + "/commitSize_file.csv");
+        io.rewriteFile("", historyDirPath + projectURL + "/SC_table.csv");
+
+
+        String cmd_getOringinBranch = "git branch -a --list origin*";
+        String[] branchList_array = io.exeCmd(cmd_getOringinBranch.split(" "), clone_dir + projectURL + "/").split("\n");
+       ArrayList<String> branchList = new ArrayList<>();
+       for(String br:branchList_array){
+           if(!br.contains("HEAD")){
+               branchList.add(br.trim());
+           }
+       }
 
 
         Git git = new Git(repo);
@@ -116,6 +126,7 @@ public class GetModularity {
         ArrayList<HashSet<String>> changedFile_Set = new ArrayList<>();
         int total = 0;
         //todo git log -1 9b63430f349f7083d09d2db24d24908e1d277379 --pretty="%ai" get author date
+        //todo git branch -a --list origin* ,ignnore  remotes/origin/HEAD
         for (Ref branch : branches) {
             String branchName = branch.getName();
             Iterable<RevCommit> commits = null;
@@ -157,7 +168,7 @@ public class GetModularity {
                                 }
 
                                 if (commit_fileSet.size() > 0) {
-                                    io.writeTofile(repoUrl + "," + sha + "," + diffs.size() + "\n", historyDirPath + repoUrl + "/commitSize_file.csv");
+                                    io.writeTofile(projectURL + "," + sha + "," + diffs.size() + "\n", historyDirPath + projectURL + "/commitSize_file.csv");
 
                                 }
 
@@ -231,7 +242,7 @@ public class GetModularity {
         }
 /** generating graph, node--file, edge -- co-changed relation */
 //        /** generating graph, node--file, edge -- co-changed relation */
-//        io.rewriteFile(sb.toString(), historyDirPath + repoUrl + "/CoChangedFileGraph.pajek.net");
+//        io.rewriteFile(sb.toString(), historyDirPath + projectURL + "/CoChangedFileGraph.pajek.net");
 
 
         System.out.println(" confidence matrix");
@@ -244,7 +255,7 @@ public class GetModularity {
                 if (i != j && support_matrix[i][j] > 2) {
                     float support = support_matrix[i][j];
                     support_matrix[i][j] = support_matrix[i][j] / appearance;
-                    io.writeTofile(fileList.get(i) + "," + fileList.get(j) + "," + support + "," + support_matrix[i][j] + "," + appearance + "\n", historyDirPath + repoUrl + "/SC_table.csv");
+                    io.writeTofile(fileList.get(i) + "," + fileList.get(j) + "," + support + "," + support_matrix[i][j] + "," + appearance + "\n", historyDirPath + projectURL + "/SC_table.csv");
                     count_bigger_than_zero++;
                 }
             }
@@ -255,12 +266,12 @@ public class GetModularity {
         int filesTotal = fileList.size();
         System.out.println("write to file");
         float modularity = (float) count_bigger_than_zero / (filesTotal * filesTotal - filesTotal);
-        io.writeTofile(repoUrl + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
+        io.writeTofile(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
                 + (filesTotal * filesTotal - filesTotal) + " , " + commitSET.size() + " unique commits in total, all branches has " + total + " commits\n"
                 + " , files in total: " + fileList.size() + "\n------\n", historyDirPath + "/repoModularity.csv");
-        System.out.println(repoUrl + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
+        System.out.println(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
                 + (filesTotal * filesTotal - filesTotal) + " , " + commitSET.size() + " unique commits in total, all branches has " + total + " commits , files in total: " + fileList.size() + "\n------\n");
-        io.writeTofile(repoUrl + "," + modularity * 100 + "\n", historyDirPath + "/" + threshold + "_repo_ECI_all_file.csv");
+        io.writeTofile(projectURL + "," + modularity * 100 + "\n", historyDirPath + "/" + threshold + "_repo_ECI_all_file.csv");
 
     }
 
