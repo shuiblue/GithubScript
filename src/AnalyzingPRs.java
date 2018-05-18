@@ -294,7 +294,7 @@ public class AnalyzingPRs {
             for (String sha : commitSet) {
                 System.out.println(sha + "," + forkURL + "," + pr_id);
                 long start_getcommit = System.nanoTime();
-                ArrayList<String> changedfiles = io.getCommitFromCMD(sha, forkURL, projectURL);
+                ArrayList<String> changedfiles = io.getCodeChangeInfo_ofCommit_FromCMD(sha, projectURL);
                 if (changedfiles == null) {
                     System.out.println("commit does not exist in local git history");
                     io.writeTofile(sha + "," + forkURL + "," + pr_id + "\n", output_dir + "lostCommit.txt");
@@ -314,8 +314,8 @@ public class AnalyzingPRs {
                 for (String file : changedfiles) {
                     index_d++;
                     String[] arr = file.split("\t");
-                    int addLine = 0, deleteLine = 0;
-                    String fileName = "", changeType = "";
+                    int addLine, deleteLine ;
+                    String fileName, changeType;
                     String addedFile = "";
                     String deletedFile = "";
                     String renamedFile = "";

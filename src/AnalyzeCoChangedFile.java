@@ -569,27 +569,6 @@ public class AnalyzeCoChangedFile {
     }
 
 
-    public HashSet<HashSet<String>> getAllPairs_string(HashSet<String> set) {
-        HashSet<HashSet<String>> allPairs_string = new HashSet<>();
-        List<String> list = new ArrayList<>(set);
-        String first = list.remove(0);
-        for (String node : list) {
-            HashSet<String> currentPair = new HashSet<>();
-            currentPair.add(first);
-            currentPair.add(node);
-            allPairs_string.add(currentPair);
-        }
-        if (set.size() > 2) {
-            set.remove(first);
-            allPairs_string.addAll(getAllPairs_string(set));
-        } else {
-            allPairs_string.add(set);
-        }
-
-        return allPairs_string;
-    }
-
-
     private boolean isStopFile(String fileName) {
 
         for (String file : stopFileSet) {

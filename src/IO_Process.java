@@ -17,6 +17,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.text.Normalizer;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -200,6 +203,7 @@ public class IO_Process {
     }
 
 
+
     /**
      * process text
      **/
@@ -212,6 +216,27 @@ public class IO_Process {
     public String removeBrackets(String str) {
         return str.replace("\n", "").replace("[", "").replace("]", "");
     }
+
+    public HashSet<HashSet<String>> getAllPairs_string(HashSet<String> set) {
+        HashSet<HashSet<String>> allPairs_string = new HashSet<>();
+        List<String> list = new ArrayList<>(set);
+        String first = list.remove(0);
+        for (String node : list) {
+            HashSet<String> currentPair = new HashSet<>();
+            currentPair.add(first);
+            currentPair.add(node);
+            allPairs_string.add(currentPair);
+        }
+        if (set.size() > 2) {
+            set.remove(first);
+            allPairs_string.addAll(getAllPairs_string(set));
+        } else {
+            allPairs_string.add(set);
+        }
+
+        return allPairs_string;
+    }
+
 
 
     /***  Below function are interacting with command line***/
@@ -246,25 +271,21 @@ public class IO_Process {
         return result.replace("\"", "");
     }
 
-    public ArrayList<String> getCommitFromCMD(String sha, String forkURL, String repoUrl) {
+    public ArrayList<String> getCodeChangeInfo_ofCommit_FromCMD(String sha, String repoUrl) {
         String[] cmd_getline = {"/bin/sh",
                 "-c",
                 "git log -1 --numstat " + sha + " | egrep ^[[:digit:]]+ | egrep -v ^[\\d]+[[:space:]]+[\\d]+[[:space:]]+"};
 
         String[] changedfiles = exeCmd(cmd_getline, clone_dir + repoUrl).split("\n");
 
-        String[] cmd_getStatus = {"/bin/sh",
-                "-c", "git log -1 --name-status " + sha + " --pretty=\"\""};
-
-        String[] status = exeCmd(cmd_getStatus, clone_dir + repoUrl).split("\n");
-
-        if (status[0].contains("fatal: bad object")) {
+        ArrayList<String> status = getChangedFileStatus_ofCommit_FromCMD(sha,repoUrl);
+        if (status.get(0).contains("fatal: bad object")) {
             return null;
         }
         ArrayList<String> changedFileResult = new ArrayList<>();
         for (int i = 0; i < changedfiles.length; i++) {
             String file = changedfiles[i];
-            file += "\t" + status[i].split("\t")[0];
+            file += "\t" + status.get(i).split("\t")[0];
             changedFileResult.add(file);
         }
 
@@ -272,11 +293,37 @@ public class IO_Process {
     }
 
 
+    public ArrayList<String> getChangedFileStatus_ofCommit_FromCMD(String sha, String projectURL) {
+        //git show --pretty="" --name-only b5677907d064d2ebe6c99f3dece1de5390c029cc
+
+        String[] cmd_getline = {"/bin/sh",
+                "-c",
+                "git show --pretty=\"\" --name-status  " + sha };
+
+        String[] changedfiles = exeCmd(cmd_getline, clone_dir + projectURL).split("\n");
+
+        ArrayList<String> changedFileResult = new ArrayList<>();
+        for (int i = 0; i < changedfiles.length; i++) {
+            String file = changedfiles[i];
+            changedFileResult.add(file);
+        }
+
+        return changedFileResult;
+    }
+
+    public List<String> getCommitInBranch(String br, String after_Date, String project_cloneDir) {
+        //todo git log -1 9b63430f349f7083d09d2db24d24908e1d277379 --pretty="%H" get author date
+        String cmd_getCommit = "git log " + br + " --after=\"" + after_Date + "\" --pretty=\"%H\"";
+        String commit_list = exeCmd(cmd_getCommit.split(" "), project_cloneDir);
+        return Arrays.asList(commit_list.split("\n"));
+    }
+
+
     /**
      * below function are querying data from database
      **/
 
-    public synchronized void executeQuery(PreparedStatement preparedStmt)  {
+    public synchronized void executeQuery(PreparedStatement preparedStmt) {
         long start = System.nanoTime();
         int[] numUpdates = new int[0];
         try {
@@ -612,7 +659,6 @@ public class IO_Process {
 
     static public void main(String[] args) {
         IO_Process io = new IO_Process();
-        io.getCommitFromCMD("a5fa586642253ea4c8ae20bb0703d3df3266df06", "", "MarlinFirmware/Marlin/");
     }
 
 
@@ -642,8 +688,8 @@ public class IO_Process {
                         if (forkUrl.equals("")) {
                             System.out.println("fork url is empty .");
                         }
-                    }else{
-                        io.writeTofile(projectUrl+" , "+json_string + "\n", output_dir + "incomplete_pr_api.txt");
+                    } else {
+                        io.writeTofile(projectUrl + " , " + json_string + "\n", output_dir + "incomplete_pr_api.txt");
                     }
                 }
             }
@@ -652,7 +698,10 @@ public class IO_Process {
         }
         return forkList;
     }
+
+
 }
+
 
 
 

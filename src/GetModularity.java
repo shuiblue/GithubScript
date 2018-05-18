@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -70,14 +72,31 @@ public class GetModularity {
 
         /** todo: this threshold is used for filtering out 20% large commits **/
         boolean[] filterOutStopFile = {true, false};
+
         for (boolean b : filterOutStopFile) {
             int threshold = 10;
             while (threshold < 100) {
-                for (String repoUrl : repoList) {
-                    System.out.println("analyzing repo: " + repoUrl + ", threshold is " + threshold);
-                    getModularity.measureModularity(repoUrl, threshold, b);
+                for (String projectURL : repoList) {
+                    String cmd_getFirstCommit = "git rev-list --max-parents=0 HEAD --pretty=\"%ar\"";
+                    String projectCloneDir = clone_dir + projectURL + "/";
+                    String[] commitArray = io.exeCmd(cmd_getFirstCommit.split(" "), projectCloneDir).split("\n");
+
+                    int firstCommitCreatedAt = 0;
+                    for (String line : commitArray) {
+                        if (line.contains("years ago")) {
+                            System.out.println(line);
+                            int currentResult = Integer.parseInt(line.replace(" years ago", ""));
+                            firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
+                        }
+                    }
+
+                    System.out.println("firstCommitCreatedAt = " + firstCommitCreatedAt);
+                    for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
+                        System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold+"，within "+firstCommitCreatedAt+" years");
+                        getModularity.measureModularity(projectURL, threshold, b, year);
+                    }
+                    threshold += 5;
                 }
-                threshold += 5;
             }
         }
     }
@@ -88,113 +107,74 @@ public class GetModularity {
      * @throws IOException
      * @throws GitAPIException
      */
-    public void measureModularity(String projectURL, int threshold, boolean filterOutStopFile) {
-        String repoCloneDir = clone_dir + projectURL + "/";
+    public void measureModularity(String projectURL, int threshold, boolean filterOutStopFile, int within_year) {
+        String after_Date = ZonedDateTime.now(ZoneOffset.UTC).minusYears(within_year).toInstant().toString();
+        String project_cloneDir = clone_dir + projectURL + "/";
         String filepath = historyDirPath + projectURL + "/changedFile_history.csv";
+        String fileScope = "allfile";
+        if (filterOutStopFile) {
+            fileScope = "noStopFile";
+        }
+
+        String outputFileName = projectURL.replace("/","~") + "_" + threshold + "_" + within_year + "_year_" + fileScope + "_";
 
         IO_Process io = new IO_Process();
         io.rewriteFile("", filepath);
-        Repository repo = null;
-        try {
-            repo = new FileRepository(repoCloneDir + ".git");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        io.rewriteFile("", historyDirPath + projectURL + "/commitSize_file.csv");
-        io.rewriteFile("", historyDirPath + projectURL + "/SC_table.csv");
 
-
+        /**  get all the branches **/
         String cmd_getOringinBranch = "git branch -a --list origin*";
-        String[] branchList_array = io.exeCmd(cmd_getOringinBranch.split(" "), clone_dir + projectURL + "/").split("\n");
-       ArrayList<String> branchList = new ArrayList<>();
-       for(String br:branchList_array){
-           if(!br.contains("HEAD")){
-               branchList.add(br.trim());
-           }
-       }
-
-
-        Git git = new Git(repo);
-        List<Ref> branches = null;
-        try {
-            branches = git.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
-        } catch (GitAPIException e) {
-            e.printStackTrace();
-        }
-        HashSet<String> commitSET = new HashSet<>();
-        HashSet<String> fileSET = new HashSet<>();
-        ArrayList<HashSet<String>> changedFile_Set = new ArrayList<>();
-        int total = 0;
-        //todo git log -1 9b63430f349f7083d09d2db24d24908e1d277379 --pretty="%ai" get author date
-        //todo git branch -a --list origin* ,ignnore  remotes/origin/HEAD
-        for (Ref branch : branches) {
-            String branchName = branch.getName();
-            Iterable<RevCommit> commits = null;
-            try {
-                commits = git.log().add(repo.resolve(branchName.replace("refs/", ""))).call();
-
-                for (RevCommit commit : commits) {
-                    if (commit.getParentCount() == 1) {
-                        total++;
-                        String sha = commit.getName();
-                        if (!commitSET.contains(sha)) {
-                            commitSET.add(sha);
-                            RevWalk rw = new RevWalk(repo);
-                            RevCommit parent = rw.parseCommit(commit.getParent(0).getId());
-                            DiffFormatter df = new DiffFormatter(DisabledOutputStream.INSTANCE);
-                            df.setRepository(repo);
-                            df.setDiffComparator(RawTextComparator.DEFAULT);
-                            df.setDetectRenames(true);
-                            List<DiffEntry> diffs = df.scan(parent.getTree(), commit.getTree());
-                            int linesAdded = 0;
-                            int linesDeleted = 0;
-                            HashSet<String> commit_fileSet = new HashSet<>();
-
-                            if (diffs.size() < threshold) {
-                                for (DiffEntry diff : diffs) {
-                                    String changeType = diff.getChangeType().name();
-                                    /** only analyze added and modified files, ignoring deleted, renamed files**/
-                                    if (changeType.equals("ADD") || changeType.equals("MODIFY")) {
-                                        String fileName = diff.getNewPath();
-                                        if (!isStopFile(fileName)) {
-                                            commit_fileSet.add(fileName);
-                                            for (Edit edit : df.toFileHeader(diff).toEditList()) {
-                                                linesDeleted += edit.getEndA() - edit.getBeginA();
-                                                linesAdded += edit.getEndB() - edit.getBeginB();
-                                            }
-                                            io.writeTofile(sha + "," + changeType + "," + diff.getNewPath() + "," + linesAdded + "," + linesDeleted + "\n", filepath);
-                                        }
-                                    }
-                                }
-
-                                if (commit_fileSet.size() > 0) {
-                                    io.writeTofile(projectURL + "," + sha + "," + diffs.size() + "\n", historyDirPath + projectURL + "/commitSize_file.csv");
-
-                                }
-
-                                if (commit_fileSet.size() == 1) {
-                                    fileSET.addAll(commit_fileSet);
-                                    changedFile_Set.add(commit_fileSet);
-                                } else if (commit_fileSet.size() > 1) {
-
-                                    fileSET.addAll(commit_fileSet);
-                                    HashSet<HashSet<String>> pairs = getAllPairs_string(commit_fileSet);
-                                    changedFile_Set.addAll(pairs);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (GitAPIException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+        String[] branchList_array = io.exeCmd(cmd_getOringinBranch.split(" "), project_cloneDir).split("\n");
+        ArrayList<String> branchList = new ArrayList<>();
+        for (String br : branchList_array) {
+            if (!br.contains("HEAD")) {
+                branchList.add(br.trim());
             }
         }
 
+        /** get commit from all branches **/
+        HashSet<String> commitSET = new HashSet<>();
+        for (String br : branchList) {
+            commitSET.addAll(io.getCommitInBranch(br, after_Date, project_cloneDir));
+        }
+
+        /** analyze commit in each branch **/
+        HashSet<String> allFileSet = new HashSet<>();
+        ArrayList<HashSet<String>> changedFilePair_Set = new ArrayList<>();
+
+        for (String sha : commitSET) {
+            ArrayList<String> changedFiles = io.getChangedFileStatus_ofCommit_FromCMD(sha, projectURL);
+            HashSet<String> commit_fileSet = new HashSet<>();
+            if (changedFiles.size() <= threshold) {
+                for (String file : changedFiles) {
+                    if (!file.equals("")) {
+                        String[] arr = file.split("\t");
+                        String status = arr[0];
+                        String fileName = arr[1];
+                        if (status.equals("A") || status.equals("M")) {
+                            if ((filterOutStopFile && !isStopFile(fileName)) || !filterOutStopFile) {
+                                commit_fileSet.add(fileName);
+                            }
+                            allFileSet.addAll(commit_fileSet);
+                        }
+                    }
+                }
+
+                if (commit_fileSet.size() == 1) {
+                    changedFilePair_Set.add(commit_fileSet);
+                } else if (commit_fileSet.size() > 1) {
+                    HashSet<HashSet<String>> pairs = io.getAllPairs_string(commit_fileSet);
+                    changedFilePair_Set.addAll(pairs);
+                }
+            }
+
+        }
+
+
         ArrayList<String> fileList = new ArrayList<>();
-        fileList.addAll(fileSET);
-//        fileList.removeAll(stopFileSet);
+        fileList.addAll(allFileSet);
+        if (filterOutStopFile) {
+            fileList.removeAll(stopFileSet);
+        }
 
 
         /** generating graph, node--file, edge -- co-changed relation */
@@ -215,10 +195,10 @@ public class GetModularity {
             }
         }
 
-        System.out.println(" support matrix, changed file set size: " + changedFile_Set.size());
+        System.out.println(" support matrix, changed file set size: " + changedFilePair_Set.size());
         int index = 0;
-        for (HashSet<String> co_changedFiles : changedFile_Set) {
-            System.out.println(index++);
+        for (HashSet<String> co_changedFiles : changedFilePair_Set) {
+//            System.out.println(index++);
             List<String> list = new ArrayList<>();
             list.addAll(co_changedFiles);
             String a = list.get(0);
@@ -266,38 +246,22 @@ public class GetModularity {
         int filesTotal = fileList.size();
         System.out.println("write to file");
         float modularity = (float) count_bigger_than_zero / (filesTotal * filesTotal - filesTotal);
-        io.writeTofile(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
-                + (filesTotal * filesTotal - filesTotal) + " , " + commitSET.size() + " unique commits in total, all branches has " + total + " commits\n"
-                + " , files in total: " + fileList.size() + "\n------\n", historyDirPath + "/repoModularity.csv");
+
+        int total_commit = commitSET.size();
+//        System.out.println("write to file:" + historyDirPath + outputFileName + "_Modularity.csv");
+//        io.writeTofile(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
+//                + (filesTotal * filesTotal - filesTotal) + " , " + total + " unique commits in total, all branches has " + total + " commits\n"
+//                + " , files in total: " + fileList.size() + "\n------\n", historyDirPath + outputFileName + "_Modularity.txt");
         System.out.println(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
-                + (filesTotal * filesTotal - filesTotal) + " , " + commitSET.size() + " unique commits in total, all branches has " + total + " commits , files in total: " + fileList.size() + "\n------\n");
-        io.writeTofile(projectURL + "," + modularity * 100 + "\n", historyDirPath + "/" + threshold + "_repo_ECI_all_file.csv");
+                + (filesTotal * filesTotal - filesTotal) + " , " + total_commit + " unique commits in total, all branches has " + total_commit + " commits , files in total: " + fileList.size() + "\n------\n");
+        io.writeTofile(projectURL + "," + modularity * 100 + "," + total_commit + "," + filesTotal + "\n", historyDirPath + outputFileName + ".txt");
 
-    }
+        System.out.println("write to file:" + historyDirPath + outputFileName + ".txt");
 
-    public HashSet<HashSet<String>> getAllPairs_string(HashSet<String> set) {
-        HashSet<HashSet<String>> allPairs_string = new HashSet<>();
-        List<String> list = new ArrayList<>(set);
-        String first = list.remove(0);
-        for (String node : list) {
-            HashSet<String> currentPair = new HashSet<>();
-            currentPair.add(first);
-            currentPair.add(node);
-            allPairs_string.add(currentPair);
-        }
-        if (set.size() > 2) {
-            set.remove(first);
-            allPairs_string.addAll(getAllPairs_string(set));
-        } else {
-            allPairs_string.add(set);
-        }
-
-        return allPairs_string;
     }
 
 
     private boolean isStopFile(String fileName) {
-
         for (String file : stopFileSet) {
             if (fileName.toLowerCase().contains(file)) {
                 return true;
