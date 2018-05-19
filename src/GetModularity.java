@@ -97,8 +97,8 @@ public class GetModularity {
                         if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
 
                         System.out.println("firstCommitCreatedAt = " + firstCommitCreatedAt);
-                        for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
-                            System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + firstCommitCreatedAt + " years");
+                        for (int year = 1; year <= firstCommitCreatedAt ; year++) {
+                            System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
                             getModularity.measureModularity(projectURL, threshold, b, year);
                         }
                         threshold += 5;
@@ -245,7 +245,7 @@ public class GetModularity {
                 if (i != j && support_matrix[i][j] > 2) {
                     float support = support_matrix[i][j];
                     support_matrix[i][j] = support_matrix[i][j] / appearance;
-                    io.writeTofile(fileList.get(i) + "," + fileList.get(j) + "," + support + "," + support_matrix[i][j] + "," + appearance + "\n", historyDirPath + projectURL + "/SC_table.csv");
+//                    io.writeTofile(fileList.get(i) + "," + fileList.get(j) + "," + support + "," + support_matrix[i][j] + "," + appearance + "\n", historyDirPath + projectURL + "/SC_table.csv");
                     count_bigger_than_zero++;
                 }
             }
