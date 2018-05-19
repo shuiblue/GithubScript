@@ -75,29 +75,33 @@ public class GetModularity {
             File clone = new File(clone_dir + projectURL);
             if (!clone.exists()) {
                 io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
-                System.out.println(projectURL+" clone does not exist !");
+                System.out.println(projectURL + " clone does not exist !");
                 continue;
             } else {
-                System.out.println(projectURL+" clone exist, start to calculate modularity...");
+                String cmd_getFirstCommit = "git rev-list --max-parents=0 HEAD --pretty=\"%ar\"";
+                String projectCloneDir = clone_dir + projectURL + "/";
+                String[] commitArray = io.exeCmd(cmd_getFirstCommit.split(" "), projectCloneDir).split("\n");
+                System.out.println(commitArray.length + " commits");
+
+                int firstCommitCreatedAt = 0;
+                for (String line : commitArray) {
+                    if (line.contains("years ago")) {
+                        System.out.println(line);
+                        int currentResult = Integer.parseInt(line.replace(" years ago", ""));
+                        firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
+                    }
+                }
+                System.out.println("pre firstCommitCreatedAt = " + firstCommitCreatedAt);
+
+                if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
+
+                System.out.println("after firstCommitCreatedAt = " + firstCommitCreatedAt);
+
+                System.out.println(projectURL + " clone exist, start to calculate modularity...");
                 for (boolean b : filterOutStopFile) {
                     int threshold = 10;
                     while (threshold < 100) {
-                        String cmd_getFirstCommit = "git rev-list --max-parents=0 HEAD --pretty=\"%ar\"";
-                        String projectCloneDir = clone_dir + projectURL + "/";
-                        String[] commitArray = io.exeCmd(cmd_getFirstCommit.split(" "), projectCloneDir).split("\n");
-
-                        int firstCommitCreatedAt = 0;
-                        for (String line : commitArray) {
-                            if (line.contains("years ago")) {
-                                System.out.println(line);
-                                int currentResult = Integer.parseInt(line.replace(" years ago", ""));
-                                firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
-                            }
-                        }
-                        if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
-
-                        System.out.println("firstCommitCreatedAt = " + firstCommitCreatedAt);
-                        for (int year = 1; year <= firstCommitCreatedAt ; year++) {
+                        for (int year = 1; year <= firstCommitCreatedAt; year++) {
                             System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
                             getModularity.measureModularity(projectURL, threshold, b, year);
                         }
