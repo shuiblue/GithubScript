@@ -152,6 +152,7 @@ public class JgitUtility {
         for (String projectUrl : projectList) {
             ArrayList<String> forkList = new ArrayList<>();
             // io.getForkListFromRepoTable(projectUrl);
+            System.out.println(projectUrl);
             forkList.addAll(io.getForkListFromPRlist(projectUrl));
             JgitUtility jg = new JgitUtility();
             if (forkList.size() > 0) {
