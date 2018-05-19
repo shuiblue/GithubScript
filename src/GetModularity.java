@@ -117,6 +117,11 @@ public class GetModularity {
         }
 
         String outputFileName = projectURL.replace("/","~") + "_" + threshold + "_" + within_year + "_year_" + fileScope + "_";
+        File output = new File(outputFileName);
+        if(output.exists()){
+            System.out.println("result exist: "outputFileName);
+            return;
+        }
 
         IO_Process io = new IO_Process();
         io.rewriteFile("", filepath);
