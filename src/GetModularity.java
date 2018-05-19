@@ -110,21 +110,20 @@ public class GetModularity {
     public void measureModularity(String projectURL, int threshold, boolean filterOutStopFile, int within_year) {
         String after_Date = ZonedDateTime.now(ZoneOffset.UTC).minusYears(within_year).toInstant().toString();
         String project_cloneDir = clone_dir + projectURL + "/";
-        String filepath = historyDirPath + projectURL + "/changedFile_history.csv";
         String fileScope = "allfile";
         if (filterOutStopFile) {
             fileScope = "noStopFile";
         }
 
         String outputFileName = projectURL.replace("/","~") + "_" + threshold + "_" + within_year + "_year_" + fileScope + "_";
-        File output = new File(outputFileName);
+        String outputPath = historyDirPath + outputFileName + ".txt";
+        File output = new File(outputPath);
         if(output.exists()){
             System.out.println("result exist: "+outputFileName);
             return;
         }
 
         IO_Process io = new IO_Process();
-        io.rewriteFile("", filepath);
 
         /**  get all the branches **/
         String cmd_getOringinBranch = "git branch -a --list origin*";
@@ -259,9 +258,10 @@ public class GetModularity {
 //                + " , files in total: " + fileList.size() + "\n------\n", historyDirPath + outputFileName + "_Modularity.txt");
         System.out.println(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
                 + (filesTotal * filesTotal - filesTotal) + " , " + total_commit + " unique commits in total, all branches has " + total_commit + " commits , files in total: " + fileList.size() + "\n------\n");
-        io.writeTofile(projectURL + "," + modularity * 100 + "," + total_commit + "," + filesTotal + "\n", historyDirPath + outputFileName + ".txt");
 
-        System.out.println("write to file:" + historyDirPath + outputFileName + ".txt");
+        io.writeTofile(projectURL + "," + modularity * 100 + "," + total_commit + "," + filesTotal + "\n", outputPath);
+
+        System.out.println("write to file:" + outputPath);
 
     }
 
