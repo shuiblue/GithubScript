@@ -694,6 +694,7 @@ public class IO_Process {
                 }
             }
         } else {
+            System.out.println("pr list does not exist.");
             io.writeTofile(projectUrl + "\n", output_dir + "miss_pr_api.txt");
         }
         return forkList;
