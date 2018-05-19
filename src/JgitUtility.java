@@ -155,6 +155,7 @@ public class JgitUtility {
             System.out.println(projectUrl);
             forkList.addAll(io.getForkListFromPRlist(projectUrl));
             JgitUtility jg = new JgitUtility();
+            System.out.println(forkList.size()+ "forks on clone list...");
             if (forkList.size() > 0) {
                 jg.cloneRepo_cmd(forkList, projectUrl);
                 io.writeTofile(projectUrl+"\n",output_dir+"finish_clone.txt");

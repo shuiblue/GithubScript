@@ -14,4 +14,8 @@ public class RandomUtil {
 
         return Long.toHexString(MSB | ng.nextLong()) + Long.toHexString(MSB | ng.nextLong());
     }
+
+
+
+
 }

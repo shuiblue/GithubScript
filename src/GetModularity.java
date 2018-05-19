@@ -65,10 +65,6 @@ public class GetModularity {
             e.printStackTrace();
         }
 
-
-//        io.rewriteFile("", historyDirPath + "/repoModularity.csv");
-//        io.rewriteFile("", historyDirPath + "/repo_ECI.csv");
-
         /** todo: this threshold is used for filtering out 20% large commits **/
         boolean[] filterOutStopFile = {true, false};
         for (String projectURL : repoList) {

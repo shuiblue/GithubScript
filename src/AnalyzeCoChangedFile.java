@@ -21,17 +21,10 @@ import java.util.concurrent.TimeUnit;
  * Created by shuruiz on 2/27/18.
  */
 public class AnalyzeCoChangedFile {
-//    static String tmpDirPath,pathname, historyDirPath,resultDirPath,current_dir,output_dir;
-
     static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath, resultDirPath;
-
-    static HashSet<String> stopFileSet = new HashSet<>();
-
     static String myUrl, user, pwd;
     final int batchSize = 100;
-
-    //    static String analyzingRepoOrFork = "repo";
-    static String analyzingRepoOrFork = "fork";
+    String[] commitType = {"onlyF", "F2U"};
 
     public AnalyzeCoChangedFile() {
         IO_Process io = new IO_Process();
@@ -48,25 +41,15 @@ public class AnalyzeCoChangedFile {
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
-
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        if (analyzingRepoOrFork.equals("repo")) {
-            try {
-                stopFileSet.addAll(Arrays.asList(io.readResult(current_dir + "input/StopFiles.txt").split("\n")));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
-    String[] commitType = {"onlyF", "F2U"};
+
 
     static public void main(String[] args) {
         AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
-
         IO_Process io = new IO_Process();
         String[] repoList = {};
         io.rewriteFile("", resultDirPath + "File_history.csv");
@@ -79,11 +62,6 @@ public class AnalyzeCoChangedFile {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
-//        io.rewriteFile("", historyDirPath + "/repoModularity.csv");
-//        io.rewriteFile("", historyDirPath + "/repo_ECI.csv");
-
 
         JgitUtility jg = new JgitUtility();
         for (String repoUrl : repoList) {
@@ -125,12 +103,6 @@ public class AnalyzeCoChangedFile {
 
 
         }
-        /** remove local copy of fork**/
-//        try {
-//            io.deleteDir(new File(tmpDirPath));
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
     }
 
 
@@ -540,43 +512,6 @@ public class AnalyzeCoChangedFile {
         System.out.println(redundantCommit.size() + " redundanct commits");
         result.forEach((k, v) -> v.removeAll(redundantCommit));
         return result;
-    }
-
-    public static HashSet<String> getPRcommits(String forkurl) {
-        Connection conn = null;
-        String query = "SELECT c.commitSHA " +
-                "FROM repo_PR AS pr, pr_commit AS pr_c, commit AS c " +
-                "WHERE pr_c.pull_request_id = pr.pull_request_ID AND pr.forkID = pr_c.repoID AND c.id = pr_c.commitsha_id AND pr.forkURL = ?";
-
-        HashSet<String> commitsFromPr = new HashSet<>();
-        try {
-            conn = DriverManager.getConnection(myUrl, user, "shuruiz");
-            conn.setAutoCommit(false);
-            PreparedStatement preparedStmt = conn.prepareStatement(query);
-            preparedStmt.setString(1, forkurl);
-
-            ResultSet rs = preparedStmt.executeQuery();
-            while (rs.next()) {
-                commitsFromPr.add(rs.getString(1));
-
-            }
-            conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return commitsFromPr;
-
-    }
-
-
-    private boolean isStopFile(String fileName) {
-
-        for (String file : stopFileSet) {
-            if (fileName.toLowerCase().contains(file)) {
-                return true;
-            }
-        }
-        return false;
     }
 
 
