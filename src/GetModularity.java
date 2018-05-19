@@ -202,7 +202,6 @@ public class GetModularity {
         System.out.println(" support matrix, changed file set size: " + changedFilePair_Set.size());
         int index = 0;
         for (HashSet<String> co_changedFiles : changedFilePair_Set) {
-//            System.out.println(index++);
             List<String> list = new ArrayList<>();
             list.addAll(co_changedFiles);
             String a = list.get(0);
