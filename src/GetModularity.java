@@ -78,16 +78,18 @@ public class GetModularity {
                 System.out.println(projectURL + " clone does not exist !");
                 continue;
             } else {
+                System.out.println(projectURL + " clone exist, start to calculate modularity...");
+
                 String cmd_getFirstCommit = "git rev-list --max-parents=0 HEAD --pretty=\"%ar\"";
                 String projectCloneDir = clone_dir + projectURL + "/";
                 String[] commitArray = io.exeCmd(cmd_getFirstCommit.split(" "), projectCloneDir).split("\n");
-                System.out.println(commitArray.length + " commits");
+                System.out.println(commitArray.length + " root commits");
 
                 int firstCommitCreatedAt = 0;
                 for (String line : commitArray) {
-                    if (line.contains("years ago")) {
+                    if (line.contains("years")) {
                         System.out.println(line);
-                        int currentResult = Integer.parseInt(line.replace(" years ago", ""));
+                        int currentResult = Integer.parseInt(line.split("years")[0].trim());
                         firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
                     }
                 }
@@ -97,11 +99,10 @@ public class GetModularity {
 
                 System.out.println("after firstCommitCreatedAt = " + firstCommitCreatedAt);
 
-                System.out.println(projectURL + " clone exist, start to calculate modularity...");
                 for (boolean b : filterOutStopFile) {
                     int threshold = 10;
                     while (threshold < 100) {
-                        for (int year = 1; year <= firstCommitCreatedAt; year++) {
+                        for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
                             System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
                             getModularity.measureModularity(projectURL, threshold, b, year);
                         }
