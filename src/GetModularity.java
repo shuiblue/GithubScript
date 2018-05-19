@@ -48,8 +48,7 @@ public class GetModularity {
 
     }
 
-    //todo time window 2 years
-    //todo  get commit created at
+
     static public void main(String[] args) {
         GetModularity getModularity = new GetModularity();
 
@@ -72,30 +71,36 @@ public class GetModularity {
 
         /** todo: this threshold is used for filtering out 20% large commits **/
         boolean[] filterOutStopFile = {true, false};
+        for (String projectURL : repoList) {
+            File clone = new File(clone_dir + projectURL);
+            if (!clone.exists()) {
+                io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
+                continue;
+            } else {
+                for (boolean b : filterOutStopFile) {
+                    int threshold = 10;
+                    while (threshold < 100) {
+                        String cmd_getFirstCommit = "git rev-list --max-parents=0 HEAD --pretty=\"%ar\"";
+                        String projectCloneDir = clone_dir + projectURL + "/";
+                        String[] commitArray = io.exeCmd(cmd_getFirstCommit.split(" "), projectCloneDir).split("\n");
 
-        for (boolean b : filterOutStopFile) {
-            int threshold = 10;
-            while (threshold < 100) {
-                for (String projectURL : repoList) {
-                    String cmd_getFirstCommit = "git rev-list --max-parents=0 HEAD --pretty=\"%ar\"";
-                    String projectCloneDir = clone_dir + projectURL + "/";
-                    String[] commitArray = io.exeCmd(cmd_getFirstCommit.split(" "), projectCloneDir).split("\n");
-
-                    int firstCommitCreatedAt = 0;
-                    for (String line : commitArray) {
-                        if (line.contains("years ago")) {
-                            System.out.println(line);
-                            int currentResult = Integer.parseInt(line.replace(" years ago", ""));
-                            firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
+                        int firstCommitCreatedAt = 0;
+                        for (String line : commitArray) {
+                            if (line.contains("years ago")) {
+                                System.out.println(line);
+                                int currentResult = Integer.parseInt(line.replace(" years ago", ""));
+                                firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
+                            }
                         }
-                    }
+                        if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
 
-                    System.out.println("firstCommitCreatedAt = " + firstCommitCreatedAt);
-                    for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
-                        System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold+"，within "+firstCommitCreatedAt+" years");
-                        getModularity.measureModularity(projectURL, threshold, b, year);
+                        System.out.println("firstCommitCreatedAt = " + firstCommitCreatedAt);
+                        for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
+                            System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + firstCommitCreatedAt + " years");
+                            getModularity.measureModularity(projectURL, threshold, b, year);
+                        }
+                        threshold += 5;
                     }
-                    threshold += 5;
                 }
             }
         }
@@ -108,6 +113,7 @@ public class GetModularity {
      * @throws GitAPIException
      */
     public void measureModularity(String projectURL, int threshold, boolean filterOutStopFile, int within_year) {
+        IO_Process io = new IO_Process();
         String after_Date = ZonedDateTime.now(ZoneOffset.UTC).minusYears(within_year).toInstant().toString();
         String project_cloneDir = clone_dir + projectURL + "/";
         String fileScope = "allfile";
@@ -115,15 +121,14 @@ public class GetModularity {
             fileScope = "noStopFile";
         }
 
-        String outputFileName = projectURL.replace("/","~") + "_" + threshold + "_" + within_year + "_year_" + fileScope + "_";
+        String outputFileName = projectURL.replace("/", "~") + "_" + threshold + "_" + within_year + "_year_" + fileScope;
         String outputPath = historyDirPath + outputFileName + ".txt";
         File output = new File(outputPath);
-        if(output.exists()){
-            System.out.println("result exist: "+outputFileName);
+        if (output.exists()) {
+            System.out.println("result exist: " + outputFileName);
             return;
         }
 
-        IO_Process io = new IO_Process();
 
         /**  get all the branches **/
         String cmd_getOringinBranch = "git branch -a --list origin*";
