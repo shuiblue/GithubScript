@@ -3,13 +3,16 @@ public class GhtMonitor {
         String latestFile_1;
         while (true) {
             latestFile_1 = getLatestFile();
+            System.out.println(latestFile_1);
             try {
                 Thread.sleep(600000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             String latestFile_2 = getLatestFile();
+            System.out.println(latestFile_1);
             if (latestFile_1.equals(latestFile_2)) {
+                System.out.println("restart..");
                 new IO_Process().exeCmd("python ./scratchpad.py -i repoList.txt".split(" "), "/home/feature/shuruiz/ForkData/ghd/");
             }
         }
