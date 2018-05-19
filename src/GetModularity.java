@@ -75,8 +75,10 @@ public class GetModularity {
             File clone = new File(clone_dir + projectURL);
             if (!clone.exists()) {
                 io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
+                System.out.println(projectURL+" clone does not exist !");
                 continue;
             } else {
+                System.out.println(projectURL+" clone exist, start to calculate modularity...");
                 for (boolean b : filterOutStopFile) {
                     int threshold = 10;
                     while (threshold < 100) {
