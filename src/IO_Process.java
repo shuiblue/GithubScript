@@ -203,7 +203,6 @@ public class IO_Process {
     }
 
 
-
     /**
      * process text
      **/
@@ -236,7 +235,6 @@ public class IO_Process {
 
         return allPairs_string;
     }
-
 
 
     /***  Below function are interacting with command line***/
@@ -278,7 +276,7 @@ public class IO_Process {
 
         String[] changedfiles = exeCmd(cmd_getline, clone_dir + repoUrl).split("\n");
 
-        ArrayList<String> status = getChangedFileStatus_ofCommit_FromCMD(sha,repoUrl);
+        ArrayList<String> status = getChangedFileStatus_ofCommit_FromCMD(sha, repoUrl);
         if (status.get(0).contains("fatal: bad object")) {
             return null;
         }
@@ -298,7 +296,7 @@ public class IO_Process {
 
         String[] cmd_getline = {"/bin/sh",
                 "-c",
-                "git show --pretty=\"\" --name-status  " + sha };
+                "git show --pretty=\"\" --name-status  " + sha};
 
         String[] changedfiles = exeCmd(cmd_getline, clone_dir + projectURL).split("\n");
 
@@ -701,6 +699,94 @@ public class IO_Process {
     }
 
 
+//    public void inserRepoToDB(Repository repo) {
+//        System.out.println("get fork info: " + repo.getrepoUr);
+//        String query = "  INSERT INTO repository ( repoURL,loginID,repoName,isFork,UpstreamURL,belongToRepo,upstreamID,projectID," +
+//                "num_of_forks, created_at,pushed_at, size,language,ownerID,public_repos," +
+//                "public_gists ,followers  , following  ,user_type  )" +
+//                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+//        String upstreamURL = "";
+//
+//        try (
+//                Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+//                PreparedStatement preparedStmt = conn.prepareStatement(query);)
+//
+//        {
+//
+//            String forkUrl = github_api_repo + repoUrl + "?access_token=" + token;
+//            JsonUtility jsonUtility = new JsonUtility();
+//            ArrayList<String> fork_info_json = null;
+//            try {
+//                fork_info_json = jsonUtility.readUrl(forkUrl);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//
+//            JSONObject fork_jsonObj = new JSONObject(fork_info_json.get(0));
+//            String owner_url = (String) ((JSONObject) fork_jsonObj.get("owner")).get("url");
+//            boolean isFork = (boolean) fork_jsonObj.get("fork");
+//            if (isFork) {
+//                upstreamURL = (String) ((JSONObject) fork_jsonObj.get("parent")).get("full_name");
+//                upstreamID = getRepoId(upstreamURL);
+//            }
+//            ArrayList<String> owner_info_json = null;
+//            try {
+//                owner_info_json = jsonUtility.readUrl(owner_url + "?access_token=" + token);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//
+//            String language = null;
+//            if (fork_jsonObj.get("language") != null) {
+//                language = String.valueOf(fork_jsonObj.get("language"));
+//            }
+//            JSONObject owner_jsonObj = new JSONObject(owner_info_json.get(0));
+//            // repoURL
+//            preparedStmt.setString(1, repoUrl);
+//            // loginID
+//            preparedStmt.setString(2, String.valueOf(owner_jsonObj.get("login")));
+//            // repoName
+//            preparedStmt.setString(3, repoUrl.split("/")[1]);
+//            // isFork
+//            preparedStmt.setBoolean(4, true);
+//            // UpstreamURL,
+//            preparedStmt.setString(5, upstreamURL);
+//
+//            // belongToRepo,
+//            preparedStmt.setString(6, upstreamURL);
+//            // upstreamID,
+//            preparedStmt.setInt(7, upstreamID);
+//            // projectID
+//            preparedStmt.setInt(8, upstreamID);
+//            // num_of_forks
+//            preparedStmt.setInt(9, (Integer) fork_jsonObj.get("forks_count"));
+//            // created_at
+//            preparedStmt.setString(10, (String) owner_jsonObj.get("created_at"));
+//            // pushed_at
+//            preparedStmt.setString(11, (String) fork_jsonObj.get("pushed_at"));
+//            // size
+//            preparedStmt.setString(12, String.valueOf(fork_jsonObj.get("size")));
+//            // language
+//            preparedStmt.setString(13, language);
+//            // ownerID
+//            preparedStmt.setString(14, String.valueOf(owner_jsonObj.get("login")));
+//            // public_repos
+//            preparedStmt.setString(15, String.valueOf(owner_jsonObj.get("public_repos")));
+//            // public_gists
+//            preparedStmt.setString(16, String.valueOf(owner_jsonObj.get("public_gists")));
+//            // followers
+//            preparedStmt.setString(17, String.valueOf(owner_jsonObj.get("followers")));
+//            // following
+//            preparedStmt.setString(18, String.valueOf(owner_jsonObj.get("following")));
+//            // user_type
+//            preparedStmt.setString(19, String.valueOf(owner_jsonObj.get("type")));
+//
+//
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+//
+//    }
 }
 
 

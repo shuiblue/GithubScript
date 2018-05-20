@@ -13,7 +13,7 @@ public class GhtMonitor {
             System.out.println(latestFile_1);
             if (latestFile_1.equals(latestFile_2)) {
                 System.out.println("restart..");
-                new IO_Process().exeCmd("python ./scratchpad.py -i repoList.txt".split(" "), "/home/feature/shuruiz/ForkData/ghd/");
+                new IO_Process().exeCmd("python ./scratchpad.py -i repoList.txt".split(" "), "/home/feature/shuruiz/ghd/");
             }
         }
     }

@@ -9,6 +9,7 @@ import org.eclipse.jgit.patch.FileHeader;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
+import org.eclipse.jgit.lib.Repository;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,8 +47,6 @@ public class AnalyzeCoChangedFile {
         }
     }
 
-
-
     static public void main(String[] args) {
         AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
         IO_Process io = new IO_Process();
@@ -65,6 +64,8 @@ public class AnalyzeCoChangedFile {
 
         JgitUtility jg = new JgitUtility();
         for (String repoUrl : repoList) {
+            int projectID = io.getRepoId(repoUrl);
+
             String[] forkListInfo = new String[0];
             try {
                 forkListInfo = io.readResult(resultDirPath + repoUrl + "/graph_result.txt").split("\n");
@@ -77,10 +78,32 @@ public class AnalyzeCoChangedFile {
             for (int i = 1; i < forkListInfo.length; i++) {
                 String forkINFO = forkListInfo[i];
                 String forkurl = forkINFO.split(",")[0];
+                String forkName = forkurl.split("/")[0];
                 String repoCloneDir = clone_dir + forkurl + "/";
 
+
+                /**   get all branch list**/
+                String fork_cloneDir = clone_dir + forkurl + "/";
+                String cmd_getOringinBranch = "git branch -a --list "+forkName+"*";
+                String branchResult =  io.exeCmd(cmd_getOringinBranch.split(" "), fork_cloneDir);
+
+                if(branchResult.trim().length()==0){
+//                   io.insertNewRepo();
+                }else{
+
+                }
+                String[] branchList_array = branchResult.split("\n");
+                ArrayList<String> branchList = new ArrayList<>();
+                for (String br : branchList_array) {
+                    if (!br.contains("HEAD")) {
+                        branchList.add(br.trim());
+                    }
+                }
+
+
+
                 /** clone fork **/
-                ArrayList<String> branchList = jg.cloneRepo(forkurl);
+//                ArrayList<String> branchList = jg.cloneRepo(forkurl);
                 File branchListFile = new File(repoCloneDir + forkurl.split("/")[0] + "_branchList.txt");
                 if (!branchListFile.exists()) {
                     System.out.println("fork is not available");
