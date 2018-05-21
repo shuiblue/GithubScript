@@ -94,7 +94,7 @@ public class InsertCommitFromPR {
 
 
                 String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
-                if (new File(csvFile_dir).exists()) {
+                if (!new File(csvFile_dir).exists()) {
                     System.out.println(projectUrl + " pr not exsit");
                     break;
                 }
