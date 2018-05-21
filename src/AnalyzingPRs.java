@@ -72,7 +72,7 @@ public class AnalyzingPRs {
                 System.out.println("start with  "+projectUrl);
             }
 
-            String prNumList_filePath = output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt";
+            String prNumList_filePath = output_dir +projectUrl.replace("/", ".") + ".prNum.txt";
             List<String> prList = new ArrayList<>();
             int latestPRid = -1;
             StringBuilder sb = new StringBuilder();
@@ -87,7 +87,7 @@ public class AnalyzingPRs {
                     }
 
                 }
-                io.rewriteFile(sb.toString(), output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt");
+                io.rewriteFile(sb.toString(), output_dir + projectUrl.replace("/", ".") + ".prNum.txt");
             }
             String prListString = "";
             try {
