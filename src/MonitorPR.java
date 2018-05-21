@@ -23,7 +23,7 @@ public class MonitorPR {
     public static String getLatestProject() {
         String[] finishedProject = new String[0];
         try {
-            finishedProject = new IO_Process().readResult("/home/feature/shuruiz/AnalyzePR/finish_PRanalysis.txt").split("\n");
+            finishedProject = new IO_Process().readResult("/home/feature/shuruiz/ForkData/AnalyzePR/finish_PRanalysis.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
