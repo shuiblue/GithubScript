@@ -25,7 +25,7 @@ public class AnalyzingPRs {
             String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
             working_dir = paramList[0];
             pr_dir = working_dir + "queryGithub/";
-            output_dir = working_dir + "ForkData/AnalyzePR/";
+            output_dir = working_dir + "ForkData/";
             clone_dir = output_dir + "clones/";
             myUrl = paramList[1];
             user = paramList[2];
@@ -50,7 +50,7 @@ public class AnalyzingPRs {
         }
         Map<String, Integer> finished_repos = new HashMap<>();
         try {
-            String[] result = io.readResult(output_dir + "/finish_PRanalysis.txt").split("\n");
+            String[] result = io.readResult(output_dir + "AnalyzePR/finish_PRanalysis.txt").split("\n");
             for (String s : result) {
                 if(!s.equals("")) {
                     String[] arr = s.split(",");
@@ -94,13 +94,13 @@ public class AnalyzingPRs {
                     if (fileExist) {
                         analyzingPRs.insertMap_Commits_PR(projectUrl, projectID, pr_id);
                     } else {
-                        io.writeTofile(projectUrl + "," + pr_id + "\n", output_dir + "/finish_PRanalysis.txt");
+                        io.writeTofile(projectUrl + "," + pr_id + "\n", output_dir + "AnalyzePR/finish_PRanalysis.txt");
                         return;
                     }
                 }
-                io.writeTofile(projectUrl + "," + latestPRid + "\n", output_dir + "/finish_PRanalysis.txt");
+                io.writeTofile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PRanalysis.txt");
             } else {
-                io.rewriteFile(projectUrl + "," + latestPRid + "\n", output_dir + "/finish_PRanalysis.txt");
+                io.rewriteFile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PRanalysis.txt");
             }
 
         }
