@@ -219,6 +219,41 @@ public class IO_Process {
         return null;
     }
 
+    public  List<String> getPRNumlist(String projectUrl) {
+        IO_Process io = new IO_Process();
+        String prNumList_filePath = output_dir + projectUrl.replace("/", ".") + ".prNum.txt";
+        List<String> prList = new ArrayList<>();
+
+        StringBuilder sb = new StringBuilder();
+        if (!new File(prNumList_filePath).exists()) {
+            System.out.println("generating pr num list");
+            String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
+            List<List<String>> prs = io.readCSV(csvFile_dir);
+            for (List<String> pr : prs) {
+                if (!pr.get(0).equals("")) {
+                    int pr_id = Integer.parseInt(pr.get(9));
+                    sb.append(pr_id + "\n");
+                }
+
+            }
+            io.rewriteFile(sb.toString(), output_dir + projectUrl.replace("/", ".") + ".prNum.txt");
+            String prListString = "";
+            try {
+                prListString = io.readResult(prNumList_filePath);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (!prListString.trim().equals("")) {
+                prList = Arrays.asList(prListString.split("\n"));
+
+            }
+            return prList;
+        }
+        return new ArrayList<>();
+
+    }
+
 
     /**
      * process text

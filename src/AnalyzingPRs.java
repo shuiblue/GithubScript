@@ -69,55 +69,26 @@ public class AnalyzingPRs {
             int startPR = -1;
             if (finished_repos.size() > 0) {
                 startPR = finished_repos.get(projectUrl);
-                System.out.println("start with  "+projectUrl);
+                System.out.println("start with  " + projectUrl);
             }
 
-            String prNumList_filePath = output_dir +projectUrl.replace("/", ".") + ".prNum.txt";
-            List<String> prList = new ArrayList<>();
-            int latestPRid = -1;
-            StringBuilder sb = new StringBuilder();
-            if (!new File(prNumList_filePath).exists()) {
-                System.out.println("generating pr num list");
-                String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
-                List<List<String>> prs = io.readCSV(csvFile_dir);
-                for (List<String> pr : prs) {
-                    if (!pr.get(0).equals("")) {
-                        int pr_id = Integer.parseInt(pr.get(9));
-                        sb.append(pr_id + "\n");
-                    }
+            List<String> prList = io.getPRNumlist(projectUrl);
 
-                }
-                io.rewriteFile(sb.toString(), output_dir + projectUrl.replace("/", ".") + ".prNum.txt");
-            }
-            String prListString = "";
-            try {
-                prListString = io.readResult(prNumList_filePath);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (!prListString.trim().equals("")) {
-                prList = Arrays.asList(prListString.split("\n"));
+            int latestPRid;
+            if (prList.size() > 0) {
                 String lastPR = prList.get(0);
                 latestPRid = Integer.parseInt(lastPR);
+            } else {
+                System.out.println("PR information is not available yet, waiting for api query ghd...");
+                continue;
             }
 
-            System.out.println("got pr list, start pr : "+startPR+" , latestpr: "+latestPRid+" finished repo contains "+projectUrl+"? "+finished_repos.containsKey(projectUrl));
+            System.out.println("got pr list, start pr : " + startPR + " , latestpr: " + latestPRid + " finished repo contains " + projectUrl + "? " + finished_repos.containsKey(projectUrl));
             if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
-                System.out.println("start : ");
-                System.out.println(projectUrl);
+                System.out.println("start : " + projectUrl);
                 int projectID = io.getRepoId(projectUrl);
-                int startIndex = 0;
-                if (finished_repos.containsKey(projectUrl)) startIndex = prList.indexOf(startPR);
-
-                if (!analyzingPRs.getPRfiles(projectUrl, projectID,startPR)) {
-                    System.out.println(projectUrl + " pr not exsit");
-                    break;
-                }
-                System.out.println("start with project :" + projectUrl + " pr#: " + startPR + " index: " + startIndex);
+                analyzingPRs.getPRfiles(projectUrl, projectID, startPR);
                 io.writeTofile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PRanalysis.txt");
-            } else {
-                io.rewriteFile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PRanalysis.txt");
             }
 
         }
@@ -523,14 +494,12 @@ public class AnalyzingPRs {
     }
 
 
-    public boolean getPRfiles(String projectUrl, int projectID,int startPR) {
-        System.out.println("analyze pr files of "+projectUrl);
+    public void getPRfiles(String projectUrl, int projectID, int startPR) {
+        System.out.println("analyze pr files of " + projectUrl);
         AnalyzeRepository analyzeRepository = new AnalyzeRepository();
         IO_Process io = new IO_Process();
-        StringBuilder sb = new StringBuilder();
         io.rewriteFile("", output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt");
         LocalDateTime now = LocalDateTime.now();
-//        String cmd_etPR = "ls get_prs." + projectUrl.replace("/", ".") + "*";
 
         String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
         if (new File(csvFile_dir).exists()) {
@@ -552,11 +521,11 @@ public class AnalyzingPRs {
                          PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
                         conn.setAutoCommit(false);
                         int pr_id = Integer.parseInt(pr.get(9));
-                        if(pr_id>startPR){
-                            System.out.println("pass "+pr_id);
+                        if (pr_id > startPR && startPR != -1) {
+                            System.out.println("pass " + pr_id);
                             continue;
                         }
-                        sb.append(pr_id + "\n");
+
                         String author = pr.get(1);
 
                         /** insert fork to database**/
@@ -616,17 +585,13 @@ public class AnalyzingPRs {
                         preparedStmt.setInt(13, pr_id);
                         preparedStmt.addBatch();
 
-//                    System.out.println("insert pr " + pr_id + " to database, affected " + preparedStmt.executeUpdate() + " row.");
-
                         long end = System.nanoTime();
                         System.out.println("insert ONE PR :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-
 
                         if (++count % batchSize == 0) {
                             io.executeQuery(preparedStmt);
                             conn.commit();
                         }
-
 
                         io.executeQuery(preparedStmt);
                         conn.commit();
@@ -636,13 +601,6 @@ public class AnalyzingPRs {
 
                 }
             }
-
-            io.writeTofile(sb.toString(), output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt");
-
-            return true;
-        } else {
-            System.out.println(projectUrl + "pr not exist.");
-            return false;
         }
     }
 

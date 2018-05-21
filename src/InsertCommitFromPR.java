@@ -70,35 +70,12 @@ public class InsertCommitFromPR {
             }
 
 
-            String prNumList_filePath = output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum_from_commit.txt";
-            List<String> prList = new ArrayList<>();
-            int latestPRid = -1;
-            if (!new File(prNumList_filePath).exists()) {
-                String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
-                List<List<String>> prs = io.readCSV(csvFile_dir);
-                for (List<String> pr : prs) {
-                    if (!pr.get(0).equals("")) {
-                        int pr_id = Integer.parseInt(pr.get(9));
-                        sb.append(pr_id + "\n");
-                    }
-
-                }
-                io.rewriteFile(sb.toString(), output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum_from_commit.txt");
+            List<String> prList = io.getPRNumlist(projectUrl);
+            int latestPRid=-1;
+            if (prList.size() > 0) {
+                String lastPR = prList.get(0);
+                latestPRid = Integer.parseInt(lastPR);
             }
-                String prListString = "";
-                try {
-                    prListString = io.readResult(prNumList_filePath);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if (!prListString.trim().equals("")) {
-                    prList = Arrays.asList(prListString.split("\n"));
-                    String lastPR = prList.get(prList.size() - 1);
-                    latestPRid = Integer.parseInt(lastPR);
-                }
-
-
             if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
                 System.out.println(projectUrl);
                 int projectID = io.getRepoId(projectUrl);
