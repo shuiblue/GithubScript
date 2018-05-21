@@ -192,11 +192,6 @@ public class InsertCommitFromPR {
 
     public void insertMap_Commits_PR(String projectUrl, int projectID, int pr_id) {
         IO_Process io = new IO_Process();
-        StringBuilder sb = new StringBuilder();
-        io.rewriteFile("", output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt");
-        LocalDateTime now = LocalDateTime.now();
-//        String cmd_getPR = "ls get_prs." + projectUrl.replace("/", ".") + "*";
-
         String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
 
         String update_pr_commit_query = " INSERT INTO fork.PR_Commit (commitsha_id,projectID,pull_request_id)" +
