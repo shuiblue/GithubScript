@@ -81,6 +81,12 @@ public class GithubRepository {
                 owner_info_json = jsonUtility.readUrl(owner_url + "?access_token=" + token);
             } catch (Exception e) {
                 e.printStackTrace();
+                try {
+                    Thread.sleep(100000);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
+                owner_info_json = jsonUtility.readUrl(owner_url + "?access_token=" + token);
             }
 
             JSONObject owner_jsonObj = new JSONObject(owner_info_json.get(0));

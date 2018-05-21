@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class AnalyzeCommitChangedFile {
     static String working_dir, pr_dir, output_dir, clone_dir;
@@ -24,10 +25,13 @@ public class AnalyzeCommitChangedFile {
         }
     }
 
-    static public void main(String[] args){
+    static public void main(String[] args) {
         AnalyzeCommitChangedFile accf = new AnalyzeCommitChangedFile();
         IO_Process io = new IO_Process();
-        io.get_un_analyzedCommit();
+        ArrayList<Integer> todo_commits = io.get_un_analyzedCommit();
+        for (Integer commit : todo_commits) {
+
+        }
     }
 
 

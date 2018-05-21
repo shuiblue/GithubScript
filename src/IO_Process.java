@@ -854,11 +854,24 @@ public class IO_Process {
     }
 
 
-    public HashSet<String> get_un_analyzedCommit() {
-        HashSet<String> unAnalyzedCommit = new HashSet<>();
-        String query = "";
+    public  ArrayList<Integer>  get_un_analyzedCommit() {
+        ArrayList<Integer>  unAnalyzedCommit = new ArrayList<>();
+        String query = "SELECT c.id\n" +
+                "FROM fork.Commit AS c\n" +
+                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commitSHA_id);";
+        ArrayList<Integer> commitList = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                commitList.add(rs.getInt(1));
+            }
 
 
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return unAnalyzedCommit;
     }
 }
