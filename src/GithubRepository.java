@@ -10,15 +10,6 @@ public class GithubRepository {
     int followers;
     int following;
     int size = 0;
-
-    public int getUpstreamID() {
-        return upstreamID;
-    }
-
-    public void setUpstreamID(int upstreamID) {
-        this.upstreamID = upstreamID;
-    }
-
     int upstreamID = 0;
 
 
@@ -31,13 +22,22 @@ public class GithubRepository {
     String type;
     String repoUrl;
 
+    public boolean isFork() {
+        return isFork;
+    }
+
+    public void setFork(boolean isfork) {
+        isFork = isfork;
+    }
+
+    boolean isFork =false;
     static String token;
     static String github_api_repo = "https://api.github.com/repos/";
     static String github_api_user = "https://api.github.com/users/";
     static String github_api_search = "https://api.github.com/search/";
     static String result_dir;
 
-    public GithubRepository getForkInfo(String repoURL, String upstreamURL) {
+    public GithubRepository getRepoInfo(String repoURL, String projectURL) {
         GithubRepository repo = new GithubRepository();
         String current_dir = System.getProperty("user.dir");
         try {
@@ -46,7 +46,7 @@ public class GithubRepository {
             e.printStackTrace();
         }
 
-        repoURL = "thinkyhead/Marlin";
+//        repoURL = "thinkyhead/Marlin";
         repo.setRepoUrl(repoURL);
         String api_url = github_api_repo + repoURL + "?access_token=" + token;
         JsonUtility jsonUtility = new JsonUtility();
@@ -65,15 +65,17 @@ public class GithubRepository {
             repo.setSize((int) fork_jsonObj.get("size"));
             repo.setLanguage(String.valueOf(fork_jsonObj.get("language")));
 
-            if(fork_jsonObj.get("parent")!=null){
-                String parentUrl = String.valueOf(new JSONObject( fork_jsonObj.get("parent")).get("full_name"));
+            if(fork_jsonObj.has("parent")){
+                String parentUrl = String.valueOf(fork_jsonObj.getJSONObject("parent").get("full_name"));
                 repo.setUpstreamID(io_process.getRepoId(parentUrl));
+                isFork = true;
             }else{
                 repo.setUpstreamID(0);
+
             }
 
 
-            String owner_url = (String) ((JSONObject) fork_jsonObj.get("owner")).get("url");
+            String owner_url = String.valueOf(fork_jsonObj.getJSONObject("owner").get("url"));
             ArrayList<String> owner_info_json = null;
             try {
                 owner_info_json = jsonUtility.readUrl(owner_url + "?access_token=" + token);
@@ -89,10 +91,10 @@ public class GithubRepository {
             repo.setFollowing((int) (owner_jsonObj.get("following")));
             repo.setSign_up_date(String.valueOf(owner_jsonObj.get("created_at")));
             repo.setType(String.valueOf(owner_jsonObj.get("type")));
-            if (upstreamURL.equals("")) {
+            if (projectURL.equals("")) {
                 repo.setProjectID(0);
             } else {
-                repo.setProjectID(io_process.getRepoId(upstreamURL));
+                repo.setProjectID(io_process.getRepoId(projectURL));
             }
         }
 
@@ -250,5 +252,12 @@ public class GithubRepository {
 
     public void setRepoUrl(String repoUrl) {
         this.repoUrl = repoUrl;
+    }
+    public int getUpstreamID() {
+        return upstreamID;
+    }
+
+    public void setUpstreamID(int upstreamID) {
+        this.upstreamID = upstreamID;
     }
 }

@@ -1000,7 +1000,9 @@ public class NameBasedClassifier {
             fork_PR.put(fork, prList);
         }
 
-        List<List<String>> graph_approach_result = io.readCSV(result_dir + repoUrl + "/graph_result.txt");
+         io.readCSV(result_dir + repoUrl + "/graph_result.txt");
+//        List<List<String>> graph_approach_result = io.readCSV(result_dir + repoUrl + "/graph_result.txt");
+        List<List<String>> graph_approach_result = new LinkedList<>();
         for (int i = 1; i < graph_approach_result.size(); i++) {
             List<String> result = graph_approach_result.get(i);
             String forkUrl = result.get(0);

@@ -22,6 +22,8 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -36,6 +38,7 @@ public class IO_Process {
     static String github_url = "https://github.com/";
     String current_dir = System.getProperty("user.dir");
     static String working_dir, pr_dir, output_dir, clone_dir;
+    final int batchSize = 100;
 
     public IO_Process() {
 
@@ -123,14 +126,28 @@ public class IO_Process {
     }
 
     public List<List<String>> readCSV(String filePath) {
-        List<List<String>> values = null;
-        try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
-            values = lines.map(line -> Arrays.asList(line.split(","))).collect(Collectors.toList());
-            values.forEach(value -> System.out.println(value));
+        List<List<String>> rows = new ArrayList<>();
+        File csvFile = new File(filePath);
+        try (InputStream in = new FileInputStream(csvFile);) {
+            CSV csv = null;
+            try {
+                csv = new CSV(true, ',', in);
+                List<String> colNames = null;
+                if (csv.hasNext()) colNames = new ArrayList<String>(csv.next());
+                while (csv.hasNext()) {
+                    List<String> fields = new ArrayList<String>(csv.next());
+                    rows.add(fields);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return values;
+        return rows;
     }
 
 
@@ -386,7 +403,7 @@ public class IO_Process {
 
 
     public int getCommitID(String sha) {
-        String commitshaID_QUERY = "SELECT id FROM commit WHERE commitSHA = ?";
+        String commitshaID_QUERY = "SELECT id FROM tmp_Commit WHERE commitSHA = ?";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY);) {
             preparedStmt.setString(1, sha);
@@ -489,9 +506,11 @@ public class IO_Process {
      * @param projectID
      * @param forkURL
      */
+
+
     public void insertNewRepo(int projectID, String forkURL) {
         System.out.println("id = -1!!! fork : " + forkURL + " is not in the database");
-        String upstreamUrl = insertRepo(forkURL);
+        String upstreamUrl = insertRepo_old(forkURL);
         if (upstreamUrl.equals("")) {
             upstreamUrl = getRepoUrlByID(projectID);
             cloneRepo(forkURL, upstreamUrl);
@@ -524,7 +543,7 @@ public class IO_Process {
         }
     }
 
-    public String insertRepo(String repoUrl) {
+    public String insertRepo_old(String repoUrl) {
         GithubApiParser githubApiParser = new GithubApiParser();
         System.out.println("get fork info: " + repoUrl);
         String query = "  INSERT INTO repository ( repoURL,loginID,repoName,isFork,UpstreamURL,belongToRepo,upstreamID,projectID," +
@@ -654,6 +673,27 @@ public class IO_Process {
 
     }
 
+    public void insertRepo(String repoURL) {
+        String insertProject = "INSERT INTO fork.repository (repoURL)" +
+                "  SELECT *" +
+                "  FROM (SELECT" +
+                "          ? AS repourl) AS tmp" +
+                "  WHERE NOT EXISTS(" +
+                "      SELECT repourl" +
+                "      FROM fork.repository AS repo" +
+                "      WHERE repo.repoURL= ?" +
+                "  )" +
+                "  LIMIT 1";
+//                " Values(\"" + repoURL + "\")";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(insertProject)) {
+            preparedStmt.setString(1,repoURL);
+            preparedStmt.setString(2,repoURL);
+            System.out.println("insert repo " + repoURL + " to database, affected " + preparedStmt.executeUpdate() + " row.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     static public void main(String[] args) {
         IO_Process io = new IO_Process();
@@ -699,7 +739,7 @@ public class IO_Process {
     }
 
 
-//    public void inserRepoToDB(Repository repo) {
+//    public void inserRepoToDB(GithubRepository repo) {
 //        System.out.println("get fork info: " + repo.getrepoUr);
 //        String query = "  INSERT INTO repository ( repoURL,loginID,repoName,isFork,UpstreamURL,belongToRepo,upstreamID,projectID," +
 //                "num_of_forks, created_at,pushed_at, size,language,ownerID,public_repos," +
@@ -787,8 +827,34 @@ public class IO_Process {
 //        }
 //
 //    }
-}
 
+    public ArrayList<String> getCommitFromCMD(String sha, String forkURL, String repoUrl) {
+        String[] cmd_getline = {"/bin/sh",
+                "-c",
+                "git log -1 --numstat " + sha + " | egrep ^[[:digit:]]+ | egrep -v ^[\\d]+[[:space:]]+[\\d]+[[:space:]]+"};
+
+        String[] changedfiles = exeCmd(cmd_getline, clone_dir + repoUrl).split("\n");
+
+        String[] cmd_getStatus = {"/bin/sh",
+                "-c", "git log -1 --name-status " + sha + " --pretty=\"\""};
+
+        String[] status = exeCmd(cmd_getStatus, clone_dir + repoUrl).split("\n");
+
+        if (status[0].contains("fatal: bad object")) {
+            return null;
+        }
+        ArrayList<String> changedFileResult = new ArrayList<>();
+        for (int i = 0; i < changedfiles.length; i++) {
+            String file = changedfiles[i];
+            file += "\t" + status[i].split("\t")[0];
+            changedFileResult.add(file);
+        }
+
+        return changedFileResult;
+    }
+
+
+}
 
 
 
