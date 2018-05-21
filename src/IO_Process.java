@@ -403,7 +403,7 @@ public class IO_Process {
 
 
     public int getCommitID(String sha) {
-        String commitshaID_QUERY = "SELECT id FROM tmp_Commit WHERE commitSHA = ?";
+        String commitshaID_QUERY = "SELECT id FROM Commit WHERE commitSHA = ?";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY);) {
             preparedStmt.setString(1, sha);
