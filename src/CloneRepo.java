@@ -5,8 +5,9 @@ import java.util.HashSet;
 public class CloneRepo {
 
     static String working_dir, output_dir;
+
     static public void main(String[] args) {
-        IO_Process io =new IO_Process();
+        IO_Process io = new IO_Process();
         String current_dir = System.getProperty("user.dir");
         try {
             String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
@@ -15,14 +16,20 @@ public class CloneRepo {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        String[] repos = new String[0];
+        try {
+            repos = io.readResult(current_dir + "/input/repoList.txt").split("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println(repos.length + " projects ");
+        for (String projectURL : repos) {
+            HashSet<String> project_forks = io.getProjectForkMap(projectURL);
+            JgitUtility jg = new JgitUtility();
 
-        HashMap<String, HashSet<String>> project_forks =io.getProjectForkMap();
-        JgitUtility jg = new JgitUtility();
-
-        project_forks.forEach((k, v) -> {
-            jg.cloneRepo_cmd(v, k);
-            io.writeTofile(k+"\n",output_dir+"finish_clone.txt");
-        });
+            jg.cloneRepo_cmd(project_forks, projectURL);
+            io.writeTofile(projectURL + "\n", output_dir + "finish_clone.txt");
+        }
 
     }
 

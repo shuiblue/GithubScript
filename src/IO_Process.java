@@ -302,11 +302,11 @@ public class IO_Process {
             BufferedReader reader =
                     new BufferedReader(new InputStreamReader(p.getInputStream()));
             StringBuilder builder = new StringBuilder();
-            String line = null;
+            String line;
             try {
                 while ((line = reader.readLine()) != null) {
                     builder.append(line);
-//                    System.out.println(line);
+                    System.out.println(line);
                     builder.append(System.getProperty("line.separator"));
                 }
             } catch (IOException e) {
@@ -885,7 +885,7 @@ public class IO_Process {
         HashSet<String> unAnalyzedCommit = new HashSet<>();
         String query = "SELECT repo.repoURL, c.commitSHA, c.id \n" +
                 "FROM fork.Commit AS c , repository AS repo\n" +
-                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commitSHA_id) AND c.projectID = repo.id AND repo.repoURL = \"" + projectURL+"\"";
+                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commitSHA_id) AND c.projectID = repo.id AND repo.repoURL = \"" + projectURL + "\"";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(query);
         ) {
@@ -921,11 +921,11 @@ public class IO_Process {
         return unAnalyzedCommit;
     }
 
-    public HashMap<String, HashSet<String>> getProjectForkMap() {
-        HashMap<String, HashSet<String>> projectForkMap = new HashMap<>();
+    public HashSet<String> getProjectForkMap(String projectURL) {
+        HashSet<String> forkSet = new HashSet<>();
         String query = "SELECT r2.repoURL AS upstream, r1.repoURL AS fork\n" +
                 "FROM repository AS r1, repository AS r2\n" +
-                "WHERE  r1.projectID = r2.id";
+                "WHERE  r1.projectID = r2.id AND r2.repoURL = \'" + projectURL + "\'";
 
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
@@ -935,20 +935,14 @@ public class IO_Process {
                 while (rs.next()) {
                     String project = rs.getString("upstream");
                     String fork = rs.getString("fork");
-                    if (projectForkMap.keySet().contains(project)) {
-                        projectForkMap.get(project).add(fork);
-                    } else {
-                        HashSet<String> forkSet = new HashSet<>();
-                        forkSet.add(fork);
-                        projectForkMap.put(project, forkSet);
-                    }
+                    forkSet.add(fork);
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return projectForkMap;
+        return forkSet;
     }
 }
 
