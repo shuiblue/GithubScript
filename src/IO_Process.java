@@ -384,10 +384,12 @@ public class IO_Process {
             if (numUpdates[i] == -2)
                 System.out.println("Execution " + i +
                         ": unknown number of rows updated");
-            else
-                System.out.println("Execution " + i +
-                        "successful: " + numUpdates[i] + " rows updated");
+//            else
+//                System.out.println("Execution " + i +
+//                        "successful: " + numUpdates[i] + " rows updated");
         }
+
+        System.out.println(numUpdates.length + " rows updated");
     }
 
     public String getRepoUrlByID(int projectID) {

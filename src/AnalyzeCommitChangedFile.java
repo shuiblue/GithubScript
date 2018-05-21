@@ -173,7 +173,7 @@ public class AnalyzeCommitChangedFile {
                     System.out.println("——--" + changedfiles.size() + " changed files in one commit :" + TimeUnit.NANOSECONDS.toMillis(end_commit - start_commit) + " ms");
                 }else{
                     System.out.println(projectURL +" clone not available.");
-                    io.writeTofile(projectURL+"\n","clone_miss.txt");
+                    io.writeTofile(projectURL+"\n",output_dir+"clone_miss.txt");
                     continue;
                 }
             }
