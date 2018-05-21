@@ -62,12 +62,13 @@ public class AnalyzeCommitChangedFile {
             conn.setAutoCommit(false);
 
             long start = System.nanoTime();
+            HashSet<String> miss_Clone_project = new HashSet<>();
             for (String commit : commitSet) {
                 System.out.println(commit);
                 String[] commit_info = commit.split(",");
                 //repo.repoURL, c.commitSHA, c.id
                 String projectURL = commit_info[0];
-                if (new File(clone_dir + projectURL).exists()) {
+                if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
 
                     String sha = commit_info[1];
                     int commitshaID = Integer.parseInt(commit_info[2]);
@@ -171,9 +172,10 @@ public class AnalyzeCommitChangedFile {
                     }
                     long end_commit = System.nanoTime();
                     System.out.println("——--" + changedfiles.size() + " changed files in one commit :" + TimeUnit.NANOSECONDS.toMillis(end_commit - start_commit) + " ms");
-                }else{
-                    System.out.println(projectURL +" clone not available.");
-                    io.writeTofile(projectURL+"\n",output_dir+"clone_miss.txt");
+                } else {
+                    System.out.println(projectURL + " clone not available.");
+                    io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
+                    miss_Clone_project.add(projectURL);
                     continue;
                 }
             }
