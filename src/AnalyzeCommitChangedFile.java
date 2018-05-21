@@ -11,14 +11,14 @@ import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
 public class AnalyzeCommitChangedFile {
-    static String working_dir, pr_dir, output_dir, clone_dir;
+    static String working_dir, pr_dir, output_dir, clone_dir, current_dir;
     static String myUrl, user, pwd;
     static String myDriver = "com.mysql.jdbc.Driver";
     final int batchSize = 100;
 
     AnalyzeCommitChangedFile() {
         IO_Process io = new IO_Process();
-        String current_dir = System.getProperty("user.dir");
+        current_dir = System.getProperty("user.dir");
         try {
             String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
             working_dir = paramList[0];
@@ -198,9 +198,22 @@ public class AnalyzeCommitChangedFile {
     static public void main(String[] args) {
         AnalyzeCommitChangedFile accf = new AnalyzeCommitChangedFile();
         IO_Process io = new IO_Process();
-        HashSet<String> todo_commits = io.get_un_analyzedCommit();
-        System.out.println(todo_commits.size() + " commits in query");
-        accf.analyzeChangedFile(todo_commits);
+        HashSet<String> todo_commits ;
+        String[] repos = new String[0];
+        try {
+            repos = io.readResult(current_dir + "/input/prList.txt").split("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        for(String projectURL:repos) {
+            todo_commits = io.get_un_analyzedCommit(projectURL);
+            if(todo_commits.size()>0) {
+                System.out.println(todo_commits.size() + " commits from "+ projectURL);
+                accf.analyzeChangedFile(todo_commits);
+            }
+        }
+
+
     }
 
 

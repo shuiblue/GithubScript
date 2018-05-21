@@ -881,6 +881,26 @@ public class IO_Process {
     }
 
 
+    public HashSet<String> get_un_analyzedCommit(String projectURL) {
+        HashSet<String> unAnalyzedCommit = new HashSet<>();
+        String query = "SELECT repo.repoURL, c.commitSHA, c.id \n" +
+                "FROM fork.Commit AS c , repository AS repo\n" +
+                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commitSHA_id) AND c.projectID = repo.id AND repo.repoURL = \"" + projectURL+"\"";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                unAnalyzedCommit.add(rs.getString(1) + "," + rs.getString(2) + "," + rs.getInt(3));
+//                System.out.println(rs.getString(1)+","+rs.getString(2)+","+rs.getInt(3));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return unAnalyzedCommit;
+    }
+
     public HashSet<String> get_un_analyzedCommit() {
         HashSet<String> unAnalyzedCommit = new HashSet<>();
         String query = "SELECT repo.repoURL, c.commitSHA, c.id \n" +
@@ -903,9 +923,9 @@ public class IO_Process {
 
     public HashMap<String, HashSet<String>> getProjectForkMap() {
         HashMap<String, HashSet<String>> projectForkMap = new HashMap<>();
-        String query = "select r2.repoURL as upstream, r1.repoURL as fork\n" +
-                "from repository as r1, repository as r2\n" +
-                "where  r1.projectID = r2.id";
+        String query = "SELECT r2.repoURL AS upstream, r1.repoURL AS fork\n" +
+                "FROM repository AS r1, repository AS r2\n" +
+                "WHERE  r1.projectID = r2.id";
 
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
@@ -915,12 +935,12 @@ public class IO_Process {
                 while (rs.next()) {
                     String project = rs.getString("upstream");
                     String fork = rs.getString("fork");
-                    if(projectForkMap.keySet().contains(project)){
+                    if (projectForkMap.keySet().contains(project)) {
                         projectForkMap.get(project).add(fork);
-                    }else{
+                    } else {
                         HashSet<String> forkSet = new HashSet<>();
                         forkSet.add(fork);
-                        projectForkMap.put(project,forkSet);
+                        projectForkMap.put(project, forkSet);
                     }
                 }
             }
