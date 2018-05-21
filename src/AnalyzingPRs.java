@@ -102,7 +102,7 @@ public class AnalyzingPRs {
                 latestPRid = Integer.parseInt(lastPR);
             }
 
-
+            System.out.println("got pr list, start pr : "+startPR+" , latestpr: "+latestPRid+" finished repo contains "+projectUrl+"? "+finished_repos.containsKey(projectUrl));
             if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
                 System.out.println("start : ");
                 System.out.println(projectUrl);
