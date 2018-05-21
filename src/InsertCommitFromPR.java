@@ -62,30 +62,31 @@ public class InsertCommitFromPR {
         }
 
         /*** insert pr info to  Pull_Request table***/
-        for (String projectUrl : repos) {
-            int startPR = -1;
-            if (finished_repos.size() > 0) {
-                startPR = finished_repos.get(projectUrl);
-            }
-
-
+        String projectUrl = "twbs/bootstrap";
+//        for (String projectUrl : repos) {
+//            int startPR = -1;
+//            if (finished_repos.size() > 0) {
+//                startPR = finished_repos.get(projectUrl);
+//            }
+//
+//
             List<String> prList = io.getPRNumlist(projectUrl);
-            int latestPRid;
-            if (prList.size() > 0) {
-                String lastPR = prList.get(0);
-                latestPRid = Integer.parseInt(lastPR);
-            } else {
-                System.out.println("PR information is not available yet, waiting for api query ghd...");
-                continue;
-            }
-
-            if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
+//            int latestPRid;
+//            if (prList.size() > 0) {
+//                String lastPR = prList.get(0);
+//                latestPRid = Integer.parseInt(lastPR);
+//            } else {
+//                System.out.println("PR information is not available yet, waiting for api query ghd...");
+//                continue;
+//            }
+//
+//            if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
                 System.out.println(projectUrl);
                 int projectID = io.getRepoId(projectUrl);
 
                 int startIndex = 0;
-                if (finished_repos.containsKey(projectUrl) && startPR != -1) startIndex = prList.indexOf(startPR);
-                System.out.println("start with project :" + projectUrl + " pr#: " + startPR + " index: " + startIndex);
+//                if (finished_repos.containsKey(projectUrl) && startPR != -1) startIndex = prList.indexOf(startPR);
+//                System.out.println("start with project :" + projectUrl + " pr#: " + startPR + " index: " + startIndex);
                 for (int i = startIndex; i < prList.size(); i++) {
                     String pr_id_str = prList.get(i);
                     int pr_id = Integer.parseInt(pr_id_str);
@@ -98,9 +99,9 @@ public class InsertCommitFromPR {
                         break;
                     }
                 }
-                io.writeTofile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
-            }
-        }
+//                io.writeTofile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
+//            }
+//        }
     }
 
 
