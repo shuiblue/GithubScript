@@ -52,7 +52,7 @@ public class AnalyzingPRs {
         try {
             String[] result = io.readResult(output_dir + "AnalyzePR/finish_PRanalysis.txt").split("\n");
             for (String s : result) {
-                if(!s.equals("")) {
+                if (!s.equals("")) {
                     String[] arr = s.split(",");
                     finished_repos.put(arr[0], Integer.valueOf(arr[1]));
                 }
@@ -64,16 +64,28 @@ public class AnalyzingPRs {
 
         /*** insert pr info to  Pull_Request table***/
         for (String projectUrl : repos) {
-            String filePath = output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt";
-            List<String> prList = new ArrayList<>();
-            try {
-                prList = Arrays.asList(io.readResult(filePath).split("\n"));
-            } catch (IOException e) {
-                e.printStackTrace();
+            int startPR = -1;
+            if (finished_repos.size() > 0) {
+                startPR = finished_repos.get(projectUrl);
             }
-            int latestPRid = Integer.parseInt(prList.get(prList.size() - 1));
 
-            int startPR = finished_repos.get(projectUrl);
+            String prNumList_filePath = output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt";
+            List<String> prList = new ArrayList<>();
+            int latestPRid = -1;
+            if (new File(prNumList_filePath).exists()) {
+                String prListString = "";
+                try {
+                    prListString = io.readResult(prNumList_filePath);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (!prListString.trim().equals("")) {
+                    prList = Arrays.asList(prListString.split("\n"));
+                    String lastPR = prList.get(prList.size() - 1);
+                    latestPRid = Integer.parseInt(lastPR);
+                }
+            }
 
             if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
                 System.out.println(projectUrl);
