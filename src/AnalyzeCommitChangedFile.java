@@ -202,10 +202,11 @@ public class AnalyzeCommitChangedFile {
         HashSet<String> todo_commits ;
         String[] repos = new String[0];
         try {
-            repos = io.readResult(current_dir + "/input/prList.txt").split("\n");
+            repos = io.readResult(current_dir + "/input/repoList.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println(repos.length +" projects ");
         for(String projectURL:repos) {
             todo_commits = io.get_un_analyzedCommit(projectURL);
             if(todo_commits.size()>0) {
