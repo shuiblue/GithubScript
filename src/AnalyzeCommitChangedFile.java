@@ -188,6 +188,7 @@ public class AnalyzeCommitChangedFile {
         AnalyzeCommitChangedFile accf = new AnalyzeCommitChangedFile();
         IO_Process io = new IO_Process();
         HashSet<String> todo_commits = io.get_un_analyzedCommit();
+        System.out.println(todo_commits.size()+" commits in query");
         accf.analyzeChangedFile(todo_commits);
     }
 
