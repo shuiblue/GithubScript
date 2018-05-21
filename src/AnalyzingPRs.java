@@ -178,35 +178,8 @@ public class AnalyzingPRs {
                                 }
 
 
-                                System.out.println("inserting pr..");
-                                start = System.nanoTime();
-                                analyzingPRs.insertPR(projectID, pr_id, pr_info, forkID, now);
-                                end = System.nanoTime();
-                                System.out.println("inserting prs of a repo :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-//
-                                if (!forkUrl.equals("")) {
-                                    System.out.println("inserting fork from pr..");
-                                    start = System.nanoTime();
-                                    analyzingPRs.insertForkasPRauthor(projectID, author, forkUrl, now);
-                                    end = System.nanoTime();
-                                    System.out.println("inserting forks based on pr author :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-                                }
-
-                                System.out.println("inserting commit in pr.... from fork " + forkUrl);
-                                start = System.nanoTime();
-                                analyzingPRs.insertCommitInPR(forkID, projectID, commitSet, now);
-                                end = System.nanoTime();
-                                System.out.println("inserting commits for all prs :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
-
                                 /**get CommitIdMap **/
                                 HashMap<String, Integer> sha_commitID_map = io.getCommitIdMap(commitSet);
-
-
-                                System.out.println("inserting pr_commit mapping... from fork " + forkUrl);
-                                start = System.nanoTime();
-                                analyzingPRs.insertPR_Commit_mapping(projectID, pr_id, forkID, commitSet, sha_commitID_map);
-                                end = System.nanoTime();
-                                System.out.println("inserting pr_commits mapping for all :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
 
                                 System.out.println("analyze changed file in commit .. from fork " + forkUrl);
                                 start = System.nanoTime();

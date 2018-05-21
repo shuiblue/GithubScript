@@ -15,6 +15,7 @@ public class MonitorPR {
             System.out.println(latestLine_2);
             if (latestLine_1.equals(latestLine_2)) {
                 System.out.println("restart..");
+                new IO_Process().exeCmd("export PATH=$PATH:/opt/gradle/gradle-4.4/bin".split(" "), "/home/feature/shuruiz/GithubScript/");
                 new IO_Process().exeCmd("gradle -PmainClass=AnalyzingPRs execute".split(" "), "/home/feature/shuruiz/GithubScript/");
             }
         }
