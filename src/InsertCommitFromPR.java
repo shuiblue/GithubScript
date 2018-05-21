@@ -52,6 +52,7 @@ public class InsertCommitFromPR {
         try {
             String[] result = io.readResult(output_dir + "AnalyzePR/finish_PR_commit_analysis.txt").split("\n");
             for (String s : result) {
+                System.out.println("finished: " + s);
                 if (!s.equals("")) {
                     String[] arr = s.split(",");
                     finished_repos.put(arr[0], Integer.valueOf(arr[1]));
