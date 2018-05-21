@@ -55,16 +55,12 @@ public class AnalyzeRepository {
             e.printStackTrace();
         }
 
-        ArrayList<GithubRepository> repoObj_List = new ArrayList<>();
-
-        int count = 0;
-        while (count <= 100)
-            for (String projectUrl : projectList) {
-                System.out.println(projectUrl);
-                /**     get repo info from api*/
-                GithubRepository repo = new GithubRepository().getRepoInfo(projectUrl, "");
-                analyzeRepository.updateRepoInfo(repo);
-            }
+        for (String projectUrl : projectList) {
+            System.out.println(projectUrl);
+            /**     get repo info from api*/
+            GithubRepository repo = new GithubRepository().getRepoInfo(projectUrl, "");
+            analyzeRepository.updateRepoInfo(repo);
+        }
 
 
     }
@@ -127,8 +123,6 @@ public class AnalyzeRepository {
 
 
     }
-
-
 
 
 }
