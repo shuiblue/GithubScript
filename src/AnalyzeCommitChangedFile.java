@@ -159,6 +159,7 @@ public class AnalyzeCommitChangedFile {
                         continue;
 
                     }
+                    System.out.println(count+" count");
                     if (++count % batchSize == 0) {
                         io.executeQuery(preparedStmt);
                         conn.commit();
