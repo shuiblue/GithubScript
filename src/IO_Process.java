@@ -228,6 +228,11 @@ public class IO_Process {
         if (!new File(prNumList_filePath).exists()) {
             System.out.println("generating pr num list");
             String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
+            if(!new File(csvFile_dir).exists()){
+                io.writeTofile(projectUrl + "\n", output_dir + "pr_api_miss.txt");
+                return new ArrayList<>();
+            }
+
             List<List<String>> prs = io.readCSV(csvFile_dir);
             for (List<String> pr : prs) {
                 if (!pr.get(0).equals("")) {
@@ -237,22 +242,20 @@ public class IO_Process {
 
             }
             io.rewriteFile(sb.toString(), output_dir + "AnalyzePR/" + projectUrl.replace("/", ".") + ".prNum.txt");
-            String prListString = "";
-            try {
-                prListString = io.readResult(prNumList_filePath);
 
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (!prListString.trim().equals("")) {
-                prList = Arrays.asList(prListString.split("\n"));
-
-            }
-            return prList;
         }
-        System.out.println("pr list not exsit : " + prNumList_filePath);
-        return new ArrayList<>();
+        String prListString = "";
+        try {
+            prListString = io.readResult(prNumList_filePath);
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (!prListString.trim().equals("")) {
+            prList = Arrays.asList(prListString.split("\n"));
+
+        }
+        return prList;
     }
 
 
