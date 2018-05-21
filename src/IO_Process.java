@@ -221,7 +221,7 @@ public class IO_Process {
 
     public  List<String> getPRNumlist(String projectUrl) {
         IO_Process io = new IO_Process();
-        String prNumList_filePath = output_dir + projectUrl.replace("/", ".") + ".prNum.txt";
+        String prNumList_filePath = output_dir +"AnalyzePR/"+ projectUrl.replace("/", ".") + ".prNum.txt";
         List<String> prList = new ArrayList<>();
 
         StringBuilder sb = new StringBuilder();
@@ -236,7 +236,7 @@ public class IO_Process {
                 }
 
             }
-            io.rewriteFile(sb.toString(), output_dir + projectUrl.replace("/", ".") + ".prNum.txt");
+            io.rewriteFile(sb.toString(), output_dir +"AnalyzePR/"+  projectUrl.replace("/", ".") + ".prNum.txt");
             String prListString = "";
             try {
                 prListString = io.readResult(prNumList_filePath);
