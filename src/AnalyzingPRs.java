@@ -52,8 +52,10 @@ public class AnalyzingPRs {
         try {
             String[] result = io.readResult(output_dir + "/finish_PRanalysis.txt").split("\n");
             for (String s : result) {
-                String[] arr = s.split(",");
-                finished_repos.put(arr[0], Integer.valueOf(arr[1]));
+                if(!s.equals("")) {
+                    String[] arr = s.split(",");
+                    finished_repos.put(arr[0], Integer.valueOf(arr[1]));
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
