@@ -62,6 +62,7 @@ public class AnalyzeCommitChangedFile {
 
             long start = System.nanoTime();
             for (String commit : commitSet) {
+                System.out.println(commit);
                 String[] commit_info = commit.split(",");
                 //repo.repoURL, c.commitSHA, c.id
                 String projectURL = commit_info[0];
