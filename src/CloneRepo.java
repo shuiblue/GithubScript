@@ -1,10 +1,10 @@
+import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 
 public class CloneRepo {
 
-    static String working_dir, output_dir;
+    static String working_dir, output_dir, clone_dir;
 
     static public void main(String[] args) {
         IO_Process io = new IO_Process();
@@ -13,6 +13,7 @@ public class CloneRepo {
             String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
             working_dir = paramList[0];
             output_dir = working_dir + "ForkData/";
+            clone_dir = output_dir + "clones/";
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -24,13 +25,14 @@ public class CloneRepo {
         }
         System.out.println(repos.length + " projects ");
         for (String projectURL : repos) {
-            HashSet<String> project_forks = io.getProjectForkMap(projectURL);
-            JgitUtility jg = new JgitUtility();
+            if (!new File(clone_dir + projectURL).exists()) {
+                HashSet<String> project_forks = io.getProjectForkMap(projectURL);
+                JgitUtility jg = new JgitUtility();
 
-            jg.cloneRepo_cmd(project_forks, projectURL);
-            io.writeTofile(projectURL + "\n", output_dir + "finish_clone.txt");
+                jg.cloneRepo_cmd(project_forks, projectURL);
+                io.writeTofile(projectURL + "\n", output_dir + "finish_clone.txt");
+            }
         }
-
     }
 
 }
