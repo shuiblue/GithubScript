@@ -68,7 +68,6 @@ public class AnalyzeCommitChangedFile {
                 String[] commit_info = commit.split(",");
                 //repo.repoURL, c.commitSHA, c.id
                 String projectURL = commit_info[0];
-                projectURL = "MarlinFirmware/Marlin";
                 if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
 
                     String sha = commit_info[1];
