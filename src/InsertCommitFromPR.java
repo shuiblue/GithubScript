@@ -70,10 +70,21 @@ public class InsertCommitFromPR {
             }
 
 
-            String prNumList_filePath = output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt";
+            String prNumList_filePath = output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum_from_commit.txt";
             List<String> prList = new ArrayList<>();
             int latestPRid = -1;
-            if (new File(prNumList_filePath).exists()) {
+            if (!new File(prNumList_filePath).exists()) {
+                String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
+                List<List<String>> prs = io.readCSV(csvFile_dir);
+                for (List<String> pr : prs) {
+                    if (!pr.get(0).equals("")) {
+                        int pr_id = Integer.parseInt(pr.get(9));
+                        sb.append(pr_id + "\n");
+                    }
+
+                }
+                io.rewriteFile(sb.toString(), output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum_from_commit.txt");
+            }
                 String prListString = "";
                 try {
                     prListString = io.readResult(prNumList_filePath);
@@ -86,59 +97,47 @@ public class InsertCommitFromPR {
                     String lastPR = prList.get(prList.size() - 1);
                     latestPRid = Integer.parseInt(lastPR);
                 }
-            } else {
+
+
+            if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
+                System.out.println(projectUrl);
+                int projectID = io.getRepoId(projectUrl);
+
+
                 String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
-                List<List<String>> prs = io.readCSV(csvFile_dir);
-                for (List<String> pr : prs) {
-                    if (!pr.get(0).equals("")) {
-                        int pr_id = Integer.parseInt(pr.get(9));
-                        sb.append(pr_id + "\n");
-                    }
-
-            }
-                io.rewriteFile(sb.toString(), output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt");
-
-            }
-
-        if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
-            System.out.println(projectUrl);
-            int projectID = io.getRepoId(projectUrl);
-
-
-            String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
-            if (!new File(csvFile_dir).exists()) {
-                System.out.println(projectUrl + " pr not exsit");
-                break;
-            }
-            int startIndex = 0;
-            if (finished_repos.containsKey(projectUrl) &&startPR!=-1) startIndex = prList.indexOf(startPR);
-            System.out.println("start with project :" + projectUrl + " pr#: " + startPR + " index: " + startIndex);
-            for (int i = startIndex; i < prList.size(); i++) {
-                String pr_id_str = prList.get(i);
-                int pr_id = Integer.parseInt(pr_id_str);
-                System.out.println(pr_id);
-                boolean fileExist = analyzingPRs.getCommitsInPR(projectUrl, projectID, pr_id);
-                if (fileExist) {
-                    analyzingPRs.insertMap_Commits_PR(projectUrl, projectID, pr_id);
-                } else {
-                    io.writeTofile(projectUrl + "," + pr_id + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
-                    return;
+                if (!new File(csvFile_dir).exists()) {
+                    System.out.println(projectUrl + " pr not exsit");
+                    break;
                 }
+                int startIndex = 0;
+                if (finished_repos.containsKey(projectUrl) && startPR != -1) startIndex = prList.indexOf(startPR);
+                System.out.println("start with project :" + projectUrl + " pr#: " + startPR + " index: " + startIndex);
+                for (int i = startIndex; i < prList.size(); i++) {
+                    String pr_id_str = prList.get(i);
+                    int pr_id = Integer.parseInt(pr_id_str);
+                    System.out.println(pr_id);
+                    boolean fileExist = analyzingPRs.getCommitsInPR(projectUrl, projectID, pr_id);
+                    if (fileExist) {
+                        analyzingPRs.insertMap_Commits_PR(projectUrl, projectID, pr_id);
+                    } else {
+                        io.writeTofile(projectUrl + "," + pr_id + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
+                        return;
+                    }
+                }
+                io.writeTofile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
+            } else {
+                io.rewriteFile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
             }
-            io.writeTofile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
-        } else {
-            io.rewriteFile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
+
         }
 
     }
-
-}
 
 
     public boolean getCommitsInPR(String projectUrl, int projectID, int pr_id) {
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
-        io.rewriteFile("", output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt");
+        io.rewriteFile("", output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum_from_commit.txt");
         LocalDateTime now = LocalDateTime.now();
 //        String cmd_getPR = "ls get_prs." + projectUrl.replace("/", ".") + "*";
 
