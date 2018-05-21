@@ -60,7 +60,6 @@ public class InsertCommitFromPR {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        StringBuilder sb = new StringBuilder();
 
         /*** insert pr info to  Pull_Request table***/
         for (String projectUrl : repos) {
@@ -71,21 +70,19 @@ public class InsertCommitFromPR {
 
 
             List<String> prList = io.getPRNumlist(projectUrl);
-            int latestPRid=-1;
+            int latestPRid;
             if (prList.size() > 0) {
                 String lastPR = prList.get(0);
                 latestPRid = Integer.parseInt(lastPR);
+            } else {
+                System.out.println("PR information is not available yet, waiting for api query ghd...");
+                continue;
             }
+
             if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
                 System.out.println(projectUrl);
                 int projectID = io.getRepoId(projectUrl);
 
-
-                String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
-                if (!new File(csvFile_dir).exists()) {
-                    System.out.println(projectUrl + " pr not exsit");
-                    break;
-                }
                 int startIndex = 0;
                 if (finished_repos.containsKey(projectUrl) && startPR != -1) startIndex = prList.indexOf(startPR);
                 System.out.println("start with project :" + projectUrl + " pr#: " + startPR + " index: " + startIndex);
@@ -98,25 +95,18 @@ public class InsertCommitFromPR {
                         analyzingPRs.insertMap_Commits_PR(projectUrl, projectID, pr_id);
                     } else {
                         io.writeTofile(projectUrl + "," + pr_id + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
-                        return;
+                        break;
                     }
                 }
                 io.writeTofile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
-            } else {
-                io.rewriteFile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PR_commit_analysis.txt");
             }
-
         }
-
     }
 
 
     public boolean getCommitsInPR(String projectUrl, int projectID, int pr_id) {
         IO_Process io = new IO_Process();
-        StringBuilder sb = new StringBuilder();
-        io.rewriteFile("", output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum_from_commit.txt");
         LocalDateTime now = LocalDateTime.now();
-//        String cmd_getPR = "ls get_prs." + projectUrl.replace("/", ".") + "*";
 
         String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
         String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
