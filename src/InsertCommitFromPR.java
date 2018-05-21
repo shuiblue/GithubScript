@@ -143,10 +143,10 @@ public class InsertCommitFromPR {
 
         String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
         String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
-        String update_commit_query = " INSERT INTO fork.Commit  (commitSHA,loginID,author_name,email, projectID, data_update_at)" +
+        String update_commit_query = " INSERT INTO fork.Commit  (commitSHA,loginID,author_name,email, projectID, data_update_at,created_at)" +
                 "  SELECT *" +
                 "  FROM (SELECT" +
-                "          ? AS a,? AS b, ? AS c, ? AS d,? AS c1, ? AS d1) AS tmp" +
+                "          ? AS a,? AS b, ? AS c, ? AS d,? AS c1, ? AS d1, ? AS d2) AS tmp" +
                 "  WHERE NOT EXISTS(" +
                 "      SELECT commitSHA" +
                 "      FROM fork.Commit AS cc" +
@@ -198,7 +198,8 @@ public class InsertCommitFromPR {
                         //data_update_at
                         preparedStmt_1.setString(6, String.valueOf(now));
                         //sha
-                        preparedStmt_1.setString(7, line.get(8));
+                        preparedStmt_1.setString(7, line.get(4));
+                        preparedStmt_1.setString(8, line.get(8));
                         preparedStmt_1.addBatch();
 
 
