@@ -110,7 +110,7 @@ public class JgitUtility {
     }
 
 
-    public void cloneRepo_cmd(ArrayList<String> forkList, String projectURL) {
+    public void cloneRepo_cmd(HashSet<String> forkList, String projectURL) {
         String projectName = projectURL.split("/")[0];
         IO_Process io = new IO_Process();
         String creadDirCMD = "mkdir -p " + clone_dir + projectURL;
@@ -157,7 +157,7 @@ public class JgitUtility {
             JgitUtility jg = new JgitUtility();
             System.out.println(forkList.size()+ "forks on clone list...");
             if (forkList.size() > 0) {
-                jg.cloneRepo_cmd(forkList, projectUrl);
+//                jg.cloneRepo_cmd(forkList, projectUrl);
                 io.writeTofile(projectUrl+"\n",output_dir+"finish_clone.txt");
             }
 
