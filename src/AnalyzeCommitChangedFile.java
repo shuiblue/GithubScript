@@ -68,6 +68,7 @@ public class AnalyzeCommitChangedFile {
                 String[] commit_info = commit.split(",");
                 //repo.repoURL, c.commitSHA, c.id
                 String projectURL = commit_info[0];
+                projectURL = "MarlinFirmware/Marlin";
                 if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
 
                     String sha = commit_info[1];
@@ -173,7 +174,7 @@ public class AnalyzeCommitChangedFile {
                     long end_commit = System.nanoTime();
                     System.out.println("——--" + changedfiles.size() + " changed files in one commit :" + TimeUnit.NANOSECONDS.toMillis(end_commit - start_commit) + " ms");
                 } else {
-                    System.out.println(projectURL + " clone not available.");
+                    System.out.println(clone_dir + projectURL + " clone not available.");
                     io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
                     miss_Clone_project.add(projectURL);
                     continue;
