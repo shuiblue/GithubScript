@@ -374,18 +374,11 @@ public class IO_Process {
      **/
 
     public synchronized void executeQuery(PreparedStatement preparedStmt) {
-        long start = System.nanoTime();
         int[] numUpdates = new int[0];
         try {
             numUpdates = preparedStmt.executeBatch();
         } catch (SQLException e) {
             e.printStackTrace();
-//            try {
-//                Thread.sleep(10000);
-//            } catch (InterruptedException e1) {
-//                writeTofile( e1.getMessage()+"\n",output_dir+"/Transaction_error.txt");
-//            }
-//            executeQuery(preparedStmt);
         }
         for (int i = 0; i < numUpdates.length; i++) {
             if (numUpdates[i] == -2)
@@ -395,9 +388,6 @@ public class IO_Process {
                 System.out.println("Execution " + i +
                         "successful: " + numUpdates[i] + " rows updated");
         }
-        long end = System.nanoTime();
-        long used = end - start;
-        System.out.println("execute " + numUpdates.length + " query  :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
     }
 
     public String getRepoUrlByID(int projectID) {
@@ -863,7 +853,7 @@ public class IO_Process {
 //
 //    }
 
-    public ArrayList<String> getCommitFromCMD(String sha, String forkURL, String repoUrl) {
+    public ArrayList<String> getCommitFromCMD(String sha, String repoUrl) {
         String[] cmd_getline = {"/bin/sh",
                 "-c",
                 "git log -1 --numstat " + sha + " | egrep ^[[:digit:]]+ | egrep -v ^[\\d]+[[:space:]]+[\\d]+[[:space:]]+"};
@@ -889,18 +879,17 @@ public class IO_Process {
     }
 
 
-    public  ArrayList<Integer>  get_un_analyzedCommit() {
-        ArrayList<Integer>  unAnalyzedCommit = new ArrayList<>();
-        String query = "SELECT c.id\n" +
-                "FROM fork.Commit AS c\n" +
-                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commitSHA_id);";
-        ArrayList<Integer> commitList = new ArrayList<>();
+    public  HashSet<String>  get_un_analyzedCommit() {
+        HashSet<String>  unAnalyzedCommit = new HashSet<>();
+        String query = "SELECT repo.repoURL, c.commitSHA, c.id \n" +
+                "FROM fork.Commit AS c , repository as repo\n" +
+                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commitSHA_id) and c.projectID = repo.id;\n";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(query);
         ) {
             ResultSet rs = preparedStmt.executeQuery();
             while (rs.next()) {
-                commitList.add(rs.getInt(1));
+                unAnalyzedCommit.add(rs.getString(1)+","+rs.getString(2));
             }
 
 
