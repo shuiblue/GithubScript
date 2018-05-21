@@ -55,6 +55,7 @@ public class AnalyzingPRs {
                 if (!s.equals("")) {
                     String[] arr = s.split(",");
                     finished_repos.put(arr[0], Integer.valueOf(arr[1]));
+                    System.out.println(s);
                 }
             }
         } catch (IOException e) {
@@ -64,9 +65,11 @@ public class AnalyzingPRs {
 
         /*** insert pr info to  Pull_Request table***/
         for (String projectUrl : repos) {
+            System.out.println(projectUrl);
             int startPR = -1;
             if (finished_repos.size() > 0) {
                 startPR = finished_repos.get(projectUrl);
+                System.out.println("start with  "+projectUrl);
             }
 
             String prNumList_filePath = output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum_from_commit.txt";
