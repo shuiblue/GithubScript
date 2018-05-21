@@ -64,8 +64,9 @@ public class InsertCommitFromPR {
 
         /*** insert pr info to  Pull_Request table***/
         for (String projectUrl : repos) {
+            System.out.println(projectUrl);
             int startPR = -1;
-            if (finished_repos.size() > 0) {
+            if (finished_repos.size() > 0 & finished_repos.containsKey(projectUrl)) {
                 startPR = finished_repos.get(projectUrl);
             }
             System.out.println("start pr:" + startPR);
@@ -80,8 +81,8 @@ public class InsertCommitFromPR {
                 continue;
             }
 
-            if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
-                System.out.println(projectUrl);
+            if ( startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
+
                 int projectID = io.getRepoId(projectUrl);
 
                 int startIndex = 0;
