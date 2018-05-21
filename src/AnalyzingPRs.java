@@ -659,13 +659,13 @@ public class AnalyzingPRs {
 
         String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
         String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
-        String update_commit_query = " INSERT INTO fork.tmp_Commit  (commitSHA,loginID,author_name,email, projectID, data_update_at)" +
+        String update_commit_query = " INSERT INTO fork.Commit  (commitSHA,loginID,author_name,email, projectID, data_update_at)" +
                 "  SELECT *" +
                 "  FROM (SELECT" +
                 "          ? AS a,? AS b, ? AS c, ? AS d,? AS c1, ? AS d1) AS tmp" +
                 "  WHERE NOT EXISTS(" +
                 "      SELECT commitSHA" +
-                "      FROM fork.tmp_Commit AS cc" +
+                "      FROM fork.Commit AS cc" +
                 "      WHERE cc.commitSHA = ?" +
                 "  )" +
                 "  LIMIT 1";
@@ -747,13 +747,13 @@ public class AnalyzingPRs {
 
         String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
 
-        String update_pr_commit_query = " INSERT INTO fork.tmp_PR_Commit (commitsha_id,projectID,pull_request_id)" +
+        String update_pr_commit_query = " INSERT INTO fork.PR_Commit (commitsha_id,projectID,pull_request_id)" +
                 "  SELECT *" +
                 "  FROM (SELECT" +
                 "          ? AS a,? AS b, ? AS c ) AS tmp" +
                 "  WHERE NOT EXISTS(" +
                 "      SELECT *" +
-                "      FROM fork.tmp_PR_Commit AS cc" +
+                "      FROM fork.PR_Commit AS cc" +
                 "      WHERE cc.commitsha_id = ?" +
                 "      AND cc.projectID = ?" +
                 "      AND cc.pull_request_id = ?" +
