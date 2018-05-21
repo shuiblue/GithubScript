@@ -77,6 +77,7 @@ public class AnalyzingPRs {
             int latestPRid = -1;
             StringBuilder sb = new StringBuilder();
             if (!new File(prNumList_filePath).exists()) {
+                System.out.println("generating pr num list");
                 String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
                 List<List<String>> prs = io.readCSV(csvFile_dir);
                 for (List<String> pr : prs) {
@@ -103,6 +104,7 @@ public class AnalyzingPRs {
 
 
             if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
+                System.out.println("start : ");
                 System.out.println(projectUrl);
                 int projectID = io.getRepoId(projectUrl);
                 int startIndex = 0;
@@ -522,6 +524,7 @@ public class AnalyzingPRs {
 
 
     public boolean getPRfiles(String projectUrl, int projectID,int startPR) {
+        System.out.println("analyze pr files of "+projectUrl);
         AnalyzeRepository analyzeRepository = new AnalyzeRepository();
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
