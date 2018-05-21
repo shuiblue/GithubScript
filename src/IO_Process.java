@@ -687,8 +687,8 @@ public class IO_Process {
 //                " Values(\"" + repoURL + "\")";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(insertProject)) {
-            preparedStmt.setString(1,repoURL);
-            preparedStmt.setString(2,repoURL);
+            preparedStmt.setString(1, repoURL);
+            preparedStmt.setString(2, repoURL);
             System.out.println("insert repo " + repoURL + " to database, affected " + preparedStmt.executeUpdate() + " row.");
         } catch (SQLException e) {
             e.printStackTrace();
@@ -854,6 +854,13 @@ public class IO_Process {
     }
 
 
+    public HashSet<String> get_un_analyzedCommit() {
+        HashSet<String> unAnalyzedCommit = new HashSet<>();
+        String query = "";
+
+
+        return unAnalyzedCommit;
+    }
 }
 
 
