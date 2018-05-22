@@ -255,7 +255,7 @@ public class IO_Process {
             prList = Arrays.asList(prListString.split("\n"));
 
         }
-        return  new ArrayList<String>(prList);
+        return new ArrayList<String>(prList);
     }
 
 
@@ -454,7 +454,7 @@ public class IO_Process {
 
     public int getRepoId(String repoURL) {
         int repoID = -1;
-        String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL = \""+repoURL+"\"";
+        String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL = \"" + repoURL + "\"";
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(selectRepoID)) {
@@ -971,6 +971,28 @@ public class IO_Process {
     }
 
 
+    public HashSet<String> getExistCommits(int projectID, int pr_id) {
+        HashSet<String> commits = new HashSet<>();
+        String query_getExistCommit = "SELECT c.commitSHA\n" +
+                "FROM  Pull_Request as pr, PR_Commit_map as prc, Commit as c\n" +
+                "WHERE  pr.pull_request_ID = prc.pull_request_id and pr.projectID = prc.projectID " +
+                "and prc.commitsha_id = c.id and pr.projectID= " + projectID +
+                "and pr.pull_request_ID  " + pr_id;
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query_getExistCommit);) {
+
+            try (ResultSet rs = preparedStmt.executeQuery()) {
+                while (rs.next()) {
+                    String sha = rs.getString(1);
+                    commits.add(sha);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return commits;
+    }
 }
 
 
