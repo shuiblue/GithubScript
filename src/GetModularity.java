@@ -100,6 +100,7 @@ public class GetModularity {
                     while (threshold < 100) {
                         for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
                             System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
+
                             getModularity.measureModularity(projectURL, threshold, b, year);
                         }
                         threshold += 5;
@@ -207,6 +208,8 @@ public class GetModularity {
             }
         }
 
+
+        System.out.println(" FileList size " + fileList.size());
         System.out.println(" support matrix, changed file set size: " + changedFilePair_Set.size());
         int index = 0;
         for (HashSet<String> co_changedFiles : changedFilePair_Set) {
