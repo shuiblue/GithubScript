@@ -23,13 +23,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class GraphBasedClassifier {
 
-    static String working_dir, pr_dir, output_dir, clone_dir;
+    static String working_dir, pr_dir, output_dir, clone_dir,current_dir,tmpDirPath,result_dir;
     static String myUrl, user, pwd;
     static String myDriver = "com.mysql.jdbc.Driver";
     final int batchSize = 100;
 
-    static String tmpDirPath;
-    static String current_dir,result_dir;
+//    static String tmpDirPath;
+//    static String ,result_dir;
     HashMap<String, ArrayList<String>> fork_HistoryMap, upstream_HistoryMap;
     HashSet<String> fork_mergeCommitSet, upstream_mergeCommitSet;
     String forkPointCommitSHA = "";
@@ -37,10 +37,12 @@ public class GraphBasedClassifier {
     ArrayList<String> checkedCommits;
     HashSet<String> checkedCommitsBeforeForking;
 
+    HashMap<String, ArrayList<String>> all_historyMap = new HashMap<>();
+
     GraphBasedClassifier() {
          String current_OS = System.getProperty("os.name").toLowerCase();
         current_dir = System.getProperty("user.dir");
-//        tmpDirPath = current_dir + "/cloneRepos/";
+        tmpDirPath = current_dir + "/cloneRepos/";
 
         if (current_OS.indexOf("mac") >= 0) {
             tmpDirPath = "/Users/shuruiz/Box Sync/ForkData/cloneRepos/";
@@ -70,6 +72,7 @@ public class GraphBasedClassifier {
         }
 
     }
+
 
 
     public void analyzeCommitHistory(String forkInfo, String repoURL) {
@@ -276,8 +279,6 @@ public class GraphBasedClassifier {
         nodes.addAll(nodeSet);
     }
 
-
-    HashMap<String, ArrayList<String>> all_historyMap = new HashMap<>();
 
     private void generatingGraphForDijkstra(HashMap<String, ArrayList<String>> historyMap) {
 
