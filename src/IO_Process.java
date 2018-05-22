@@ -219,7 +219,7 @@ public class IO_Process {
         return null;
     }
 
-    public List<String> getPRNumlist(String projectUrl) {
+    public ArrayList<String> getPRNumlist(String projectUrl) {
         IO_Process io = new IO_Process();
         String prNumList_filePath = output_dir + "AnalyzePR/" + projectUrl.replace("/", ".") + ".prNum.txt";
         List<String> prList = new ArrayList<>();
@@ -228,7 +228,7 @@ public class IO_Process {
         if (!new File(prNumList_filePath).exists()) {
             System.out.println("generating pr num list");
             String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
-            if(!new File(csvFile_dir).exists()){
+            if (!new File(csvFile_dir).exists()) {
                 io.writeTofile(projectUrl + "\n", output_dir + "pr_api_miss.txt");
                 return new ArrayList<>();
             }
@@ -255,7 +255,7 @@ public class IO_Process {
             prList = Arrays.asList(prListString.split("\n"));
 
         }
-        return prList;
+        return  new ArrayList<String>(prList);
     }
 
 
@@ -454,13 +454,10 @@ public class IO_Process {
 
     public int getRepoId(String repoURL) {
         int repoID = -1;
-
-        String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL = ?";
+        String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL = \""+repoURL+"\"";
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(selectRepoID)) {
-            preparedStmt.setString(1, repoURL);
-
             try (ResultSet rs = preparedStmt.executeQuery()) {
                 if (rs.next()) {
                     repoID = rs.getInt("id");
@@ -530,6 +527,30 @@ public class IO_Process {
         }
         return sha_commitID_map;
     }
+
+    public HashSet<String> getPRinDataBase(int projectID) {
+        String query = "\n" +
+                "SELECT pull_request_ID\n" +
+                "FROM  Pull_Request\n" +
+                "WHERE  projectID = " + projectID;
+
+        HashSet<String> analyzedPR = new HashSet<>();
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                analyzedPR.add(String.valueOf(rs.getInt(1)));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return analyzedPR;
+
+
+    }
+
 
     /**
      * These 3 function inserting new repo to database and fetch from github
@@ -948,6 +969,8 @@ public class IO_Process {
 
         return forkSet;
     }
+
+
 }
 
 

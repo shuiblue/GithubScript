@@ -45,53 +45,33 @@ public class AnalyzingPRs {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Map<String, Integer> finished_repos = new HashMap<>();
-        try {
-            String[] result = io.readResult(output_dir + "AnalyzePR/finish_PRanalysis.txt").split("\n");
-            for (String s : result) {
-                if (!s.equals("")) {
-                    String[] arr = s.split(",");
-                    finished_repos.put(arr[0], Integer.valueOf(arr[1]));
-                    System.out.println(s);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
 
         /*** insert pr info to  Pull_Request table***/
         for (String projectUrl : repos) {
             System.out.println(projectUrl);
-            int startPR = -1;
-            if (finished_repos.size() > 0) {
-                startPR = finished_repos.get(projectUrl);
-                System.out.println("start with  " + projectUrl);
-            }
 
-            List<String> prList = io.getPRNumlist(projectUrl);
-
-            int latestPRid;
-            if (prList.size() > 0) {
-                String lastPR = prList.get(0);
-                latestPRid = Integer.parseInt(lastPR);
-            } else {
-                System.out.println("PR information is not available yet, waiting for api query ghd...");
+            ArrayList<String> prList = io.getPRNumlist(projectUrl);
+            if (prList.size() == 0) {
+                System.out.println(projectUrl +" pr api result not available");
+                io.writeTofile(projectUrl+"\n",output_dir+"miss_pr_api.txt");
                 continue;
             }
 
-            System.out.println("got pr list, start pr : " + startPR + " , latestpr: " + latestPRid + " finished repo contains " + projectUrl + "? " + finished_repos.containsKey(projectUrl));
-            if (startPR <= latestPRid || !finished_repos.containsKey(projectUrl)) {
-                System.out.println("start : " + projectUrl);
-                int projectID = io.getRepoId(projectUrl);
-                analyzingPRs.getPRfiles(projectUrl, projectID, startPR);
-                io.writeTofile(projectUrl + "," + latestPRid + "\n", output_dir + "AnalyzePR/finish_PRanalysis.txt");
-            }
+            int projectID = io.getRepoId(projectUrl);
+            HashSet<String> analyzedPR = io.getPRinDataBase(projectID);
 
+            prList.removeAll(analyzedPR);
+
+            if (prList.size() == 0) {
+                System.out.println(projectUrl +" pr analysis  done :)");
+                continue;
+            }
+                System.out.println("start : " + projectUrl);
+                analyzingPRs.getPRfiles(projectUrl, projectID, prList);
         }
     }
 
-    public void getPRfiles(String projectUrl, int projectID, int startPR) {
+    public void getPRfiles(String projectUrl, int projectID,  List<String> prList) {
         System.out.println("analyze pr files of " + projectUrl);
         AnalyzeRepository analyzeRepository = new AnalyzeRepository();
         IO_Process io = new IO_Process();
@@ -118,7 +98,7 @@ public class AnalyzingPRs {
                          PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
                         conn.setAutoCommit(false);
                         int pr_id = Integer.parseInt(pr.get(9));
-                        if (pr_id > startPR && startPR != -1) {
+                        if (prList.contains(pr_id)) {
                             System.out.println("pass " + pr_id);
                             continue;
                         }
