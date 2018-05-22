@@ -977,7 +977,7 @@ public class IO_Process {
                 "FROM  Pull_Request as pr, PR_Commit_map as prc, Commit as c\n" +
                 "WHERE  pr.pull_request_ID = prc.pull_request_id and pr.projectID = prc.projectID " +
                 "and prc.commitsha_id = c.id and pr.projectID= " + projectID +
-                "and pr.pull_request_ID  " + pr_id;
+                " and pr.pull_request_ID  = " + pr_id;
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(query_getExistCommit);) {
