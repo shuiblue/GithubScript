@@ -232,7 +232,7 @@ public class IO_Process {
             return new ArrayList<>();
         } else {
             try {
-                if (!new File(prNumList_filePath).exists() || io.readResult(prNumList_filePath).split("\n").length == 0) {
+                if (!new File(prNumList_filePath).exists() || io.readResult(prNumList_filePath).trim().equals("")) {
                     System.out.println("generating pr num list");
                     List<List<String>> prs = io.readCSV(csvFile_dir);
                     for (List<String> pr : prs) {
