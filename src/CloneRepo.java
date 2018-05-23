@@ -26,15 +26,10 @@ public class CloneRepo {
         System.out.println(repos.length + " projects ");
         while (true) {
             for (String projectURL : repos) {
-                if (new File(clone_dir + projectURL).exists()) {
                     HashSet<String> project_forks = io.getProjectForkMap(projectURL);
                     JgitUtility jg = new JgitUtility();
                     jg.cloneRepo_cmd(project_forks, projectURL);
                     io.writeTofile(projectURL + "\n", output_dir + "finish_clone.txt");
-                }else{
-                    io.writeTofile(projectURL+"\n",output_dir+"404_pro.txt");
-
-                }
             }
         }
     }

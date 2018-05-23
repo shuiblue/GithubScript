@@ -121,21 +121,25 @@ public class JgitUtility {
         String cloneCMD = "git clone " + github_url + projectURL + ".git";
         io.exeCmd(cloneCMD.split(" "), clone_dir + projectName + "/");
 
-        HashSet<String> clonedFork = new HashSet<>();
-        for (String forkUrl : forkList) {
-            forkUrl = io.getForkURL(forkUrl);
-            if (!clonedFork.contains(forkUrl)) {
-                clonedFork.add(forkUrl);
-                System.out.println(forkUrl);
-                String forkName = io.getForkURL(forkUrl.split("/")[0]);
-                String cloneForkCmd = "git remote add " + forkName + " " + github_url + forkUrl + ".git";
-                io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
+        if (new File(clone_dir + projectURL).exists()) {
+            HashSet<String> clonedFork = new HashSet<>();
+            for (String forkUrl : forkList) {
+                forkUrl = io.getForkURL(forkUrl);
+                if (!clonedFork.contains(forkUrl)) {
+                    clonedFork.add(forkUrl);
+                    System.out.println(forkUrl);
+                    String forkName = io.getForkURL(forkUrl.split("/")[0]);
+                    String cloneForkCmd = "git remote add " + forkName + " " + github_url + forkUrl + ".git";
+                    io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
+                }
             }
+
+            String fetchAll = "git fetch --all";
+            System.out.println(io.exeCmd(fetchAll.split(" "), clone_dir + projectURL + "/"));
+        } else {
+            io.writeTofile(projectURL + "\n", output_dir + "404_pro.txt");
+
         }
-
-        String fetchAll = "git fetch --all";
-        System.out.println(io.exeCmd(fetchAll.split(" "), clone_dir + projectURL + "/"));
-
     }
 
     public static void main(String[] args) {
@@ -155,10 +159,10 @@ public class JgitUtility {
             System.out.println(projectUrl);
             forkList.addAll(io.getForkListFromPRlist(projectUrl));
             JgitUtility jg = new JgitUtility();
-            System.out.println(forkList.size()+ "forks on clone list...");
+            System.out.println(forkList.size() + "forks on clone list...");
             if (forkList.size() > 0) {
 //                jg.cloneRepo_cmd(forkList, projectUrl);
-                io.writeTofile(projectUrl+"\n",output_dir+"finish_clone.txt");
+                io.writeTofile(projectUrl + "\n", output_dir + "finish_clone.txt");
             }
 
         }
