@@ -47,7 +47,7 @@ public class AnalyzingPRs {
         }
 
 
-        String missPRFile = "miss_pr_api_pr6.txt";
+        String missPRFile = "miss_pr_api_pr1.txt";
         while (!io.readResult(output_dir + missPRFile).trim().equals("")) {
             System.out.println("new loop .....");
             io.rewriteFile("", output_dir + missPRFile);
