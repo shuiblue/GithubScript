@@ -225,25 +225,31 @@ public class IO_Process {
         List<String> prList = new ArrayList<>();
 
         StringBuilder sb = new StringBuilder();
-        if (!new File(prNumList_filePath).exists()) {
-            System.out.println("generating pr num list");
-            String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
-            if (!new File(csvFile_dir).exists()) {
-                io.writeTofile(projectUrl + "\n", output_dir + "pr_api_miss.txt");
-                return new ArrayList<>();
-            }
+        String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
+        if (!new File(csvFile_dir).exists()) {
+            io.writeTofile(projectUrl + "\n", output_dir + "pr_api_miss.txt");
+            System.out.println(projectUrl + " pr api not available yet. ");
+            return new ArrayList<>();
+        } else {
+            try {
+                if (!new File(prNumList_filePath).exists() || io.readResult(prNumList_filePath).split("\n").length == 0) {
+                    System.out.println("generating pr num list");
+                    List<List<String>> prs = io.readCSV(csvFile_dir);
+                    for (List<String> pr : prs) {
+                        if (!pr.get(0).equals("")) {
+                            int pr_id = Integer.parseInt(pr.get(9));
+                            sb.append(pr_id + "\n");
+                        }
 
-            List<List<String>> prs = io.readCSV(csvFile_dir);
-            for (List<String> pr : prs) {
-                if (!pr.get(0).equals("")) {
-                    int pr_id = Integer.parseInt(pr.get(9));
-                    sb.append(pr_id + "\n");
+                    }
+                    io.rewriteFile(sb.toString(), output_dir + "AnalyzePR/" + projectUrl.replace("/", ".") + ".prNum.txt");
+
                 }
-
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            io.rewriteFile(sb.toString(), output_dir + "AnalyzePR/" + projectUrl.replace("/", ".") + ".prNum.txt");
-
         }
+
         String prListString = "";
         try {
             prListString = io.readResult(prNumList_filePath);
