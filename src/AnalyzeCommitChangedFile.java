@@ -208,6 +208,8 @@ public class AnalyzeCommitChangedFile {
         System.out.println(repos.length + " projects ");
         int count=0;
         while (count<repos.length) {
+            System.out.println("restart loop..");
+            count=0;
             for (String projectURL : repos) {
                 todo_commits = io.get_un_analyzedCommit(projectURL);
                 if (todo_commits.size() > 0) {
