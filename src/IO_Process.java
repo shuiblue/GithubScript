@@ -316,7 +316,7 @@ public class IO_Process {
             try {
                 while ((line = reader.readLine()) != null) {
                     builder.append(line);
-//                    System.out.println(line);
+                    System.out.println(line);
                     builder.append(System.getProperty("line.separator"));
                 }
             } catch (IOException e) {
