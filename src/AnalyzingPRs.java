@@ -46,32 +46,36 @@ public class AnalyzingPRs {
             e.printStackTrace();
         }
 
-        /*** insert pr info to  Pull_Request table***/
-        for (String projectUrl : repos) {
-            System.out.println(projectUrl);
+        while (true) {
+            io.rewriteFile("", output_dir + "miss_pr_api_analyzePR.txt");
 
-            ArrayList<String> prList = io.getPRNumlist(projectUrl);
-            if (prList.size() == 0) {
-                System.out.println(projectUrl +" pr api result not available");
-                io.writeTofile(projectUrl+"\n",output_dir+"miss_pr_api.txt");
-                continue;
-            }
+            /*** insert pr info to  Pull_Request table***/
+            for (String projectUrl : repos) {
+                System.out.println(projectUrl);
 
-            int projectID = io.getRepoId(projectUrl);
-            HashSet<String> analyzedPR = io.getPRinDataBase(projectID);
+                ArrayList<String> prList = io.getPRNumlist(projectUrl);
+                if (prList.size() == 0) {
+                    System.out.println(projectUrl + " pr api result not available");
+                    io.writeTofile(projectUrl + "\n", output_dir + "miss_pr_api_analyzePR.txt");
+                    continue;
+                }
 
-            prList.removeAll(analyzedPR);
+                int projectID = io.getRepoId(projectUrl);
+                HashSet<String> analyzedPR = io.getPRinDataBase(projectID);
 
-            if (prList.size() == 0) {
-                System.out.println(projectUrl +" pr analysis  done :)");
-                continue;
-            }
+                prList.removeAll(analyzedPR);
+
+                if (prList.size() == 0) {
+                    System.out.println(projectUrl + " pr analysis  done :)");
+                    continue;
+                }
                 System.out.println("start : " + projectUrl);
                 analyzingPRs.getPRfiles(projectUrl, projectID, prList);
+            }
         }
     }
 
-    public void getPRfiles(String projectUrl, int projectID,  List<String> prList) {
+    public void getPRfiles(String projectUrl, int projectID, List<String> prList) {
         System.out.println("analyze pr files of " + projectUrl);
         AnalyzeRepository analyzeRepository = new AnalyzeRepository();
         IO_Process io = new IO_Process();
