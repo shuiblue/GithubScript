@@ -201,7 +201,7 @@ public class AnalyzeCommitChangedFile {
         HashSet<String> todo_commits ;
         String[] repos = new String[0];
         try {
-            repos = io.readResult(current_dir + "/input/repoList.txt").split("\n");
+            repos = io.readResult(current_dir + "/input/file_repoList.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }

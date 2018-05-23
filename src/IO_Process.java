@@ -913,6 +913,7 @@ public class IO_Process {
 
 
     public HashSet<String> get_un_analyzedCommit(String projectURL) {
+        System.out.println("get un analyzed commit for " + projectURL);
         HashSet<String> unAnalyzedCommit = new HashSet<>();
         String query = "SELECT repo.repoURL, c.commitSHA, c.id \n" +
                 "FROM fork.Commit AS c , repository AS repo\n" +
@@ -929,28 +930,10 @@ public class IO_Process {
             e.printStackTrace();
         }
 
+        System.out.println(" todo commit: #" + unAnalyzedCommit.size());
         return unAnalyzedCommit;
     }
 
-    public HashSet<String> get_un_analyzedCommit() {
-        HashSet<String> unAnalyzedCommit = new HashSet<>();
-        String query = "SELECT repo.repoURL, c.commitSHA, c.id \n" +
-                "FROM fork.Commit AS c , repository AS repo\n" +
-                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commitSHA_id) AND c.projectID = repo.id;\n";
-        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
-             PreparedStatement preparedStmt = conn.prepareStatement(query);
-        ) {
-            ResultSet rs = preparedStmt.executeQuery();
-            while (rs.next()) {
-                unAnalyzedCommit.add(rs.getString(1) + "," + rs.getString(2) + "," + rs.getInt(3));
-//                System.out.println(rs.getString(1)+","+rs.getString(2)+","+rs.getInt(3));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return unAnalyzedCommit;
-    }
 
     public HashSet<String> getProjectForkMap(String projectURL) {
         HashSet<String> forkSet = new HashSet<>();
