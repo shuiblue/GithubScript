@@ -198,22 +198,27 @@ public class AnalyzeCommitChangedFile {
     static public void main(String[] args) {
         AnalyzeCommitChangedFile accf = new AnalyzeCommitChangedFile();
         IO_Process io = new IO_Process();
-        HashSet<String> todo_commits ;
+        HashSet<String> todo_commits;
         String[] repos = new String[0];
         try {
             repos = io.readResult(current_dir + "/input/file_repoList.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println(repos.length +" projects ");
-        for(String projectURL:repos) {
-            todo_commits = io.get_un_analyzedCommit(projectURL);
-            if(todo_commits.size()>0) {
-                System.out.println(todo_commits.size() + " commits from "+ projectURL);
-                accf.analyzeChangedFile(todo_commits);
+        System.out.println(repos.length + " projects ");
+        int count=0;
+        while (count<repos.length) {
+            for (String projectURL : repos) {
+                todo_commits = io.get_un_analyzedCommit(projectURL);
+                if (todo_commits.size() > 0) {
+                    System.out.println(todo_commits.size() + " commits from " + projectURL);
+                    accf.analyzeChangedFile(todo_commits);
+                }else{
+                    count++;
+                }
             }
-        }
 
+        }
 
     }
 
