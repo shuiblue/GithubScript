@@ -104,7 +104,6 @@ public class InsertCommitFromPR {
         String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
         String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
 
-        if (csvFileAlter_Exist || csvFileExist) {
             try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
                  Connection conn3 = DriverManager.getConnection(myUrl, user, pwd);
                  PreparedStatement preparedStmt_updatePR = conn3.prepareStatement(updatePR);
@@ -170,7 +169,7 @@ public class InsertCommitFromPR {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-        }
+
         return commitList;
     }
 
@@ -183,7 +182,7 @@ public class InsertCommitFromPR {
                 "          ? AS a,? AS b, ? AS c ) AS tmp" +
                 "  WHERE NOT EXISTS(" +
                 "      SELECT *" +
-                "      FROM fork.PR_Commit AS cc" +
+                "      FROM fork.PR_Commit_map AS cc" +
                 "      WHERE cc.commitsha_id = ?" +
                 "      AND cc.projectID = ?" +
                 "      AND cc.pull_request_id = ?" +
