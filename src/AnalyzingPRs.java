@@ -34,7 +34,7 @@ public class AnalyzingPRs {
 
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         IO_Process io = new IO_Process();
         AnalyzingPRs analyzingPRs = new AnalyzingPRs();
         String current_dir = System.getProperty("user.dir");
@@ -46,7 +46,8 @@ public class AnalyzingPRs {
             e.printStackTrace();
         }
 
-        while (true) {
+
+        while (!io.readResult(output_dir + "miss_pr_api_analyzePR.txt").trim().equals("")) {
             io.rewriteFile("", output_dir + "miss_pr_api_analyzePR.txt");
 
             /*** insert pr info to  Pull_Request table***/
