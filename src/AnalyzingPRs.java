@@ -110,8 +110,8 @@ public class AnalyzingPRs {
                         int forkID = io.getRepoId(forkURL);
                         if (!existingForks.contains(forkURL) || forkID == -1) {
                             io.insertRepo(forkURL);
-                            GithubRepository fork = new GithubRepository().getRepoInfo(forkURL, projectUrl);
-                            analyzeRepository.updateRepoInfo(fork);
+//                            GithubRepository fork = new GithubRepository().getRepoInfo(forkURL, projectUrl);
+//                            analyzeRepository.updateRepoInfo(fork);
                             forkID = io.getRepoId(forkURL);
                         } else {
                             System.out.println(forkURL + "already in database :)");
