@@ -47,8 +47,10 @@ public class AnalyzingPRs {
         }
 
 
-        while (!io.readResult(output_dir + "miss_pr_api_analyzePR.txt").trim().equals("")) {
-            io.rewriteFile("", output_dir + "miss_pr_api_analyzePR.txt");
+        String missPRFile = "miss_pr_api_pr2.txt";
+        while (!io.readResult(output_dir + missPRFile).trim().equals("")) {
+            System.out.println("new loop .....");
+            io.rewriteFile("", output_dir + missPRFile);
 
             /*** insert pr info to  Pull_Request table***/
             for (String projectUrl : repos) {
@@ -57,7 +59,7 @@ public class AnalyzingPRs {
                 ArrayList<String> prList = io.getPRNumlist(projectUrl);
                 if (prList.size() == 0) {
                     System.out.println(projectUrl + " pr api result not available");
-                    io.writeTofile(projectUrl + "\n", output_dir + "miss_pr_api_analyzePR.txt");
+                    io.writeTofile(projectUrl + "\n", output_dir + missPRFile);
                     continue;
                 }
 
