@@ -99,6 +99,7 @@ public class GetModularity {
                     int threshold = 10;
                     while (threshold < 100) {
                         for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
+                            year=4;
                             System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
                             getModularity.measureModularity(projectURL, threshold, b, year);
                         }
@@ -217,24 +218,27 @@ public class GetModularity {
                 co_changedFiles.removeAll(stopFileSet);
             }
 
-            list.addAll(co_changedFiles);
-            String a = list.get(0);
-            int index_a = fileList.indexOf(a);
-            if (co_changedFiles.size() == 2) {
-                String b = list.get(1);
-                int index_b = fileList.indexOf(b);
-                support_matrix[index_a][index_b] += 1;
-                support_matrix[index_b][index_a] += 1;
-                support_matrix[index_a][index_a] += 1;
-                support_matrix[index_b][index_b] += 1;
+            if(co_changedFiles.size()>0) {
+                list.addAll(co_changedFiles);
+                String a = list.get(0);
+                int index_a = fileList.indexOf(a);
+                if (co_changedFiles.size() == 2) {
+                    String b = list.get(1);
+                    int index_b = fileList.indexOf(b);
+                    support_matrix[index_a][index_b] += 1;
+                    support_matrix[index_b][index_a] += 1;
+                    support_matrix[index_a][index_a] += 1;
+                    support_matrix[index_b][index_b] += 1;
 
 
-                /** generating graph, node--file, edge -- co-changed relation */
+                    /** generating graph, node--file, edge -- co-changed relation */
 //                sb.append((index_a + 1) + "," + (index_b + 1) + "\n");
-            } else if (co_changedFiles.size() == 1) {
-                support_matrix[index_a][index_a] += 1;
+                } else if (co_changedFiles.size() == 1) {
+                    support_matrix[index_a][index_a] += 1;
+                }
+            }else{
+                System.out.println();
             }
-
 
         }
 /** generating graph, node--file, edge -- co-changed relation */
