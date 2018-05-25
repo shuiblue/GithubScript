@@ -99,7 +99,6 @@ public class GetModularity {
                     int threshold = 10;
                     while (threshold < 100) {
                         for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
-                            year=4;
                             System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
                             getModularity.measureModularity(projectURL, threshold, b, year);
                         }
