@@ -18,7 +18,7 @@ public class AnalyzeIssueResult {
 
     static public void main(String[] args) {
         int batchSize = 100;
-        AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
+            AnalyzeChangedFile_ClassifyCommit acc = new AnalyzeChangedFile_ClassifyCommit();
 
         current_dir = System.getProperty("user.dir");
         IO_Process io = new IO_Process();

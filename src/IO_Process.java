@@ -1009,7 +1009,7 @@ public class IO_Process {
         List<String> forkList = new ArrayList<>();
         IO_Process io = new IO_Process();
         List<List<String>> prList = null;
-        prList = io.readCSV(output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".csv");
+        prList = io.readCSV(output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv");
 
         for (List<String> pr : prList) {
             String forkURL = pr.get(7);

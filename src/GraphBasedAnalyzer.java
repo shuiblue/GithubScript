@@ -70,23 +70,29 @@ public class GraphBasedAnalyzer {
 
 
         for (String projectUrl : repoList) {
-            String classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result.csv";
+            String classifyCommit_file = graph_dir +projectUrl.replace("/", ".") + "_graph_result.csv";
             String repoName = projectUrl.split("/")[0];
             /** get active fork list for given repository **/
             System.out.println("get all active forks of repo: " + repoName);
 
 //            List<String> activeForkList = io.getActiveForksFromDatabase(projectUrl);
             List<String> activeForkList = io.getActiveForksFromPRresult(projectUrl);
+            System.out.println(activeForkList.size()+ " forks has submitted PR..");
 
             HashSet<String> select_activeForkList = new HashSet<>();
 
                 if (activeForkList.size() > maxAnalyzedForkNum) {
-                    for (int i = 0; i < maxAnalyzedForkNum; i++) {
+                    while(select_activeForkList.size()<maxAnalyzedForkNum) {
+                        Random rand = new Random();
+                        int i = rand.nextInt(activeForkList.size()-1) + 1;
                         select_activeForkList.add(activeForkList.get(i));
                     }
+
                 } else {
                     select_activeForkList.addAll(activeForkList);
                 }
+            System.out.println("randomly sample :" +select_activeForkList.size()+ " forks...");
+
 
 
             /**   classify commits **/
