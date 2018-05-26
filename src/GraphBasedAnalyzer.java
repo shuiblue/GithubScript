@@ -74,7 +74,10 @@ public class GraphBasedAnalyzer {
             String repoName = projectUrl.split("/")[0];
             /** get active fork list for given repository **/
             System.out.println("get all active forks of repo: " + repoName);
-                List<String> activeForkList = io.getActiveForksFromDatabase(projectUrl);
+
+//            List<String> activeForkList = io.getActiveForksFromDatabase(projectUrl);
+            List<String> activeForkList = io.getActiveForksFromPRresult(projectUrl);
+
             HashSet<String> select_activeForkList = new HashSet<>();
 
                 if (activeForkList.size() > maxAnalyzedForkNum) {

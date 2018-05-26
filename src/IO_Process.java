@@ -994,7 +994,7 @@ public class IO_Process {
         ) {
             ResultSet rs = preparedStmt.executeQuery();
             while (rs.next()) {
-                activeForks.add(rs.getString(1) );
+                activeForks.add(rs.getString(1));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1003,6 +1003,21 @@ public class IO_Process {
         System.out.println(" active forks in database: #" + activeForks.size());
         return activeForks;
 
+    }
+
+    public List<String> getActiveForksFromPRresult(String projectUrl) {
+        List<String> forkList = new ArrayList<>();
+        IO_Process io = new IO_Process();
+        List<List<String>> prList = null;
+        prList = io.readCSV(output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".csv");
+
+        for (List<String> pr : prList) {
+            String forkURL = pr.get(7);
+            if(!forkURL.trim().equals(projectUrl)){
+                forkList.add(forkURL);
+            }
+        }
+        return forkList;
     }
 }
 
