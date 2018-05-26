@@ -21,13 +21,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by shuruiz on 2/27/18.
  */
-public class AnalyzeCoChangedFile {
+public class AnalyzeChangedFile_ClassifyCommit {
     static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath, resultDirPath;
     static String myUrl, user, pwd;
     final int batchSize = 100;
     String[] commitType = {"onlyF", "F2U"};
 
-    public AnalyzeCoChangedFile() {
+    public AnalyzeChangedFile_ClassifyCommit() {
         IO_Process io = new IO_Process();
         String current_dir = System.getProperty("user.dir");
         try {
@@ -37,7 +37,7 @@ public class AnalyzeCoChangedFile {
             output_dir = working_dir + "ForkData/";
             clone_dir = output_dir + "clones/";
             historyDirPath = output_dir + "commitHistory/";
-            resultDirPath = output_dir + "result/";
+            resultDirPath = output_dir + "ClassifyCommit/";
 
             myUrl = paramList[1];
             user = paramList[2];
@@ -48,7 +48,7 @@ public class AnalyzeCoChangedFile {
     }
 
     static public void main(String[] args) {
-        AnalyzeCoChangedFile acc = new AnalyzeCoChangedFile();
+        AnalyzeChangedFile_ClassifyCommit acc = new AnalyzeChangedFile_ClassifyCommit();
         IO_Process io = new IO_Process();
         String[] repoList = {};
         io.rewriteFile("", resultDirPath + "File_history.csv");
@@ -56,7 +56,7 @@ public class AnalyzeCoChangedFile {
         /** get repo list **/
         String current_dir = System.getProperty("user.dir");
         try {
-            repoList = io.readResult(current_dir + "/input/repoList.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/graph_repoList.txt").split("\n");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -64,11 +64,10 @@ public class AnalyzeCoChangedFile {
 
         JgitUtility jg = new JgitUtility();
         for (String repoUrl : repoList) {
-            int projectID = io.getRepoId(repoUrl);
 
             String[] forkListInfo = new String[0];
             try {
-                forkListInfo = io.readResult(resultDirPath + repoUrl + "/graph_result.txt").split("\n");
+                forkListInfo = io.readResult(resultDirPath + repoUrl.replace("/", ".") + "_graph_result.csv").split("\n");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -84,14 +83,9 @@ public class AnalyzeCoChangedFile {
 
                 /**   get all branch list**/
                 String fork_cloneDir = clone_dir + forkurl + "/";
-                String cmd_getOringinBranch = "git branch -a --list "+forkName+"*";
-                String branchResult =  io.exeCmd(cmd_getOringinBranch.split(" "), fork_cloneDir);
+                String cmd_getOringinBranch = "git branch -a --list " + forkName + "*";
+                String branchResult = io.exeCmd(cmd_getOringinBranch.split(" "), fork_cloneDir);
 
-                if(branchResult.trim().length()==0){
-//                   io.insertNewRepo();
-                }else{
-
-                }
                 String[] branchList_array = branchResult.split("\n");
                 ArrayList<String> branchList = new ArrayList<>();
                 for (String br : branchList_array) {
@@ -99,7 +93,6 @@ public class AnalyzeCoChangedFile {
                         branchList.add(br.trim());
                     }
                 }
-
 
 
                 /** clone fork **/
@@ -533,7 +526,13 @@ public class AnalyzeCoChangedFile {
         }
 
         System.out.println(redundantCommit.size() + " redundanct commits");
-        result.forEach((k, v) -> v.removeAll(redundantCommit));
+        StringBuilder sb = new StringBuilder();
+        sb.append(type+"\n");
+        result.forEach((k, v) -> {
+            v.removeAll(redundantCommit);
+            sb.append(k+","+v.size()+"\n");
+        });
+        io.writeTofile(sb.toString(),resultDirPath + "tim_graph_result.txt");
         return result;
     }
 

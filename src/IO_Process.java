@@ -982,6 +982,28 @@ public class IO_Process {
         }
         return commits;
     }
+
+    public List<String> getActiveForksFromDatabase(String projectUrl) {
+        System.out.println("get active fork List for " + projectUrl);
+        List<String> activeForks = new ArrayList<>();
+        String query = "select r1.repoURL\n" +
+                "from repository as r1 ,repository as r2\n" +
+                "WHERE r2.projectID = r1.id and r1.repoURL = \"" + projectUrl + "\"";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                activeForks.add(rs.getString(1) );
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(" active forks in database: #" + activeForks.size());
+        return activeForks;
+
+    }
 }
 
 

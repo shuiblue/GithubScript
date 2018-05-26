@@ -33,6 +33,8 @@ public class main {
 
         }
 
+        boolean getActiveForksFromAPI = false;
+        boolean getActiveForksFromDATABASE = true;
 
 
         String[] repoList = {};
@@ -51,21 +53,26 @@ public class main {
                 String repoName = projectUrl.split("/")[0];
                 /** get active fork list for given repository **/
                 System.out.println("get all active forks of repo: " + repoName);
-//
-                File all_activeFork = new File(tmpDirPath + "/result/" + projectUrl + "/all_ActiveForklist.txt");
-                File selected_activeFork = new File(tmpDirPath + "/result/" + projectUrl + "/ActiveForklist.txt");
+                List<String> activeForkList = new ArrayList<>();
+                List<String> select_activeForkList = new ArrayList<>();
+//                String[] activeForkList = {};
 
-                if(!all_activeFork.exists()) {
 
-                    /**  get active forks using github api **/
-                    String all_activeForkList = nameBasedClassifier.getActiveForkList(projectUrl, hasTimeConstraint);
-                    io.rewriteFile(all_activeForkList, tmpDirPath + "/result/" + projectUrl + "/ActiveForklist.txt");
-                }
+                if (getActiveForksFromAPI) {
+                    File all_activeFork = new File(tmpDirPath + "/result/" + projectUrl + "/all_ActiveForklist.txt");
+                    File selected_activeFork = new File(tmpDirPath + "/result/" + projectUrl + "/ActiveForklist.txt");
 
-                String all_activeForkList = "";
-                /**  randomize forks from active_fork_list **/
+                    if (!all_activeFork.exists()) {
+
+                        /**  get active forks using github api **/
+                        String all_activeForkList = nameBasedClassifier.getActiveForkList(projectUrl, hasTimeConstraint);
+                        io.rewriteFile(all_activeForkList, tmpDirPath + "/result/" + projectUrl + "/ActiveForklist.txt");
+                    }
+
+                    String all_activeForkList = "";
+                    /**  randomize forks from active_fork_list **/
                     try {
-                         all_activeForkList = io.readResult(tmpDirPath + "/result/" + projectUrl + "/ActiveForklist.txt");
+                        all_activeForkList = io.readResult(tmpDirPath + "/result/" + projectUrl + "/ActiveForklist.txt");
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -77,15 +84,27 @@ public class main {
                         System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
                         nameBasedClassifier.getRamdomForks(projectUrl, maxAnalyzedForkNum);
                     }
-                /** analyze commit history **/
-                String[] activeForkList = {};
-                try {
+                    /** analyze commit history **/
 
-                    activeForkList = io.readResult(tmpDirPath + "/result/" + projectUrl + "/ActiveForklist.txt").split("\n");
-                    System.out.println(activeForkList.length + " forks");
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    try {
+
+                        activeForkList = Arrays.asList(io.readResult(tmpDirPath + "/result/" + projectUrl + "/ActiveForklist.txt").split("\n"));
+                        System.out.println(activeForkList.size() + " forks");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else if (getActiveForksFromDATABASE) {
+                    activeForkList = io.getActiveForksFromDatabase(projectUrl);
+                    if (activeForkList.size() > maxAnalyzedForkNum) {
+                        for (int i = 0; i < maxAnalyzedForkNum; i++) {
+                            select_activeForkList.add(activeForkList.get(i));
+                        }
+                    } else {
+                        select_activeForkList.addAll(activeForkList);
+                    }
                 }
+
+
                 /**   classify commits **/
                 /**  by graph  **/
                 System.out.println("graph-based...");
@@ -93,7 +112,8 @@ public class main {
                 sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
                 io.rewriteFile(sb_result.toString(), tmpDirPath + "/result/" + projectUrl + "/graph_result.csv");
                 io.rewriteFile(sb_result.toString(), tmpDirPath + "/result/" + projectUrl + "/graph_result.txt");
-                for (String forkInfo : activeForkList) {
+                for (String forkInfo : select_activeForkList) {
+//                for (String forkInfo : activeForkList) {
                     System.out.println("FORK: " + forkInfo);
                     graphBasedClassifier.analyzeCommitHistory(forkInfo, projectUrl);
                 }
