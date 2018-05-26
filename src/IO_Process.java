@@ -1013,7 +1013,7 @@ public class IO_Process {
 
         for (List<String> pr : prList) {
             String forkURL = pr.get(7);
-            if(!forkURL.trim().equals(projectUrl)){
+            if(!forkURL.trim().equals(projectUrl) &!forkURL.trim().equals("")){
                 forkList.add(forkURL);
             }
         }

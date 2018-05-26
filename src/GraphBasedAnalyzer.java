@@ -55,8 +55,6 @@ public class GraphBasedAnalyzer {
 
         IO_Process io = new IO_Process();
         current_dir = System.getProperty("user.dir");
-        System.out.println("current dir = " + current_dir);
-
 
         String[] repoList = {};
         /** get repo list **/
@@ -215,20 +213,14 @@ public class GraphBasedAnalyzer {
             distance_map.put(commit, 999);
         }
 
-
-        System.out.println("init graph");
         DijkstraAlgorithm dijkstra = new DijkstraAlgorithm(graph);
 
         System.out.println(latestCommits.size() + " loops");
         for (String target : latestCommits) {
-            long start = System.nanoTime();
             System.out.println("target: " + target);
             dijkstra.execute(new Vertex(target));
             HashMap<Vertex, Integer> tmp_distance_map = (HashMap<Vertex, Integer>) dijkstra.getDistance();
-            long end = System.nanoTime();
-            long used = end - start;
-            System.out.println("dijkstra :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
-            System.out.println("get " + tmp_distance_map.keySet().size() + " reacheable vertex, get min distance");
+//            System.out.println("get " + tmp_distance_map.keySet().size() + " reacheable vertex, get min distance");
             for (String c : allCommits) {
 
                 int old = distance_map.get(c);
