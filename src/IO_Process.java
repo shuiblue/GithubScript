@@ -1012,9 +1012,11 @@ public class IO_Process {
         prList = io.readCSV(output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv");
 
         for (List<String> pr : prList) {
-            String forkURL = pr.get(7);
-            if(!forkURL.trim().equals(projectUrl) &!forkURL.trim().equals("")){
-                forkList.add(forkURL);
+            if (!pr.get(0).trim().equals("")) {
+                String forkURL = pr.get(7);
+                if (!forkURL.trim().equals(projectUrl) & !forkURL.trim().equals("")) {
+                    forkList.add(forkURL);
+                }
             }
         }
         return forkList;
