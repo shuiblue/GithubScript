@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class JgitUtility {
     static String github_url = "https://github.com/";
-    static String token;
     static String localDirPath;
     static String working_dir, pr_dir, output_dir, clone_dir;
 
@@ -34,7 +33,6 @@ public class JgitUtility {
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
             clone_dir = output_dir + "clones/";
-            token = io.readResult(current_dir + "/input/token.txt").trim();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -42,11 +40,6 @@ public class JgitUtility {
         clone_dir = output_dir + "clones/";
         localDirPath = output_dir + "cloneRepos/";
         current_dir = System.getProperty("user.dir");
-        try {
-            token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
 
