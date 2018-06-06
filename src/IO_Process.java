@@ -439,23 +439,21 @@ public class IO_Process {
     }
 
 
-    public int getCommitID(String sha) {
+    public String getCommitID(String sha) {
         String commitshaID_QUERY = "SELECT id FROM Commit WHERE commitSHA = ?";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
-             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY);) {
+             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
             preparedStmt.setString(1, sha);
             ResultSet rs = preparedStmt.executeQuery();
             if (rs.next()) {               // Position the cursor                  4
-                int commitshaID = rs.getInt(1);
-                if (commitshaID != -1) {
-                    return commitshaID;
-                }
+                String commitshaID = rs.getString(1);
+                return commitshaID;
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return -1;
+        return "";
     }
 
     public int getRepoId(String repoURL) {
@@ -521,11 +519,11 @@ public class IO_Process {
 
     }
 
-    public HashMap<String, Integer> getCommitIdMap(HashSet<String> commitSet) {
-        HashMap<String, Integer> sha_commitID_map = new HashMap<>();
+    public HashMap<String, String> getCommitIdMap(HashSet<String> commitSet) {
+        HashMap<String, String> sha_commitID_map = new HashMap<>();
         for (String commit : commitSet) {
-            int commitID = getCommitID(commit);
-            if (commitID == -1) {
+            String commitID = getCommitID(commit);
+            if (commitID.equals("")) {
                 System.out.println("commit is not in the database !!!");
             } else {
                 sha_commitID_map.put(commit, commitID);
@@ -917,7 +915,7 @@ public class IO_Process {
         HashSet<String> unAnalyzedCommit = new HashSet<>();
         String query = "SELECT repo.repoURL, c.commitSHA, c.id \n" +
                 "FROM fork.Commit AS c , repository AS repo\n" +
-                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commitSHA_id) AND c.projectID = repo.id AND repo.repoURL = \"" + projectURL + "\"";
+                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commit_uuid) AND c.projectID = repo.id AND repo.repoURL = \"" + projectURL + "\"";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(query);
         ) {
@@ -965,7 +963,7 @@ public class IO_Process {
         String query_getExistCommit = "SELECT c.commitSHA\n" +
                 "FROM  Pull_Request as pr, PR_Commit_map as prc, Commit as c\n" +
                 "WHERE  pr.pull_request_ID = prc.pull_request_id and pr.projectID = prc.projectID " +
-                "and prc.commitsha_id = c.id and pr.projectID= " + projectID +
+                "and prc.commit_uuid = c.id and pr.projectID= " + projectID +
                 " and pr.pull_request_ID  = " + pr_id;
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
@@ -1006,10 +1004,12 @@ public class IO_Process {
     }
 
     public List<String> getActiveForksFromPRresult(String projectUrl) {
+        System.out.println("read csv of " + projectUrl);
         List<String> forkList = new ArrayList<>();
         IO_Process io = new IO_Process();
         List<List<String>> prList = null;
         prList = io.readCSV(output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv");
+        System.out.println("prList: " + prList.size());
 
         for (List<String> pr : prList) {
             if (!pr.get(0).trim().equals("")) {

@@ -158,7 +158,7 @@ public class AnalyzeChangedFile_ClassifyCommit {
             int count = 0;
             String insert_changedFile_query = " INSERT INTO fork.commit_changedFiles (" +
                     "added_files_list  , added_files_num  , modify_files_list, modify_files_num , renamed_files_list ,renamed_files_num ,copied_files_list ," +
-                    " copied_files_num, deleted_files_list , deleted_files_num , add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commitSHA_id,readme_loc )" +
+                    " copied_files_num, deleted_files_list , deleted_files_num , add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commit_uuid,readme_loc )" +
                     "  SELECT *" +
                     "  FROM (SELECT" +
                     "          ? AS a1,? AS a2,? AS a3,? AS a4,?  AS a17,? AS a5,? AS a6," +
@@ -234,7 +234,7 @@ public class AnalyzeChangedFile_ClassifyCommit {
 
                             /**   upsdate commit information into table**/
 
-                            int commitshaID = io.getCommitID(sha);
+                            String commitshaID = io.getCommitID(sha);
 
                             preparedStmt.setString(1, addFileSet.toString());
                             preparedStmt.setInt(2, addFileSet.size());
@@ -251,9 +251,9 @@ public class AnalyzeChangedFile_ClassifyCommit {
                             preparedStmt.setInt(13, linesDeleted);
                             preparedStmt.setString(14, String.valueOf(now));
                             preparedStmt.setInt(15, index_d);
-                            preparedStmt.setInt(16, commitshaID);
+                            preparedStmt.setString(16, commitshaID);
                             preparedStmt.setInt(17, readmeAdded);
-                            preparedStmt.setInt(18, commitshaID);
+                            preparedStmt.setString(18, commitshaID);
                             preparedStmt.setInt(19, index_d);
                             preparedStmt.addBatch();
 
@@ -338,8 +338,8 @@ public class AnalyzeChangedFile_ClassifyCommit {
                         List<DiffEntry> diffs = io.getCommitDiff(commit, repo);
 
                         if (diffs.size() < 100) {
-                            int commitid = io.getCommitID(sha);
-                            if (commitid == -1) {
+                            String commitid = io.getCommitID(sha);
+                            if (commitid.equals("")) {
                                 int repoID = io.getRepoId(forkurl);
                                 int projectID = io.getRepoId(repoUrl);
 
@@ -447,8 +447,8 @@ public class AnalyzeChangedFile_ClassifyCommit {
                         List<DiffEntry> diffs = io.getCommitDiff(commit, repo);
 
                         if (diffs.size() < 100) {
-                            int commitid = io.getCommitID(sha);
-                            if (commitid != -1) {
+                            String commitid = io.getCommitID(sha);
+                            if (commitid.equals("")) {
                                 System.out.println("updating existing commit ... ");
                                 preparedStmt_update.setInt(1, diffs.size());
                                 preparedStmt_update.setString(2, author_fullName);
@@ -527,12 +527,12 @@ public class AnalyzeChangedFile_ClassifyCommit {
 
         System.out.println(redundantCommit.size() + " redundanct commits");
         StringBuilder sb = new StringBuilder();
-        sb.append(type+"\n");
+        sb.append(type + "\n");
         result.forEach((k, v) -> {
             v.removeAll(redundantCommit);
-            sb.append(k+","+v.size()+"\n");
+            sb.append(k + "," + v.size() + "\n");
         });
-        io.writeTofile(sb.toString(),resultDirPath + "tim_graph_result.txt");
+        io.writeTofile(sb.toString(), resultDirPath + "tim_graph_result.txt");
         return result;
     }
 

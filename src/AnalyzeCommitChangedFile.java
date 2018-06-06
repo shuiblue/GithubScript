@@ -42,7 +42,7 @@ public class AnalyzeCommitChangedFile {
         String insert_changedFile_query = " INSERT INTO fork.commit_changedFiles (" +
                 "added_file  , added_files_num  , modified_file, modify_files_num , renamed_file ,renamed_files_num ,copied_file ," +
                 " copied_files_num, deleted_file , deleted_files_num , " +
-                "add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commitSHA_id,readme_loc, about_config)" +
+                "add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commit_uuid,readme_loc, about_config)" +
                 "  SELECT *" +
                 "  FROM (SELECT" +
                 "          ? AS a1,? AS a2,? AS a3,? AS a4,?  AS a30,? AS a5,? AS a6," +
@@ -50,7 +50,7 @@ public class AnalyzeCommitChangedFile {
                 "  WHERE NOT EXISTS(" +
                 "      SELECT *" +
                 "      FROM fork.commit_changedFiles AS cc" +
-                "      WHERE cc.commitsha_id = ?" +
+                "      WHERE cc.commit_uuid = ?" +
                 "      AND cc.index_changedFile = ?" +
                 "  )" +
                 "  LIMIT 1";
