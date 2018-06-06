@@ -921,7 +921,7 @@ public class IO_Process {
         ) {
             ResultSet rs = preparedStmt.executeQuery();
             while (rs.next()) {
-                unAnalyzedCommit.add(rs.getString(1) + "," + rs.getString(2) + "," + rs.getInt(3));
+                unAnalyzedCommit.add(rs.getString(1) + "," + rs.getString(2) + "," + rs.getString(3));
 //                System.out.println(rs.getString(1)+","+rs.getString(2)+","+rs.getInt(3));
             }
         } catch (SQLException e) {
