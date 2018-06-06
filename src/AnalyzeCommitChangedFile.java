@@ -71,7 +71,7 @@ public class AnalyzeCommitChangedFile {
                 if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
 
                     String sha = commit_info[1];
-                    int commitshaID = Integer.parseInt(commit_info[2]);
+                    String commitshaID =io.getCommitID(sha);
 
                     System.out.println(sha + "," + projectURL);
                     long start_getcommit = System.nanoTime();
@@ -152,10 +152,10 @@ public class AnalyzeCommitChangedFile {
                             preparedStmt.setInt(13, deleteLine);
                             preparedStmt.setString(14, String.valueOf(now));
                             preparedStmt.setInt(15, index_d);
-                            preparedStmt.setInt(16, commitshaID);
+                            preparedStmt.setString(16, commitshaID);
                             preparedStmt.setInt(17, readmeAdded);
                             preparedStmt.setInt(18, aboutConfig);
-                            preparedStmt.setInt(19, commitshaID);
+                            preparedStmt.setString(19, commitshaID);
                             preparedStmt.setInt(20, index_d);
                             preparedStmt.addBatch();
                         } else {
