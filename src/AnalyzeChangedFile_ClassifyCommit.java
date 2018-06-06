@@ -448,7 +448,7 @@ public class AnalyzeChangedFile_ClassifyCommit {
 
                         if (diffs.size() < 100) {
                             String commitid = io.getCommitID(sha);
-                            if (commitid.equals("")) {
+                            if (!commitid.equals("")) {
                                 System.out.println("updating existing commit ... ");
                                 preparedStmt_update.setInt(1, diffs.size());
                                 preparedStmt_update.setString(2, author_fullName);
