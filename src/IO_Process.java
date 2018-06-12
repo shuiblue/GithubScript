@@ -519,6 +519,33 @@ public class IO_Process {
 
     }
 
+
+    ArrayList<Integer> getPRList_hasNo_numOfCommits(int projectID) {
+        ArrayList<Integer> PRList = new ArrayList<>();
+
+        try {
+
+            Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+            PreparedStatement preparedStmt;
+
+            String selectRepoID = "SELECT pull_request_ID\n" +
+                    "FROM Pull_Request\n" +
+                    "WHERE  projectID = " + projectID + "   AND num_commit IS NULL; ";
+            preparedStmt = conn.prepareStatement(selectRepoID);
+            ResultSet rs = preparedStmt.executeQuery();
+
+            while (rs.next()) {
+                PRList.add( (rs.getInt("pull_request_ID"));
+            }
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return PRList;
+
+    }
+
+
     public HashMap<String, String> getCommitIdMap(HashSet<String> commitSet) {
         HashMap<String, String> sha_commitID_map = new HashMap<>();
         for (String commit : commitSet) {
@@ -794,6 +821,138 @@ public class IO_Process {
         return forkList;
     }
 
+    public void getIssuePRLink(String pr_id, String projectUrl, int projectID, List<String> prList, boolean csvFileExist) {
+        String csvFile_dir = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
+        String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
+
+        IO_Process io = new IO_Process();
+        List<List<String>> comments;
+        if (csvFileExist) {
+            comments = io.readCSV(csvFile_dir);
+        } else {
+            comments = io.readCSV(csvFile_dir_alternative);
+        }
+
+        for (List<String> comment : comments) {
+            if (!comment.get(0).equals("")) {
+                String text = comment.get(2);
+                String created_at = comment.get(3);
+                String closed_at = comment.get(4);
+
+            }
+        }
+    }
+
+
+    public void getPRfiles(String projectUrl, int projectID, List<String> prList) {
+        System.out.println("analyze pr files of " + projectUrl);
+        IO_Process io = new IO_Process();
+        io.rewriteFile("", output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt");
+        LocalDateTime now = LocalDateTime.now();
+
+        String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
+        if (new File(csvFile_dir).exists()) {
+            List<List<String>> prs = io.readCSV(csvFile_dir);
+            String insert_query_1 = " INSERT INTO fork.Pull_Request( " +
+                    "projectID,pull_request_ID, authorName,forkID," +
+                    "created_at, closed, closed_at, merged, data_update_at,labels,dupPR_label) " +
+                    " SELECT * FROM (SELECT ? AS a,? AS b,? AS c,? AS d, ?AS ds,?AS de,?AS d3,?AS d2, ? AS d5,? AS label,? AS labelDup) AS tmp" +
+                    " WHERE NOT EXISTS (" +
+                    " SELECT projectID FROM Pull_Request WHERE projectID = ? AND pull_request_ID = ?" +
+                    ") LIMIT 1";
+            int count = 0;
+            HashSet<String> existingForks = new HashSet<>();
+            for (List<String> pr : prs) {
+                if (!pr.get(0).equals("")) {
+                    System.out.println();
+                    long start = System.nanoTime();
+                    try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                         PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
+                        conn.setAutoCommit(false);
+                        int pr_id = Integer.parseInt(pr.get(9));
+                        if (prList.contains(pr_id)) {
+                            System.out.println("pass " + pr_id);
+                            continue;
+                        }
+
+                        String author = pr.get(1);
+
+                        /** insert fork to database**/
+                        String forkURL = pr.get(7);
+                        int forkID = io.getRepoId(forkURL);
+                        if (!existingForks.contains(forkURL) || forkID == -1) {
+                            io.insertRepo(forkURL);
+//                            GithubRepository fork = new GithubRepository().getRepoInfo(forkURL, projectUrl);
+//                            analyzeRepository.updateRepoInfo(fork);
+                            forkID = io.getRepoId(forkURL);
+                        } else {
+                            System.out.println(forkURL + "already in database :)");
+                        }
+
+                        if (forkID == -1) {
+                            System.out.println("fork: " + forkURL + " id is -1");
+                        }
+                        existingForks.add(forkURL);
+
+
+                        String created_at = pr.get(6);
+
+                        String closed_at = pr.get(5);
+                        String closed = closed_at.equals("") ? "false" : "true";
+                        String merged_at = pr.get(11);
+                        String merged = merged_at.equals("") ? "false" : "true";
+
+                        String labels = pr.get(10);
+
+                        //projectID
+                        preparedStmt.setInt(1, projectID);
+                        //pull_request_ID
+                        preparedStmt.setInt(2, pr_id);
+                        //, authorName,
+                        preparedStmt.setString(3, author);
+                        //forkID," +
+                        preparedStmt.setInt(4, forkID);
+                        // created_at,
+                        preparedStmt.setString(5, created_at);
+                        // closed,
+                        preparedStmt.setString(6, closed);
+                        // closed_at,
+                        preparedStmt.setString(7, closed_at);
+                        // merged,
+                        preparedStmt.setString(8, merged);
+                        //data_update_at
+                        preparedStmt.setString(9, String.valueOf(now));
+                        //,labels
+                        preparedStmt.setString(10, labels);
+
+                        boolean dup_pr = false;
+                        if (labels.toLowerCase().contains("duplicate")) {
+                            dup_pr = true;
+                        }
+                        preparedStmt.setBoolean(11, dup_pr);
+                        preparedStmt.setInt(12, projectID);
+                        preparedStmt.setInt(13, pr_id);
+                        preparedStmt.addBatch();
+
+                        long end = System.nanoTime();
+                        System.out.println("insert ONE PR :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
+
+                        if (++count % batchSize == 0) {
+                            io.executeQuery(preparedStmt);
+                            conn.commit();
+                        }
+
+                        io.executeQuery(preparedStmt);
+                        conn.commit();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }
+    }
+
 
 //    public void inserRepoToDB(GithubRepository repo) {
 //        System.out.println("get fork info: " + repo.getrepoUr);
@@ -1003,9 +1162,9 @@ public class IO_Process {
 
     }
 
-    public List<String> getActiveForksFromPRresult(String projectUrl) {
+    public HashSet<String> getActiveForksFromPRresult(String projectUrl) {
         System.out.println("read csv of " + projectUrl);
-        List<String> forkList = new ArrayList<>();
+        HashSet<String> forkList = new HashSet<>();
         IO_Process io = new IO_Process();
         List<List<String>> prList = null;
         prList = io.readCSV(output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv");

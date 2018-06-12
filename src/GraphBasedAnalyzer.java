@@ -60,14 +60,15 @@ public class GraphBasedAnalyzer {
         /** get repo list **/
 
         try {
-            repoList = io.readResult(current_dir + "/input/graph_repoList_f9_g3.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/graph_repoList_f8_g4.txt").split("\n");
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
 
-        while (true) {
+//        while (true) {
+            System.out.println("new loop....\n");
             for (String projectUrl : repoList) {
                 String classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result.csv";
 
@@ -77,16 +78,29 @@ public class GraphBasedAnalyzer {
                     System.out.println("get all active forks of repo: " + repoName);
 
 //            List<String> activeForkList = io.getActiveForksFromDatabase(projectUrl);
-                    List<String> activeForkList = io.getActiveForksFromPRresult(projectUrl);
+                    HashSet<String> activeForkList = io.getActiveForksFromPRresult(projectUrl);
+                    if(activeForkList.size()==0){
+                        System.out.println("no fork in database yet !");
+                        io.writeTofile(projectUrl+"\n",output_dir+"no_fork_inDB.txt");
+                        continue;
+                    }
                     System.out.println(activeForkList.size() + " forks has submitted PR..");
 
                     HashSet<String> select_activeForkList = new HashSet<>();
 
                     if (activeForkList.size() > maxAnalyzedForkNum) {
-                        while (select_activeForkList.size() < maxAnalyzedForkNum) {
-                            Random rand = new Random();
-                            int i = rand.nextInt(activeForkList.size() - 1) + 1;
-                            select_activeForkList.add(activeForkList.get(i));
+                        System.out.println("shuffle activeforklist" );
+
+//                        while (select_activeForkList.size() < maxAnalyzedForkNum) {
+//                            Random rand = new Random();
+//                            int i = rand.nextInt(activeForkList.size() - 1) + 1;
+//                            select_activeForkList.add(activeForkList.get(i));
+//                        }
+
+                        for(String fork:activeForkList){
+                            select_activeForkList.add(fork);
+                            if(select_activeForkList.size()==maxAnalyzedForkNum)
+                                break;
                         }
 
                     } else {
@@ -112,8 +126,13 @@ public class GraphBasedAnalyzer {
                 } else {
                     System.out.println("done with parsing garph of " + projectUrl);
                 }
+                try {
+                    io.deleteDir(new File(clone_dir));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-        }
+//        }
     }
 
 

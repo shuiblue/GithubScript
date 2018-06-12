@@ -102,7 +102,7 @@ public class GetModularity {
                             System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
                             getModularity.measureModularity(projectURL, threshold, b, year);
                         }
-                        threshold += 5;
+                        threshold += 20;
                     }
                 }
             }

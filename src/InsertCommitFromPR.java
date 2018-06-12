@@ -103,6 +103,8 @@ public class InsertCommitFromPR {
 
         String updatePR = "UPDATE fork.Pull_Request SET num_commit = ? WHERE pull_request_ID = ? AND projectID = ?";
 
+        ArrayList<Integer> PRList = io.getPRList_hasNo_numOfCommits(projectID);
+
         String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
         String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
 
@@ -118,10 +120,12 @@ public class InsertCommitFromPR {
                 commits = io.readCSV(csvFile_dir_alternative);
             }
 
-            preparedStmt_updatePR.setInt(1, commits.size());
-            preparedStmt_updatePR.setInt(2, pr_id);
-            preparedStmt_updatePR.setInt(3, projectID);
-            System.out.println(preparedStmt_updatePR.executeUpdate() + " rows updated num_commits in PR" + pr_id);
+            if (PRList.size() > 0 & PRList.contains(pr_id)) {
+                preparedStmt_updatePR.setInt(1, commits.size());
+                preparedStmt_updatePR.setInt(2, pr_id);
+                preparedStmt_updatePR.setInt(3, projectID);
+                System.out.println(preparedStmt_updatePR.executeUpdate() + " rows updated num_commits in PR" + pr_id);
+            }
 
             /**   get commits exist in DATABASE***/
             HashSet<String> existCommitInPRCmap = io.getExistCommits(projectID, pr_id);
