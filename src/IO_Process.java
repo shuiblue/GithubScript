@@ -535,7 +535,7 @@ public class IO_Process {
             ResultSet rs = preparedStmt.executeQuery();
 
             while (rs.next()) {
-                PRList.add( (rs.getInt("pull_request_ID"));
+                PRList.add( (rs.getInt("pull_request_ID")));
             }
             conn.close();
         } catch (SQLException e) {
