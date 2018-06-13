@@ -475,6 +475,23 @@ public class IO_Process {
     }
 
 
+    public int issueExist(  int projectID) {
+        String commitshaID_QUERY = "SELECT 1 from ISSUE WHERE projectID = \'" + projectID + "\' LIMIT 1";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            if (rs.next()) {               // Position the cursor                  4
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+
+
+    }
+
     public int getRepoId(String repoURL) {
         int repoID = -1;
         String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL = \"" + repoURL + "\"";
@@ -1204,6 +1221,9 @@ public class IO_Process {
         return commits;
     }
 
+
+
+
     public List<String> getActiveForksFromDatabase(String projectUrl) {
         System.out.println("get active fork List for " + projectUrl);
         List<String> activeForks = new ArrayList<>();
@@ -1244,6 +1264,7 @@ public class IO_Process {
         }
         return forkList;
     }
+
 
 
 }

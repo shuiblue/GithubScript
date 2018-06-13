@@ -65,7 +65,6 @@ public class GetModularity {
             e.printStackTrace();
         }
 
-        /** todo: this threshold is used for filtering out 20% large commits **/
         boolean[] filterOutStopFile = {true, false};
         for (String projectURL : repoList) {
             File clone = new File(clone_dir + projectURL);

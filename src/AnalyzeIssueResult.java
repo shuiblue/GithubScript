@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,55 +43,84 @@ public class AnalyzeIssueResult {
         }
 
         String insertIssueQuery = "INSERT INTO fork.ISSUE (projectID,issue_id,author,closed,closed_at,created_at,updated_at,title) \n" +
-                "VALUES(?,?,?,?,?,?,?,?)";
+                "  SELECT *" +
+                "  FROM (SELECT" +
+                "          ? AS a,? AS b, ? AS c,? AS d, ? AS e,? AS f, ? AS g, ? AS h ) AS tmp" +
+                "  WHERE NOT EXISTS(" +
+                "      SELECT *" +
+                "      FROM fork.ISSUE AS ss" +
+                "      WHERE ss.projectID = ?" +
+                "      AND ss.issue_id= ?" +
+                "  )" +
+                "  LIMIT 1";
+
+
         try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt_1 = conn1.prepareStatement(insertIssueQuery);) {
             conn1.setAutoCommit(false);
             int count = 0;
             for (String repo : repos) {
+
+
+                System.out.println("repo --- " + repo);
                 int projectID = io.getRepoId(repo);
-                String issue_file = output_dir + "shurui.cache/get_issues." + repo.replace("/", ".") + ".csv";
-                List<List<String>> issueList = io.readCSV(issue_file);
-                for (List<String> issue : issueList) {
-                    String author = issue.get(1);
-                    String closed = issue.get(2);
-                    String closed_at = issue.get(3);
-                    String created_at = issue.get(4);
-                    String issue_num = issue.get(5);
-                    String title = issue.get(6);
-                    String updated_at = issue.get(7);
-
-
-                    // projectID,
-                    preparedStmt_1.setInt(1, projectID);
-                    //issue_id,
-                    preparedStmt_1.setInt(2, Integer.parseInt(issue_num));
-
-                    //author,
-                    preparedStmt_1.setString(3, author);
-                    // closed,
-                    preparedStmt_1.setString(4, closed);
-                    // closed_at,
-                    preparedStmt_1.setString(5, closed_at);
-                    // created_at,
-                    preparedStmt_1.setString(6, created_at);
-                    // updated_at,
-                    preparedStmt_1.setString(7, updated_at);
-                    // title
-                    preparedStmt_1.setString(8, title);
-                    preparedStmt_1.addBatch();
-
-                    if (++count % batchSize == 0) {
-                        io.executeQuery(preparedStmt_1);
-                        conn1.commit();
-                    }
-
+                if (io.issueExist(projectID) == 1) {
+                    System.out.println(repo + "repo exist :)");
+                    continue;
                 }
-                System.out.println("inserting " + issueList.size() + " issue from " + repo);
-                io.executeQuery(preparedStmt_1);
-                conn1.commit();
-            }
 
+
+                String issue_file = output_dir + "shurui.cache/get_issues." + repo.replace("/", ".") + ".csv";
+                if (new File(issue_file).exists()) {
+                    List<List<String>> issueList = io.readCSV(issue_file);
+                    for (List<String> issue : issueList) {
+                        String author = issue.get(1);
+                        String closed = issue.get(2);
+                        String closed_at = issue.get(3);
+                        String created_at = issue.get(4);
+                        String issue_num = issue.get(5);
+                        String title = issue.get(6);
+                        String updated_at = issue.get(7);
+
+
+                        // projectID,
+                        preparedStmt_1.setInt(1, projectID);
+                        //issue_id,
+                        preparedStmt_1.setInt(2, Integer.parseInt(issue_num));
+
+                        //author,
+                        preparedStmt_1.setString(3, author);
+                        // closed,
+                        preparedStmt_1.setString(4, closed);
+                        // closed_at,
+                        preparedStmt_1.setString(5, closed_at);
+                        // created_at,
+                        preparedStmt_1.setString(6, created_at);
+                        // updated_at,
+                        preparedStmt_1.setString(7, updated_at);
+                        // title
+                        preparedStmt_1.setString(8, title);
+                        preparedStmt_1.addBatch();
+
+                        // projectID,
+                        preparedStmt_1.setInt(9, projectID);
+                        //issue_id,
+                        preparedStmt_1.setInt(10, Integer.parseInt(issue_num));
+
+                        if (++count % batchSize == 0) {
+                            io.executeQuery(preparedStmt_1);
+                            conn1.commit();
+                        }
+
+                    }
+                    System.out.println("inserting " + issueList.size() + " issue from " + repo);
+                    io.executeQuery(preparedStmt_1);
+                    conn1.commit();
+                    System.out.println("done " + repo);
+                } else {
+                    io.writeTofile(repo + "\n", output_dir + "issueNotYet.txt");
+                }
+            }
 
 
         } catch (SQLException e) {
