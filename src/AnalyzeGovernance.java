@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class AnalyzeGovernance {
     static String working_dir, pr_dir, output_dir, clone_dir;
@@ -38,6 +39,8 @@ public class AnalyzeGovernance {
         for (String projectUrl : repos) {
             {
                 int projectID = io.getRepoId(projectUrl);
+
+                HashMap<Integer,String>  issueList = io.getIssueList(projectID);
                 System.out.println(projectUrl);
                 ArrayList<String> prList = io.getPRNumlist(projectUrl);
                 if (prList.size() == 0) {
@@ -55,7 +58,7 @@ public class AnalyzeGovernance {
 
                     if (csvFileAlter_Exist || csvFileExist) {
                         System.out.println("pr# " + pr_id);
-                        io.getIssuePRLink(pr_id,projectUrl, projectID, prList, csvFileExist);
+                        io.getIssuePRLink(pr_id,projectUrl, projectID, prList, csvFileExist,issueList);
                     } else {
                         System.out.println("pr#" + pr_id + " csv not available.");
                         io.writeTofile(pr_id + "," + projectUrl + "\n", output_dir + "missPR_" + projectUrl + ".txt");

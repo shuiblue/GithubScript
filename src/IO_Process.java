@@ -475,7 +475,7 @@ public class IO_Process {
     }
 
 
-    public int issueExist(  int projectID) {
+    public int issueExist(int projectID) {
         String commitshaID_QUERY = "SELECT 1 from ISSUE WHERE projectID = \'" + projectID + "\' LIMIT 1";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
@@ -857,7 +857,30 @@ public class IO_Process {
         return forkList;
     }
 
-    public void getIssuePRLink(String pr_id, String projectUrl, int projectID, List<String> prList, boolean csvFileExist) {
+    public HashMap<Integer, String> getIssueList(int projectID) {
+        String query = "\n" +
+                "SELECT issue_id,created_at\n" +
+                "FROM  ISSUE\n" +
+                "WHERE  projectID = " + projectID;
+
+        HashMap<Integer, String> issues = new HashMap<>();
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                issues.put(rs.getInt(1), rs.getString(2));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return issues;
+
+    }
+
+
+    public void getIssuePRLink(String pr_id, String projectUrl, int projectID, List<String> prList, boolean csvFileExist, HashMap<Integer, String> issueList) {
         String comment_csvFile_dir = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
         String comment_csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
         String commit_csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
@@ -865,7 +888,7 @@ public class IO_Process {
 
         IO_Process io = new IO_Process();
         List<List<String>> comments, commits;
-        HashSet<String> issues = new HashSet<>();
+
         if (csvFileExist) {
             comments = io.readCSV(comment_csvFile_dir);
             commits = io.readCSV(commit_csvFile_dir);
@@ -874,54 +897,82 @@ public class IO_Process {
             commits = io.readCSV(commit_csvFile_dir_alternative);
         }
         Pattern issueLink = Pattern.compile("\\#[1-9][\\d]{1,4}([^0-9]|$)");
-        for (List<String> comment : comments) {
-            if (!comment.get(0).equals("")) {
-                String text = comment.get(2);
-
-                Matcher m = issueLink.matcher(text);
-                while (m.find()) {
-                    String s = m.group().replace("u", "").replace("#", "");
-                    System.out.println(s);
-                    issues.add(s);
-                }
+        HashSet<Integer> issues = new HashSet<>();
+        issues.addAll(getIssueCandidates(comments, issueList.keySet()));
+        issues.addAll(getIssueCandidates(commits, issueList.keySet()));
 
 
-            }
-        }
-        for (List<String> commit : commits) {
-            if (!commit.get(0).equals("")) {
-                String text = commit.get(6);
-
-                Matcher m = issueLink.matcher(text);
-                while (m.find()) {
-                    String s = m.group().replace("u", "").replace("#", "");
-                    System.out.println(s);
-                    issues.add(s);
-                }
-
-
-            }
-        }
         System.out.println("issue list size: " + issues.size());
 
-        String insert_PR_issueMap = " ";
 
-
+        String insert_PR_issueMap = " INSERT INTO fork.PR_TO_ISSUE(repoID, pull_request_id, issue_id, issue_created_at) " +
+                "  SELECT *" +
+                "  FROM (SELECT" +
+                "          ? AS a,? AS b, ? AS c, ? AS d,? AS c1, ? AS d1, ? AS d2) AS tmp" +
+                "  WHERE NOT EXISTS(" +
+                "      SELECT *" +
+                "      FROM fork.PR_TO_ISSUE AS ps" +
+                "      WHERE ps.repoID= ? AND" +
+                "         ps.pull_request_id= ? AND" +
+                "         ps.issue_id= ? " +
+                "  )" +
+                "  LIMIT 1";
+        int count = 0;
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(insert_PR_issueMap)) {
             conn.setAutoCommit(false);
-            for (String issueid : issues) {
-
+            for (int issueid : issues) {
+                //repoID
+                preparedStmt.setInt(1, projectID);
+                // , pull_request_id,
+                preparedStmt.setInt(2, Integer.parseInt(pr_id));
+                // issue_id,
+                preparedStmt.setInt(3, issueid);
+                // issue_created_at
+                preparedStmt.setString(4, issueList.get(issueid));
+                //repoID
+                preparedStmt.setInt(5, projectID);
+                // , pull_request_id,
+                preparedStmt.setInt(6, Integer.parseInt(pr_id));
+                // issue_id,
+                preparedStmt.setInt(7, issueid);
                 preparedStmt.addBatch();
+                if (++count % batchSize == 0) {
+                    io.executeQuery(preparedStmt);
+                    conn.commit();
+                }
             }
-            System.out.println("inserting " + issues.size() + " issue for " + projectUrl + " , pr " + pr_id);
-            io.executeQuery(preparedStmt);
-            conn.commit();
+            if(issues.size()>0) {
+                System.out.println("inserting " + issues.size() + " issue for " + projectUrl + " , pr " + pr_id);
+                io.executeQuery(preparedStmt);
+                conn.commit();
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
 
+    }
+
+    private HashSet<Integer> getIssueCandidates(List<List<String>> texts, Set<Integer> issueSet) {
+        Pattern issueLink = Pattern.compile("\\#[1-9][\\d]{1,4}([^0-9]|$)");
+        HashSet<Integer> issues = new HashSet<>();
+
+        for (List<String> comment : texts) {
+            if (!comment.get(0).equals("")) {
+                String text = comment.get(2);
+
+                Matcher m = issueLink.matcher(text);
+                while (m.find()) {
+                    int s = Integer.parseInt(m.group().replaceAll("^[0-9]","").trim());
+                    if (issueSet.contains(s)) {
+                        issues.add(s);
+                        System.out.println(s);
+                    }
+                }
+            }
+        }
+        return issues;
     }
 
 
@@ -1222,8 +1273,6 @@ public class IO_Process {
     }
 
 
-
-
     public List<String> getActiveForksFromDatabase(String projectUrl) {
         System.out.println("get active fork List for " + projectUrl);
         List<String> activeForks = new ArrayList<>();
@@ -1264,7 +1313,6 @@ public class IO_Process {
         }
         return forkList;
     }
-
 
 
 }
