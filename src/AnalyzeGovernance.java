@@ -25,6 +25,7 @@ public class AnalyzeGovernance {
     }
 
     public static void main(String[] args) {
+        AnalyzeGovernance ag = new AnalyzeGovernance();
         IO_Process io = new IO_Process();
         String current_dir = System.getProperty("user.dir");
         /*** insert repoList to repository table ***/

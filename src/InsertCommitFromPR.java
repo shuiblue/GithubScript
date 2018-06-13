@@ -60,9 +60,11 @@ public class InsertCommitFromPR {
                     io.writeTofile(projectUrl + "\n", output_dir + "miss_pr_api.txt");
                     continue;
                 }
-
+                ArrayList<Integer> no_numOfCommits_PRList = io.getPRList_hasNo_numOfCommits(projectID);
+                System.out.println(no_numOfCommits_PRList.size() + " PRs has not update num_of_commit cell..");
 
                 for (String pr_id : prList) {
+
                     String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
                     String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
                     boolean csvFileExist = new File(csvFile_dir).exists();
@@ -70,21 +72,24 @@ public class InsertCommitFromPR {
 
                     if (csvFileAlter_Exist || csvFileExist) {
                         System.out.println("pr# " + pr_id);
-                        ArrayList<String> commitList = analyzingPRs.getCommitsInPR(projectUrl, projectID, Integer.parseInt(pr_id), csvFileExist, csvFileAlter_Exist);
-                        analyzingPRs.insertMap_Commits_PR(projectID, Integer.parseInt(pr_id), commitList);
+                        ArrayList<String> commitList = analyzingPRs.getCommitsInPR(projectUrl, projectID, Integer.parseInt(pr_id), csvFileExist, csvFileAlter_Exist, no_numOfCommits_PRList);
+                        if (commitList.size() > 0) {
+                            analyzingPRs.insertMap_Commits_PR(projectID, Integer.parseInt(pr_id), commitList);
+                        }
 
                     } else {
                         System.out.println("pr#" + pr_id + " csv not available.");
                         io.writeTofile(pr_id + "," + projectUrl + "\n", output_dir + "missPR_" + projectUrl + ".txt");
                         break;
                     }
+
                 }
             }
         }
     }
 
 
-    public ArrayList<String> getCommitsInPR(String projectUrl, int projectID, int pr_id, boolean csvFileExist, boolean csvFileAlter_Exist) {
+    public ArrayList<String> getCommitsInPR(String projectUrl, int projectID, int pr_id, boolean csvFileExist, boolean csvFileAlter_Exist, ArrayList<Integer> no_numOfCommits_PRList) {
         IO_Process io = new IO_Process();
         LocalDateTime now = LocalDateTime.now();
         ArrayList<String> commitList = new ArrayList<>();
@@ -103,7 +108,6 @@ public class InsertCommitFromPR {
 
         String updatePR = "UPDATE fork.Pull_Request SET num_commit = ? WHERE pull_request_ID = ? AND projectID = ?";
 
-        ArrayList<Integer> PRList = io.getPRList_hasNo_numOfCommits(projectID);
 
         String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
         String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
@@ -119,12 +123,14 @@ public class InsertCommitFromPR {
             } else {
                 commits = io.readCSV(csvFile_dir_alternative);
             }
+            if (no_numOfCommits_PRList.size() > 0 && no_numOfCommits_PRList.contains(pr_id)) {
 
-            if (PRList.size() > 0 & PRList.contains(pr_id)) {
                 preparedStmt_updatePR.setInt(1, commits.size());
                 preparedStmt_updatePR.setInt(2, pr_id);
                 preparedStmt_updatePR.setInt(3, projectID);
                 System.out.println(preparedStmt_updatePR.executeUpdate() + " rows updated num_commits in PR" + pr_id);
+            } else {
+                System.out.println("skip update num of commit for PR#" + pr_id);
             }
 
             /**   get commits exist in DATABASE***/
@@ -136,8 +142,9 @@ public class InsertCommitFromPR {
                     int count = 0;
                     String sha = line.get(8);
 
-                    String commit_id = io.getCommitID(sha);
-                    if (commit_id.equals("")) {
+                    int exists = io.commitExists(sha);
+                    System.out.println("exist: " + exists);
+                    if (exists != 1) {
                         //commitSHA
                         preparedStmt_1.setString(1, sha);
                         // loginID,
@@ -155,7 +162,7 @@ public class InsertCommitFromPR {
                         preparedStmt_1.setString(8, line.get(8));
                         preparedStmt_1.addBatch();
                     } else {
-                        System.out.println("commit " + sha + "exist :)");
+                        System.out.println("commit " + sha + " exist :)");
                         continue;
                     }
 
@@ -168,9 +175,13 @@ public class InsertCommitFromPR {
                         conn1.commit();
                     }
                 }
-                System.out.println("inserting " + commits.size() + " commits from " + projectUrl + " , pr " + pr_id);
-                io.executeQuery(preparedStmt_1);
-                conn1.commit();
+                if (commits.size() > 0) {
+                    System.out.println("inserting " + commits.size() + " commits from " + projectUrl + " , pr " + pr_id);
+                    io.executeQuery(preparedStmt_1);
+                    conn1.commit();
+                } else {
+                    System.out.println("commits for PR#" + pr_id + " exists, skip inserting commit...");
+                }
             }
 
         } catch (SQLException e) {

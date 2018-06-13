@@ -1,5 +1,4 @@
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -13,19 +12,13 @@ import org.eclipse.jgit.util.io.DisabledOutputStream;
 import org.json.JSONObject;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.sql.*;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Created by shuruiz on 10/19/17.
@@ -220,6 +213,7 @@ public class IO_Process {
     }
 
     public ArrayList<String> getPRNumlist(String projectUrl) {
+
         IO_Process io = new IO_Process();
         String prNumList_filePath = output_dir + "AnalyzePR/" + projectUrl.replace("/", ".") + ".prNum.txt";
         List<String> prList = new ArrayList<>();
@@ -236,9 +230,16 @@ public class IO_Process {
                     System.out.println("generating pr num list");
                     List<List<String>> prs = io.readCSV(csvFile_dir);
                     for (List<String> pr : prs) {
-                        if (!pr.get(0).equals("")) {
-                            int pr_id = Integer.parseInt(pr.get(9));
-                            sb.append(pr_id + "\n");
+                        if (pr.size() == 14) {
+                            if (!pr.get(0).equals("")) {
+                                int pr_id = Integer.parseInt(pr.get(9));
+
+                                sb.append(pr_id + "\n");
+                                System.out.println(pr_id);
+                            }
+                        } else {
+                            System.out.println("csv parsing wrong /..");
+                            io.writeTofile(projectUrl + " , " + pr.get(0) + "\n", output_dir + "wrongPRcsv.txt");
                         }
 
                     }
@@ -456,6 +457,24 @@ public class IO_Process {
         return "";
     }
 
+    public int commitExists(String sha) {
+
+        String commitshaID_QUERY = "SELECT 1 from Commit WHERE commitSHA = \'" + sha + "\' LIMIT 1";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            if (rs.next()) {               // Position the cursor                  4
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+
+    }
+
+
     public int getRepoId(String repoURL) {
         int repoID = -1;
         String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL = \"" + repoURL + "\"";
@@ -529,13 +548,13 @@ public class IO_Process {
             PreparedStatement preparedStmt;
 
             String selectRepoID = "SELECT pull_request_ID\n" +
-                    "FROM Pull_Request\n" +
+                    "FROM fork.Pull_Request\n" +
                     "WHERE  projectID = " + projectID + "   AND num_commit IS NULL; ";
             preparedStmt = conn.prepareStatement(selectRepoID);
             ResultSet rs = preparedStmt.executeQuery();
 
             while (rs.next()) {
-                PRList.add( (rs.getInt("pull_request_ID")));
+                PRList.add((rs.getInt("pull_request_ID")));
             }
             conn.close();
         } catch (SQLException e) {
@@ -822,25 +841,70 @@ public class IO_Process {
     }
 
     public void getIssuePRLink(String pr_id, String projectUrl, int projectID, List<String> prList, boolean csvFileExist) {
-        String csvFile_dir = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
-        String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
+        String comment_csvFile_dir = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
+        String comment_csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
+        String commit_csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
+        String commit_csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
 
         IO_Process io = new IO_Process();
-        List<List<String>> comments;
+        List<List<String>> comments, commits;
+        HashSet<String> issues = new HashSet<>();
         if (csvFileExist) {
-            comments = io.readCSV(csvFile_dir);
+            comments = io.readCSV(comment_csvFile_dir);
+            commits = io.readCSV(commit_csvFile_dir);
         } else {
-            comments = io.readCSV(csvFile_dir_alternative);
+            comments = io.readCSV(comment_csvFile_dir_alternative);
+            commits = io.readCSV(commit_csvFile_dir_alternative);
         }
-
+        Pattern issueLink = Pattern.compile("\\#[1-9][\\d]{1,4}([^0-9]|$)");
         for (List<String> comment : comments) {
             if (!comment.get(0).equals("")) {
                 String text = comment.get(2);
-                String created_at = comment.get(3);
-                String closed_at = comment.get(4);
+
+                Matcher m = issueLink.matcher(text);
+                while (m.find()) {
+                    String s = m.group().replace("u", "").replace("#", "");
+                    System.out.println(s);
+                    issues.add(s);
+                }
+
 
             }
         }
+        for (List<String> commit : commits) {
+            if (!commit.get(0).equals("")) {
+                String text = commit.get(6);
+
+                Matcher m = issueLink.matcher(text);
+                while (m.find()) {
+                    String s = m.group().replace("u", "").replace("#", "");
+                    System.out.println(s);
+                    issues.add(s);
+                }
+
+
+            }
+        }
+        System.out.println("issue list size: " + issues.size());
+
+        String insert_PR_issueMap = " ";
+
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(insert_PR_issueMap)) {
+            conn.setAutoCommit(false);
+            for (String issueid : issues) {
+
+                preparedStmt.addBatch();
+            }
+            System.out.println("inserting " + issues.size() + " issue for " + projectUrl + " , pr " + pr_id);
+            io.executeQuery(preparedStmt);
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
 
@@ -1180,6 +1244,8 @@ public class IO_Process {
         }
         return forkList;
     }
+
+
 }
 
 

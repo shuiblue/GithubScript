@@ -67,21 +67,21 @@ public class testmysql {
 
 
             /**  insert code change loc  **/
-            String[] ownCode_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/ownCode.csv").split("\n");
-            for (int i = 1; i < ownCode_array.length; i++) {
-
-                String repo = ownCode_array[i];
-                if (repo.contains("FALSE")) {
-                    String[] repoInfo = repo.split(",");
-                    String insertQuery = "UPDATE fork.Final SET fork.Final.activeFork_no_ownCode = ? WHERE repoURL = ?";
-
-                    preparedStmt = conn.prepareStatement(insertQuery);
-                    preparedStmt.setString(1, repoInfo[4]);
-                    preparedStmt.setString(2, repoInfo[1].replace("\"", ""));
-                    System.out.println(preparedStmt.toString());
-                    preparedStmt.execute();
-                }
-            }
+//            String[] ownCode_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/ownCode.csv").split("\n");
+//            for (int i = 1; i < ownCode_array.length; i++) {
+//
+//                String repo = ownCode_array[i];
+//                if (repo.contains("FALSE")) {
+//                    String[] repoInfo = repo.split(",");
+//                    String insertQuery = "UPDATE fork.Final SET fork.Final.activeFork_no_ownCode = ? WHERE repoURL = ?";
+//
+//                    preparedStmt = conn.prepareStatement(insertQuery);
+//                    preparedStmt.setString(1, repoInfo[4]);
+//                    preparedStmt.setString(2, repoInfo[1].replace("\"", ""));
+//                    System.out.println(preparedStmt.toString());
+//                    preparedStmt.execute();
+//                }
+//            }
             /**  insert code change loc  **/
 ////            // codechange_mean
 ////            String[] loc_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/codechange_mean.csv").split("\n");
@@ -118,20 +118,20 @@ public class testmysql {
 //        }
 
             /**  insert ratio of merged pr  **/
-//            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status.csv").split("\n");
-//            for (String repo : modularity_array) {
-//                if (repo.contains("Rejected")) {
-//                    String[] repoInfo = repo.split(",");
-//                    String insertQuery = "UPDATE fork.Final SET ratio_rejectedPR = ? WHERE repoURL = ?";
-//
-//                    preparedStmt = conn.prepareStatement(insertQuery);
-//                    preparedStmt.setString(1, repoInfo[4]);
-//                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
-//                    System.out.println(preparedStmt.toString());
-//                    System.out.println(preparedStmt.executeUpdate());
-//
-//                }
-//            }
+            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status.csv").split("\n");
+            for (String repo : modularity_array) {
+                if (repo.contains("Rejected")) {
+                    String[] repoInfo = repo.split(",");
+                    String insertQuery = "UPDATE fork.Final SET ratio_rejectedPR = ? WHERE repoID = ?";
+
+                    preparedStmt = conn.prepareStatement(insertQuery);
+                    preparedStmt.setString(1, repoInfo[4]);
+                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
+                    System.out.println(preparedStmt.toString());
+                    System.out.println(preparedStmt.executeUpdate());
+
+                }
+            }
             /**  insert modularity of project  **/
 //            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/commitHistory/10_repo_ECI_all_file.csv").split("\n");
 //            for (String repo : modularity_array) {
