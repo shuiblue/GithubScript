@@ -70,31 +70,30 @@ public class InsertModularity {
                                     System.out.println(file.getFileName().toString());
                                     String[] modResult = {};
                                     try {
-                                        modResult = io.readResult(String.valueOf(file.toAbsolutePath())).split(",");
+                                        modResult = io.readResult(String.valueOf(file.toAbsolutePath())).split("\n")[0].split(",");
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
-
+                                    String repoURL = modResult[0];
                                     float mod = Float.parseFloat(modResult[1]);
                                     int num_commit = Integer.parseInt(modResult[2]);
                                     int num_file = Integer.parseInt(modResult[3].trim());
+                                    int projectID = io.getRepoId(repoURL);
+
 
                                     String[] arr = file.getFileName().toString().split("_");
-
-                                    String repoURL = arr[0].replace("~", "/");
-                                    int projectID = io.getRepoId(repoURL);
-                                    String threshold = arr[1];
-                                    String year = arr[2];
-                                    boolean filterout_stopFile = arr[3].contains("noStopFile") ? true : false;
+                                    boolean filterout_stopFile = arr[arr.length - 1].contains("noStopFile") ? true : false;
+                                    String year = arr[arr.length - 3];
+                                    String threshold = arr[arr.length - 4];
 
                                     try {
                                         preparedStmt_1.setInt(1, projectID);
                                         preparedStmt_1.setBoolean(2, filterout_stopFile);
                                         preparedStmt_1.setInt(3, Integer.parseInt(year));
                                         preparedStmt_1.setInt(4, Integer.parseInt(threshold));
-                                        preparedStmt_1.setFloat(5,mod);
-                                        preparedStmt_1.setInt(6,num_commit);
-                                        preparedStmt_1.setInt(7,num_file);
+                                        preparedStmt_1.setFloat(5, mod);
+                                        preparedStmt_1.setInt(6, num_commit);
+                                        preparedStmt_1.setInt(7, num_file);
 
                                         preparedStmt_1.setInt(8, projectID);
                                         preparedStmt_1.setBoolean(9, filterout_stopFile);
