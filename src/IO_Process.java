@@ -901,56 +901,54 @@ public class IO_Process {
         issues.addAll(getIssueCandidates(comments, issueList.keySet()));
         issues.addAll(getIssueCandidates(commits, issueList.keySet()));
 
-
-        System.out.println("issue list size: " + issues.size());
-
-
-        String insert_PR_issueMap = " INSERT INTO fork.PR_TO_ISSUE(repoID, pull_request_id, issue_id, issue_created_at) " +
-                "  SELECT *" +
-                "  FROM (SELECT" +
-                "          ? AS a,? AS b, ? AS c, ? AS d,? AS c1, ? AS d1, ? AS d2) AS tmp" +
-                "  WHERE NOT EXISTS(" +
-                "      SELECT *" +
-                "      FROM fork.PR_TO_ISSUE AS ps" +
-                "      WHERE ps.repoID= ? AND" +
-                "         ps.pull_request_id= ? AND" +
-                "         ps.issue_id= ? " +
-                "  )" +
-                "  LIMIT 1";
-        int count = 0;
-        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
-             PreparedStatement preparedStmt = conn.prepareStatement(insert_PR_issueMap)) {
-            conn.setAutoCommit(false);
-            for (int issueid : issues) {
-                //repoID
-                preparedStmt.setInt(1, projectID);
-                // , pull_request_id,
-                preparedStmt.setInt(2, Integer.parseInt(pr_id));
-                // issue_id,
-                preparedStmt.setInt(3, issueid);
-                // issue_created_at
-                preparedStmt.setString(4, issueList.get(issueid));
-                //repoID
-                preparedStmt.setInt(5, projectID);
-                // , pull_request_id,
-                preparedStmt.setInt(6, Integer.parseInt(pr_id));
-                // issue_id,
-                preparedStmt.setInt(7, issueid);
-                preparedStmt.addBatch();
-                if (++count % batchSize == 0) {
-                    io.executeQuery(preparedStmt);
-                    conn.commit();
+        if (issues.size() > 0) {
+            System.out.println("issue list size: " + issues.size());
+            String insert_PR_issueMap = " INSERT INTO fork.PR_TO_ISSUE(repoID, pull_request_id, issue_id, issue_created_at) " +
+                    "  SELECT *" +
+                    "  FROM (SELECT" +
+                    "          ? AS a,? AS b, ? AS c, ? AS d) AS tmp" +
+                    "  WHERE NOT EXISTS(" +
+                    "      SELECT *" +
+                    "      FROM fork.PR_TO_ISSUE AS ps" +
+                    "      WHERE ps.repoID= ? AND" +
+                    "         ps.pull_request_id= ? AND" +
+                    "         ps.issue_id= ? " +
+                    "  )" +
+                    "  LIMIT 1";
+            int count = 0;
+            try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                 PreparedStatement preparedStmt = conn.prepareStatement(insert_PR_issueMap)) {
+                conn.setAutoCommit(false);
+                for (int issueid : issues) {
+                    //repoID
+                    preparedStmt.setInt(1, projectID);
+                    // , pull_request_id,
+                    preparedStmt.setInt(2, Integer.parseInt(pr_id));
+                    // issue_id,
+                    preparedStmt.setInt(3, issueid);
+                    // issue_created_at
+                    preparedStmt.setString(4, issueList.get(issueid));
+                    //repoID
+                    preparedStmt.setInt(5, projectID);
+                    // , pull_request_id,
+                    preparedStmt.setInt(6, Integer.parseInt(pr_id));
+                    // issue_id,
+                    preparedStmt.setInt(7, issueid);
+                    preparedStmt.addBatch();
+                    if (++count % batchSize == 0) {
+                        io.executeQuery(preparedStmt);
+                        conn.commit();
+                    }
                 }
-            }
-            if(issues.size()>0) {
+
                 System.out.println("inserting " + issues.size() + " issue for " + projectUrl + " , pr " + pr_id);
                 io.executeQuery(preparedStmt);
                 conn.commit();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
 
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
 
     }
 
@@ -964,7 +962,7 @@ public class IO_Process {
 
                 Matcher m = issueLink.matcher(text);
                 while (m.find()) {
-                    int s = Integer.parseInt(m.group().replaceAll("^[0-9]","").trim());
+                    int s = Integer.parseInt(m.group().replaceAll("[^\\d]", "").trim());
                     if (issueSet.contains(s)) {
                         issues.add(s);
                         System.out.println(s);

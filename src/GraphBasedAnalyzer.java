@@ -29,6 +29,8 @@ public class GraphBasedAnalyzer {
     HashMap<String, ArrayList<String>> all_HistoryMap = new HashMap<>();
     HashSet<String> upstream_firstCommit_set = new HashSet<>();
     HashSet<String> fork_firstCommit_set = new HashSet<>();
+    static boolean getActiveForksFromAPI = true;
+    static boolean hasTimeConstraint = true;
 
 
     GraphBasedAnalyzer() {
@@ -52,7 +54,7 @@ public class GraphBasedAnalyzer {
 
     public static void main(String[] args) {
         GraphBasedAnalyzer graphBasedAnalyzer = new GraphBasedAnalyzer();
-
+        QueryDataFromGithubAPI queryDataFromGithubAPI = new QueryDataFromGithubAPI();
         IO_Process io = new IO_Process();
         current_dir = System.getProperty("user.dir");
 
@@ -60,88 +62,137 @@ public class GraphBasedAnalyzer {
         /** get repo list **/
 
         try {
-            repoList = io.readResult(current_dir + "/input/graph_repoList_f8_g4.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/graph_repoList.txt").split("\n");
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-
+        HashSet<String> select_activeForkList = new HashSet<>();
 //        while (true) {
-            System.out.println("new loop....\n");
-            for (String projectUrl : repoList) {
-                String classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result.csv";
+        System.out.println("new loop....\n");
+        for (String projectUrl : repoList) {
+            String classifyCommit_file = "";
+            if (getActiveForksFromAPI) {
+                classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result_allFork.csv";
+            } else {
+                classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result.csv";
 
-                if (!new File(classifyCommit_file).exists()) {
-                    String repoName = projectUrl.split("/")[0];
-                    /** get active fork list for given repository **/
-                    System.out.println("get all active forks of repo: " + repoName);
+            }
+
+            if (!new File(classifyCommit_file).exists()) {
+                String repoName = projectUrl.split("/")[0];
+                /** get active fork list for given repository **/
+                System.out.println("get all active forks of repo: " + repoName);
 
 //            List<String> activeForkList = io.getActiveForksFromDatabase(projectUrl);
-                    HashSet<String> activeForkList = io.getActiveForksFromPRresult(projectUrl);
-                    if(activeForkList.size()==0){
+
+                HashSet<String> activeForkList = new HashSet<>();
+                if (getActiveForksFromAPI) {
+                    File all_activeFork = new File(output_dir + "/result/" + projectUrl + "/all_ActiveForklist.txt");
+                    File selected_activeFork = new File(output_dir + "/result/" + projectUrl + "/ActiveForklist.txt");
+
+                    if (!all_activeFork.exists()) {
+
+                        /**  get active forks using github api **/
+                        String all_activeForkList = queryDataFromGithubAPI.getActiveForkList(projectUrl, hasTimeConstraint);
+                        io.rewriteFile(all_activeForkList, output_dir + "/result/" + projectUrl + "/all_ActiveForklist.txt");
+                    }
+
+                    String all_activeForkList = "";
+                    /**  randomize forks from active_fork_list **/
+                    try {
+                        all_activeForkList = io.readResult(output_dir + "/result/" + projectUrl + "/all_ActiveForklist.txt");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    if (all_activeForkList.split("\n").length <= maxAnalyzedForkNum) {
+                        io.rewriteFile(all_activeForkList, output_dir + "/result/" + projectUrl + "/ActiveForklist.txt");
+                    } else {
+//                        io.rewriteFile(all_activeForkList, output_dir + "/result/" + projectUrl + "/all_ActiveForklist.txt");
+                        System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
+                        queryDataFromGithubAPI.getRamdomForks(projectUrl, maxAnalyzedForkNum);
+                    }
+
+                    try {
+                        select_activeForkList.addAll(Arrays.asList(io.readResult(output_dir + "/result/" + projectUrl + "/ActiveForklist.txt").split("\n")));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                } else {
+                    activeForkList = io.getActiveForksFromPRresult(projectUrl);
+                    if (activeForkList.size() == 0) {
                         System.out.println("no fork in database yet !");
-                        io.writeTofile(projectUrl+"\n",output_dir+"no_fork_inDB.txt");
+                        io.writeTofile(projectUrl + "\n", output_dir + "no_fork_inDB.txt");
                         continue;
                     }
                     System.out.println(activeForkList.size() + " forks has submitted PR..");
-
-                    HashSet<String> select_activeForkList = new HashSet<>();
-
                     if (activeForkList.size() > maxAnalyzedForkNum) {
-                        System.out.println("shuffle activeforklist" );
-
-//                        while (select_activeForkList.size() < maxAnalyzedForkNum) {
-//                            Random rand = new Random();
-//                            int i = rand.nextInt(activeForkList.size() - 1) + 1;
-//                            select_activeForkList.add(activeForkList.get(i));
-//                        }
-
-                        for(String fork:activeForkList){
+                        System.out.println("shuffle activeforklist");
+                        for (String fork : activeForkList) {
                             select_activeForkList.add(fork);
-                            if(select_activeForkList.size()==maxAnalyzedForkNum)
+                            if (select_activeForkList.size() == maxAnalyzedForkNum)
                                 break;
                         }
-
                     } else {
                         select_activeForkList.addAll(activeForkList);
                     }
-                    System.out.println("randomly sample :" + select_activeForkList.size() + " forks...");
-
-
-                    /**   classify commits **/
-                    /**  by graph  **/
-                    System.out.println("graph-based...");
-                    StringBuilder sb_result = new StringBuilder();
-                    sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
-                    io.rewriteFile(sb_result.toString(), classifyCommit_file);
-
-                    /** clone project **/
-                    new JgitUtility().cloneRepo_cmd(select_activeForkList, projectUrl);
-
-                    for (String forkURL : select_activeForkList) {
-                        System.out.println("FORK: " + forkURL);
-                        graphBasedAnalyzer.analyzeCommitHistory(forkURL, projectUrl);
-                    }
-                } else {
-                    System.out.println("done with parsing garph of " + projectUrl);
                 }
-                try {
-                    io.deleteDir(new File(clone_dir));
-                } catch (IOException e) {
-                    e.printStackTrace();
+
+
+                System.out.println("randomly sample :" + select_activeForkList.size() + " forks...");
+
+
+                /**   classify commits **/
+                /**  by graph  **/
+                System.out.println("graph-based...");
+                StringBuilder sb_result = new StringBuilder();
+                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
+                io.rewriteFile(sb_result.toString(), classifyCommit_file);
+
+                /** clone project **/
+                new JgitUtility().cloneRepo_cmd(select_activeForkList, projectUrl, getActiveForksFromAPI);
+
+                for (String forkURL : select_activeForkList) {
+
+                    System.out.println("FORK: " + forkURL);
+                    graphBasedAnalyzer.analyzeCommitHistory(forkURL, projectUrl, getActiveForksFromAPI);
                 }
+            } else {
+                System.out.println("done with parsing garph of " + projectUrl);
             }
-//        }
+            try {
+                io.deleteDir(new File(clone_dir + projectUrl));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
 
-    public void analyzeCommitHistory(String forkUrl, String projectURL) {
+    public void analyzeCommitHistory(String forkUrl, String projectURL, boolean getActiveForksFromAPI) {
+        String fork = "", upstream = "";
+        if (getActiveForksFromAPI) {
+            fork = forkUrl.split(",")[0];
+            upstream = forkUrl.split(",")[1];
+        } else {
+            fork = forkUrl;
+            upstream = projectURL;
+        }
         all_HistoryMap = new HashMap<>();
         upstream_firstCommit_set = new HashSet<>();
         fork_firstCommit_set = new HashSet<>();
         IO_Process io = new IO_Process();
-        String classifyCommit_file = graph_dir + projectURL.replace("/", ".") + "_graph_result.csv";
+
+        String classifyCommit_file = "";
+        if (getActiveForksFromAPI) {
+            classifyCommit_file = graph_dir + projectURL.replace("/", ".") + "_graph_result_allFork.csv";
+        } else {
+            classifyCommit_file = graph_dir + projectURL.replace("/", ".") + "_graph_result.csv";
+        }
 
         /** result**/
         HashSet<String> onlyFork = new HashSet<>();
@@ -151,8 +202,10 @@ public class GraphBasedAnalyzer {
 
 
         /** get commit in branch and get commit history */
-        upstream_firstCommit_set = getCommitInBranch(projectURL, projectURL);
-        fork_firstCommit_set = getCommitInBranch(forkUrl, projectURL);
+//        upstream_firstCommit_set = getCommitInBranch(projectURL, projectURL);
+//        fork_firstCommit_set = getCommitInBranch(forkUrl, projectURL);
+        upstream_firstCommit_set = getCommitInBranch(upstream, upstream, projectURL);
+        fork_firstCommit_set = getCommitInBranch(fork, upstream, projectURL);
 
 
         HashSet<String> allCommits = new HashSet<>();
@@ -167,22 +220,32 @@ public class GraphBasedAnalyzer {
         System.out.println("distance to fork");
         HashMap<String, Integer> distance2Fork_map = getShortestPath_Dij(fork_firstCommit_set, graph, allCommits);
 
+        HashSet<String> mergeCommits = new HashSet<>();
+        for (String commit : distance2Fork_map.keySet()) {
+            if (all_HistoryMap.get(commit).size() > 1) {
+                mergeCommits.add(commit);
+            }
+        }
+
+
         distance2Fork_map.forEach((fork_origin_commit, d) -> {
-            int distance2Upstream = distance2Upstream_map.get(fork_origin_commit) != null ? distance2Upstream_map.get(fork_origin_commit) : 0;
-            if (distance2Upstream == 999) {
-                onlyFork.add(fork_origin_commit);
-            } else if (d == 999) {
-                onlyUpstream.add(fork_origin_commit);
-            } else if (d < distance2Upstream) {
-                fork2Upstream.add(fork_origin_commit);
-            } else if (d > distance2Upstream) {
-                upstream2Fork.add(fork_origin_commit);
+            if(!mergeCommits.contains(fork_origin_commit)) {
+                int distance2Upstream = distance2Upstream_map.get(fork_origin_commit) != null ? distance2Upstream_map.get(fork_origin_commit) : 0;
+                if (distance2Upstream == 999) {
+                    onlyFork.add(fork_origin_commit);
+                } else if (d == 999) {
+                    onlyUpstream.add(fork_origin_commit);
+                } else if (d < distance2Upstream) {
+                    fork2Upstream.add(fork_origin_commit);
+                } else if (d > distance2Upstream) {
+                    upstream2Fork.add(fork_origin_commit);
+                }
             }
         });
         System.out.println(onlyFork.size() + " , " + onlyUpstream.size() + " , " + fork2Upstream.size() + " , " + upstream2Fork.size());
 
 
-        io.writeTofile(forkUrl + "," + projectURL + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
+        io.writeTofile(fork + "," + upstream + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
                         fork2Upstream.size() + "," + upstream2Fork.size() + "," +
                         onlyFork.toString().replace(",", "/") + "," +
                         onlyUpstream.toString().replace(",", "/") + "," +
@@ -194,13 +257,16 @@ public class GraphBasedAnalyzer {
     }
 
 
-    public HashSet<String> getCommitInBranch(String forkUrl, String projectUrl) {
+    public HashSet<String> getCommitInBranch(String fork, String upstream, String projectUrl) {
 
+        if (!upstream.equals(projectUrl)) {
+            System.out.println();
+        }
         IO_Process io = new IO_Process();
         HashSet<String> firstCommit_set = new HashSet<>();
         String branch = "origin";
-        if (!projectUrl.equals(forkUrl)) {
-            branch = forkUrl.split("/")[0];
+        if (!projectUrl.equals(fork) || !projectUrl.equals(upstream)) {
+            branch = fork.split("/")[0];
         }
 
         String cmd_getUpstreamBranch = "git branch --all --list " + branch + "*";

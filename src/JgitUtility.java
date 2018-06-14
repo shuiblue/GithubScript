@@ -103,7 +103,7 @@ public class JgitUtility {
     }
 
 
-    public void cloneRepo_cmd(HashSet<String> forkList, String projectURL) {
+    public void cloneRepo_cmd(HashSet<String> forkList, String projectURL,boolean getActiveForksFromAPI) {
         String projectName = projectURL.split("/")[0];
         IO_Process io = new IO_Process();
         String creadDirCMD = "mkdir -p " + clone_dir + projectURL;
@@ -117,6 +117,10 @@ public class JgitUtility {
         if (new File(clone_dir + projectURL).exists()) {
             HashSet<String> clonedFork = new HashSet<>();
             for (String forkUrl : forkList) {
+                if(getActiveForksFromAPI){
+                    forkUrl = forkUrl.split(",")[0];
+                }
+
                 forkUrl = io.getForkURL(forkUrl);
                 if (!clonedFork.contains(forkUrl)) {
                     clonedFork.add(forkUrl);

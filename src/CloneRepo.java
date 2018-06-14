@@ -28,7 +28,7 @@ public class CloneRepo {
             for (String projectURL : repos) {
                     HashSet<String> project_forks = io.getProjectForkMap(projectURL);
                     JgitUtility jg = new JgitUtility();
-                    jg.cloneRepo_cmd(project_forks, projectURL);
+                    jg.cloneRepo_cmd(project_forks, projectURL,false);
                     io.writeTofile(projectURL + "\n", output_dir + "finish_clone.txt");
             }
         }

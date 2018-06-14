@@ -64,30 +64,25 @@ public class AnalyzeCommitChangedFile {
             long start = System.nanoTime();
             HashSet<String> miss_Clone_project = new HashSet<>();
             for (String commit : commitSet) {
-                System.out.println(commit);
                 String[] commit_info = commit.split(",");
                 //repo.repoURL, c.commitSHA, c.id
                 String projectURL = commit_info[0];
                 if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
 
                     String sha = commit_info[1];
-                    String commitshaID =io.getCommitID(sha);
-
-                    System.out.println(sha + "," + projectURL);
-                    long start_getcommit = System.nanoTime();
+                    String commitshaID = io.getCommitID(sha);
+                    System.out.println(sha);
                     ArrayList<String> changedfiles = io.getCommitFromCMD(sha, projectURL);
                     if (changedfiles == null) {
-                        System.out.println("commit does not exist in local git history");
+//                        System.out.println("commit does not exist in local git history");
                         io.writeTofile(sha + "," + projectURL + "\n", output_dir + "lostCommit.txt");
                         continue;
                     } else if (changedfiles.get(0).trim().equals("")) {
-                        System.out.println("no commit in pr");
+//                        System.out.println("no commit in pr" );
                         io.writeTofile(sha + "," + projectURL + "\n", output_dir + "noCommit.txt");
                         continue;
                     }
 
-                    long end_getcommit = System.nanoTime();
-                    System.out.println("get a commit changed file from cmd:" + TimeUnit.NANOSECONDS.toMillis(end_getcommit - start_getcommit) + " ms");
                     int index_d = 0;
 
                     long start_commit = System.nanoTime();
@@ -163,15 +158,12 @@ public class AnalyzeCommitChangedFile {
                             continue;
 
                         }
-                        System.out.println(count + " count");
                         if (++count % batchSize == 0) {
                             io.executeQuery(preparedStmt);
                             conn.commit();
                         }
 
                     }
-                    long end_commit = System.nanoTime();
-                    System.out.println("——--" + changedfiles.size() + " changed files in one commit :" + TimeUnit.NANOSECONDS.toMillis(end_commit - start_commit) + " ms");
                 } else {
                     System.out.println(clone_dir + projectURL + " clone not available.");
                     io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
@@ -206,16 +198,16 @@ public class AnalyzeCommitChangedFile {
             e.printStackTrace();
         }
         System.out.println(repos.length + " projects ");
-        int count=0;
-        while (count<repos.length) {
+        int count = 0;
+        while (count < repos.length) {
             System.out.println("restart loop..");
-            count=0;
+            count = 0;
             for (String projectURL : repos) {
                 todo_commits = io.get_un_analyzedCommit(projectURL);
                 if (todo_commits.size() > 0) {
                     System.out.println(todo_commits.size() + " commits from " + projectURL);
                     accf.analyzeChangedFile(todo_commits);
-                }else{
+                } else {
                     count++;
                 }
             }
