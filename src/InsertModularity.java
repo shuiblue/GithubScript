@@ -34,17 +34,8 @@ public class InsertModularity {
 
 
     public static void main(String[] args) {
-        InsertModularity insertModularity = new InsertModularity();
+        new InsertModularity();
         IO_Process io = new IO_Process();
-        String current_dir = System.getProperty("user.dir");
-        /*** insert repoList to repository table ***/
-        String[] repos = new String[0];
-        try {
-            repos = io.readResult(current_dir + "/input/repoList.txt").split("\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
         String insertIssueQuery = "INSERT INTO fork.Modularity(projectID, filterout_stopFile, num_latest_year, threshold_num_files_per_commit,modularity,num_commits_total,num_file_total) " +
                 "  SELECT *" +
                 "  FROM (SELECT" +
@@ -75,44 +66,48 @@ public class InsertModularity {
                                         e.printStackTrace();
                                     }
                                     String repoURL = modResult[0];
-                                    float mod = Float.parseFloat(modResult[1]);
-                                    int num_commit = Integer.parseInt(modResult[2]);
-                                    int num_file = Integer.parseInt(modResult[3].trim());
                                     int projectID = io.getRepoId(repoURL);
 
+                                    int modular_exist = io.checkModularityExist(projectID);
+                                    if (modular_exist == 0) {
+                                        float mod = Float.parseFloat(modResult[1]);
+                                        int num_commit = Integer.parseInt(modResult[2]);
+                                        int num_file = Integer.parseInt(modResult[3].trim());
 
-                                    String[] arr = file.getFileName().toString().split("_");
-                                    boolean filterout_stopFile = arr[arr.length - 1].contains("noStopFile") ? true : false;
-                                    String year = arr[arr.length - 3];
-                                    String threshold = arr[arr.length - 4];
 
-                                    try {
-                                        preparedStmt_1.setInt(1, projectID);
-                                        preparedStmt_1.setBoolean(2, filterout_stopFile);
-                                        preparedStmt_1.setInt(3, Integer.parseInt(year));
-                                        preparedStmt_1.setInt(4, Integer.parseInt(threshold));
-                                        preparedStmt_1.setFloat(5, mod);
-                                        preparedStmt_1.setInt(6, num_commit);
-                                        preparedStmt_1.setInt(7, num_file);
+                                        String[] arr = file.getFileName().toString().split("_");
+                                        boolean filterout_stopFile = arr[arr.length - 1].contains("noStopFile") ? true : false;
+                                        String year = arr[arr.length - 3];
+                                        String threshold = arr[arr.length - 4];
 
-                                        preparedStmt_1.setInt(8, projectID);
-                                        preparedStmt_1.setBoolean(9, filterout_stopFile);
-                                        preparedStmt_1.setInt(10, Integer.parseInt(year));
-                                        preparedStmt_1.setInt(11, Integer.parseInt(threshold));
-                                        preparedStmt_1.addBatch();
+                                        try {
+                                            preparedStmt_1.setInt(1, projectID);
+                                            preparedStmt_1.setBoolean(2, filterout_stopFile);
+                                            preparedStmt_1.setInt(3, Integer.parseInt(year));
+                                            preparedStmt_1.setInt(4, Integer.parseInt(threshold));
+                                            preparedStmt_1.setFloat(5, mod);
+                                            preparedStmt_1.setInt(6, num_commit);
+                                            preparedStmt_1.setInt(7, num_file);
 
-                                        if (++count[0] % batchSize == 0) {
-                                            io.executeQuery(preparedStmt_1);
-                                            conn1.commit();
+                                            preparedStmt_1.setInt(8, projectID);
+                                            preparedStmt_1.setBoolean(9, filterout_stopFile);
+                                            preparedStmt_1.setInt(10, Integer.parseInt(year));
+                                            preparedStmt_1.setInt(11, Integer.parseInt(threshold));
+                                            preparedStmt_1.addBatch();
+
+                                            if (++count[0] % batchSize == 0) {
+                                                io.executeQuery(preparedStmt_1);
+                                                conn1.commit();
+                                            }
+                                        } catch (SQLException e) {
+                                            e.printStackTrace();
                                         }
-                                    } catch (SQLException e) {
-                                        e.printStackTrace();
+                                    }else{
+                                        System.out.println(repoURL + " exist in database :)");
+                                        return;
                                     }
-
                                 }
                             }
-
-
                     );
             System.out.println("inserting modularity");
             io.executeQuery(preparedStmt_1);

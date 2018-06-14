@@ -113,7 +113,7 @@ public class QueryDataFromGithubAPI {
         StringBuilder sb = new StringBuilder();
         String[] forkArray = {};
         try {
-            forkArray = io.readResult(output_dir + repo_url + "/all_ActiveForklist.txt").split("\n");
+            forkArray = io.readResult(output_dir+"result/" + repo_url + "/all_ActiveForklist.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -126,7 +126,7 @@ public class QueryDataFromGithubAPI {
             }
         }
 
-        io.rewriteFile(sb.toString(), output_dir + repo_url + "/ActiveForklist.txt");
+        io.rewriteFile(sb.toString(), output_dir+"result/"  + repo_url + "/ActiveForklist.txt");
     }
 
 

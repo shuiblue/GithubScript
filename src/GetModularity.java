@@ -90,7 +90,8 @@ public class GetModularity {
                 }
                 System.out.println("pre firstCommitCreatedAt = " + firstCommitCreatedAt);
 
-                if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
+//                if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
+                if (firstCommitCreatedAt > 10) firstCommitCreatedAt = 10;
 
                 System.out.println("after firstCommitCreatedAt = " + firstCommitCreatedAt);
 
