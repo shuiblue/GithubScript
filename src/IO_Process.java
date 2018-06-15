@@ -533,7 +533,7 @@ public class IO_Process {
     }
 
     private int issueid_Exist(int s, int projectID) {
-        String commitshaID_QUERY = "SELECT 1 from ISSUE WHERE projectID = " + projectID + " and issue_id ="+s+" LIMIT 1";
+        String commitshaID_QUERY = "SELECT 1 from ISSUE WHERE projectID = " + projectID + " and issue_id =" + s + " LIMIT 1";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
             ResultSet rs = preparedStmt.executeQuery();
@@ -982,8 +982,8 @@ public class IO_Process {
         }
         HashSet<Integer> issues = new HashSet<>();
         System.out.println("starting to parse commits and comments... " + projectUrl);
-        issues.addAll(getIssueCandidates(comments,projectID));
-        issues.addAll(getIssueCandidates(commits,projectID));
+        issues.addAll(getIssueCandidates(comments, projectID));
+        issues.addAll(getIssueCandidates(commits, projectID));
 
         if (issues.size() > 0) {
             System.out.println("issue list size: " + issues.size());
@@ -1038,7 +1038,7 @@ public class IO_Process {
     }
 
 
-    private HashSet<Integer> getIssueCandidates(List<List<String>> texts,int projectID) {
+    private HashSet<Integer> getIssueCandidates(List<List<String>> texts, int projectID) {
         Pattern issueLink = Pattern.compile("\\#[1-9][\\d]{1,4}([^0-9]|$)");
         HashSet<Integer> issues = new HashSet<>();
         System.out.println(texts.size() + " texts");
@@ -1050,7 +1050,7 @@ public class IO_Process {
                 Matcher m = issueLink.matcher(text);
                 while (m.find()) {
                     int s = Integer.parseInt(m.group().replaceAll("[^\\d]", "").trim());
-                    if (new IO_Process().issueid_Exist(s,projectID) == 0) {
+                    if (new IO_Process().issueid_Exist(s, projectID) == 0) {
                         issues.add(s);
                         System.out.println(s + "issue exist in db ");
                     }
@@ -1059,7 +1059,6 @@ public class IO_Process {
         }
         return issues;
     }
-
 
 
     public void getPRfiles(String projectUrl, int projectID, List<String> prList) {
@@ -1172,7 +1171,7 @@ public class IO_Process {
     }
 
 
-//    public void inserRepoToDB(GithubRepository repo) {
+    //    public void inserRepoToDB(GithubRepository repo) {
 //        System.out.println("get fork info: " + repo.getrepoUr);
 //        String query = "  INSERT INTO repository ( repoURL,loginID,repoName,isFork,UpstreamURL,belongToRepo,upstreamID,projectID," +
 //                "num_of_forks, created_at,pushed_at, size,language,ownerID,public_repos," +
@@ -1260,6 +1259,16 @@ public class IO_Process {
 //        }
 //
 //    }
+    public String[] getCommitInfoFromCMD(String sha, String repoUrl) {
+        String[] cmd = {"/bin/sh",
+                "-c",
+                "git show --format=\"%aN~%ae~%cI\"" + sha};
+
+        String[] changedfiles = exeCmd(cmd, clone_dir + repoUrl).split("\n");
+        String[] result = changedfiles[0].split("~");
+        return result;
+    }
+
 
     public ArrayList<String> getCommitFromCMD(String sha, String repoUrl) {
         String[] cmd_getline = {"/bin/sh",

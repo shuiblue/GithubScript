@@ -56,7 +56,7 @@ public class AnalyzeChangedFile_ClassifyCommit {
         /** get repo list **/
         String current_dir = System.getProperty("user.dir");
         try {
-            repoList = io.readResult(current_dir + "/input/graph_repoList.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/graph_result_repoList.txt").split("\n");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -67,12 +67,21 @@ public class AnalyzeChangedFile_ClassifyCommit {
 
             String[] forkListInfo = new String[0];
             try {
-                forkListInfo = io.readResult(resultDirPath + repoUrl.replace("/", ".") + "_graph_result.csv").split("\n");
+                forkListInfo = io.readResult(resultDirPath + repoUrl.replace("/", ".") + "_graph_result_allFork.csv").split("\n");
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
             HashMap<String, HashMap<String, List<String>>> forkOwnCode = getForkOwnCode(forkListInfo);
+
+
+            HashSet<String> project_forks = new HashSet<>();
+            try {
+                project_forks.addAll(Arrays.asList(io.readResult(output_dir + "result/" + repoUrl + "/ActiveForklist.txt").split("\n")));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            jg.cloneRepo_cmd(project_forks, repoUrl, true);
 
             for (int i = 1; i < forkListInfo.length; i++) {
                 String forkINFO = forkListInfo[i];
@@ -82,42 +91,49 @@ public class AnalyzeChangedFile_ClassifyCommit {
 
 
                 /**   get all branch list**/
-                String fork_cloneDir = clone_dir + forkurl + "/";
-                String cmd_getOringinBranch = "git branch -a --list " + forkName + "*";
-                String branchResult = io.exeCmd(cmd_getOringinBranch.split(" "), fork_cloneDir);
-
-                String[] branchList_array = branchResult.split("\n");
-                ArrayList<String> branchList = new ArrayList<>();
-                for (String br : branchList_array) {
-                    if (!br.contains("HEAD")) {
-                        branchList.add(br.trim());
-                    }
-                }
-
-
-                /** clone fork **/
-//                ArrayList<String> branchList = jg.cloneRepo(forkurl);
-                File branchListFile = new File(repoCloneDir + forkurl.split("/")[0] + "_branchList.txt");
-                if (!branchListFile.exists()) {
-                    System.out.println("fork is not available");
-                    continue;
-                }
-                if (branchList.size() == 0) {
-                    try {
-                        branchList.addAll(Arrays.asList(io.readResult(clone_dir + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
+//                String fork_cloneDir = clone_dir + forkurl + "/";
+//                String cmd_getOringinBranch = "git branch -a --list " + forkName + "*";
+//                String branchResult = io.exeCmd(cmd_getOringinBranch.split(" "), fork_cloneDir);
+//
+//                String[] branchList_array = branchResult.split("\n");
+//                ArrayList<String> branchList = new ArrayList<>();
+//                for (String br : branchList_array) {
+//                    if (!br.contains("HEAD")&&!br.trim().equals("")) {
+//                        branchList.add(br.trim());
+//                    }
+//                }
+//
+//
+//                File branchListFile = new File(repoCloneDir + forkurl.split("/")[0] + "_branchList.txt");
+//                if (!branchListFile.exists()) {
+//                    System.out.println("fork is not available");
+//                    continue;
+//                }
+//                if (branchList.size() == 0) {
+//                    try {
+//                        branchList.addAll(Arrays.asList(io.readResult(clone_dir + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
                 System.out.println("insert commit...");
-                acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
+
+
+                acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl);
+//                acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
                 System.out.println("update existing commit...");
-                acc.updateCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
-                System.out.println("analyzing changed files...");
-                acc.getCodechangedLOC(repoUrl, forkOwnCode, forkurl, branchList);
+//                acc.updateCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
+//                acc.updateCommitFromGraphResult(repoUrl, forkOwnCode, forkurl);
+//                System.out.println("analyzing changed files...");
+//                acc.getCodechangedLOC(repoUrl, forkOwnCode, forkurl);
+////                acc.getCodechangedLOC(repoUrl, forkOwnCode, forkurl, branchList);
             }
 
-
+            try {
+                io.deleteDir(new File(clone_dir + repoUrl));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -286,23 +302,31 @@ public class AnalyzeChangedFile_ClassifyCommit {
     }
 
 
-    private void insertCommitFromGraphResult(String repoUrl, HashMap<String, HashMap<String, List<String>>> forkOwnCode, String forkurl, ArrayList<String> branchList) {
+    //    private void insertCommitFromGraphResult(String repoUrl, HashMap<String, HashMap<String, List<String>>> forkOwnCode, String forkurl, ArrayList<String> branchList) {
+    private void insertCommitFromGraphResult(String repoUrl, HashMap<String, HashMap<String, List<String>>> forkOwnCode, String forkurl) {
         IO_Process io = new IO_Process();
         HashMap<String, List<String>> onlyF_map = forkOwnCode.get("onlyF");
         HashMap<String, List<String>> F2U_map = forkOwnCode.get("F2U");
-        PreparedStatement preparedStmt_insert = null;
         int onlyf_boolean, f2u_boolean;
-
-        try {
-            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+        int repoID = io.getRepoId(forkurl);
+        int projectID = io.getRepoId(repoUrl);
+        String update_commit_query = " INSERT INTO fork.Commit (commitSHA, projectID, loginID, email, author_name, num_changedFiles, data_update_at, only_f, f2u,created_at,commit_repo_id) " +
+                "  SELECT *" +
+                "  FROM (SELECT" +
+                "          ? AS a,? AS b, ? AS c, ? AS d, ? AS e,? AS f, ? AS g ,? AS x, ? AS y,? AS createat,? as commitrepoid) AS tmp" +
+                "  WHERE NOT EXISTS(" +
+                "      SELECT commitSHA" +
+                "      FROM fork.Commit AS cc" +
+                "      WHERE cc.commitSHA = ?" +
+                "  )" +
+                "  LIMIT 1";
+        try (
+                Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
+                PreparedStatement preparedStmt_insert = conn.prepareStatement(update_commit_query);) {
             conn.setAutoCommit(false);
-
-            Repository repo = new FileRepository(clone_dir + ".git");
-            Git git = new Git(repo);
 
             /** Get contribution code : onlyF and F2U  **/
             HashSet<String> codeChangeCommits = new HashSet<>();
-            RevWalk rw = new RevWalk(repo);
             LocalDateTime now = LocalDateTime.now();
 
             for (String type : commitType) {
@@ -317,72 +341,72 @@ public class AnalyzeChangedFile_ClassifyCommit {
                 }
 
                 int count = 0;
-                String update_commit_query = " INSERT INTO fork.commit (commitSHA,  repoURL, num_changedFiles, authorName, email, data_update_at, upstreamURL,repoID,belongToRepoID,only_f,f2u)" +
-                        "  SELECT *" +
-                        "  FROM (SELECT" +
-                        "          ? AS a,? AS b, ? AS c, ? AS d, ? AS e,? AS f, ? AS g ,? AS x, ? AS y,? AS type, ? AS type2) AS tmp" +
-                        "  WHERE NOT EXISTS(" +
-                        "      SELECT commitSHA" +
-                        "      FROM fork.commit AS cc" +
-                        "      WHERE cc.commitSHA = ?" +
-                        "  )" +
-                        "  LIMIT 1";
-                preparedStmt_insert = conn.prepareStatement(update_commit_query);
-                long start_codeChangeCommits = System.nanoTime();
                 for (String sha : codeChangeCommits) {
-                    long start_getOneCommit = System.nanoTime();
-                    RevCommit commit = io.getCommit(sha, repo, git, branchList);
-                    if (commit != null && commit.getParentCount() > 0) {
-                        String author_fullName = io.normalize(commit.getAuthorIdent().getName());
-                        String email = commit.getAuthorIdent().getEmailAddress();
-                        List<DiffEntry> diffs = io.getCommitDiff(commit, repo);
-
-                        if (diffs.size() < 100) {
-                            String commitid = io.getCommitID(sha);
-                            if (commitid.equals("")) {
-                                int repoID = io.getRepoId(forkurl);
-                                int projectID = io.getRepoId(repoUrl);
-
-                                preparedStmt_insert.setString(1, sha);
-
-                                preparedStmt_insert.setString(2, forkurl);
-
-                                preparedStmt_insert.setInt(3, diffs.size());
-
-                                preparedStmt_insert.setString(4, author_fullName);
-
-                                preparedStmt_insert.setString(5, email);
-
-                                preparedStmt_insert.setString(6, String.valueOf(now));
-                                preparedStmt_insert.setString(7, repoUrl);
-                                preparedStmt_insert.setInt(8, repoID);
-                                preparedStmt_insert.setInt(9, projectID);
-                                preparedStmt_insert.setInt(10, onlyf_boolean);
-                                preparedStmt_insert.setInt(11, f2u_boolean);
-                                preparedStmt_insert.setString(12, sha);
-                                preparedStmt_insert.addBatch();
+                    System.out.println(sha);
+                    String[] commitInfo = io.getCommitInfoFromCMD(sha, repoUrl);
+                    String author_fullName = commitInfo[0];
+                    String email = commitInfo[1];
+                    String created_at = commitInfo[2];
 
 
-                                if (++count % batchSize == 0) {
-                                    io.executeQuery(preparedStmt_insert);
-                                    conn.commit();
-                                }
+                    ArrayList<String> changedfiles = io.getCommitFromCMD(sha, repoUrl);
+
+                    if (changedfiles == null) {
+                        io.writeTofile(sha + "," + repoUrl + "\n", output_dir + "lostCommit.txt");
+                        continue;
+                    } else if (changedfiles.get(0).trim().equals("")) {
+                        io.writeTofile(sha + "," + repoUrl + "\n", output_dir + "noCommit.txt");
+                        continue;
+                    }
+
+                    if (changedfiles.size() < 100) {
+                        String commitid = io.getCommitID(sha);
+                        if (commitid.equals("")) {
+
+                            //(commitSHA,
+                            preparedStmt_insert.setString(1, sha);
+
+                            // projectID,
+                            preparedStmt_insert.setInt(2, projectID);
+                            // loginID,
+                            preparedStmt_insert.setString(3, forkurl.split("/")[0]);
+                            // email,
+                            preparedStmt_insert.setString(4, email);
+                            // author_name,
+                            preparedStmt_insert.setString(5, author_fullName);
+
+                            // num_changedFiles,
+                            preparedStmt_insert.setInt(6, changedfiles.size());
+
+                            // data_update_at,
+                            preparedStmt_insert.setString(7, String.valueOf(now));
+                            // only_f,
+                            preparedStmt_insert.setInt(8, onlyf_boolean);
+
+                            // f2u,
+                            preparedStmt_insert.setInt(9, f2u_boolean);
+                            //created at
+                            preparedStmt_insert.setString(10, created_at);
+                            // commit repo id
+
+                            preparedStmt_insert.setInt(11,repoID);
+                            //SHA
+                            preparedStmt_insert.setString(12, sha);
+                            preparedStmt_insert.addBatch();
+                            io.executeQuery(preparedStmt_insert);
+                            conn.commit();
+
+                            if (++count % batchSize == 0) {
+                                io.executeQuery(preparedStmt_insert);
+                                conn.commit();
                             }
                         }
                     }
-                    long end_getOneCommit = System.nanoTime();
-                    System.out.println("generate 1 insert commit query :" + TimeUnit.NANOSECONDS.toMillis(end_getOneCommit - start_getOneCommit) + " ms");
                 }
-                long end_codeChangeCommits = System.nanoTime();
-                System.out.println("insert codeChangeCommits from 1 fork :" + TimeUnit.NANOSECONDS.toMillis(end_codeChangeCommits - start_codeChangeCommits) + " ms");
                 io.executeQuery(preparedStmt_insert);
                 conn.commit();
             }
 
-            preparedStmt_insert.close();
-            conn.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         } catch (SQLException e) {
             e.printStackTrace();
         }

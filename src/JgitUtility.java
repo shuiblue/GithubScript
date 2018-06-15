@@ -121,6 +121,7 @@ public class JgitUtility {
                     forkUrl = forkUrl.split(",")[0];
                 }
 
+
                 forkUrl = io.getForkURL(forkUrl);
                 if (!clonedFork.contains(forkUrl)) {
                     clonedFork.add(forkUrl);
