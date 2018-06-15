@@ -62,16 +62,17 @@ public class GraphBasedAnalyzer {
         /** get repo list **/
 
         try {
-            repoList = io.readResult(current_dir + "/input/graph_repoList_f9_g2.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/graph_repoList_f8_g4.txt").split("\n");
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        HashSet<String> select_activeForkList = new HashSet<>();
+
 //        while (true) {
         System.out.println("new loop....\n");
         for (String projectUrl : repoList) {
+            HashSet<String> select_activeForkList = new HashSet<>();
             String classifyCommit_file = "";
             if (getActiveForksFromAPI) {
                 classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result_allFork.csv";
@@ -156,9 +157,10 @@ public class GraphBasedAnalyzer {
                     new JgitUtility().cloneRepo_cmd(select_activeForkList, projectUrl, getActiveForksFromAPI);
 
                     for (String forkURL : select_activeForkList) {
-
-                        System.out.println("FORK: " + forkURL);
-                        graphBasedAnalyzer.analyzeCommitHistory(forkURL, projectUrl, getActiveForksFromAPI);
+                        if (!forkURL.trim().equals("")) {
+                            System.out.println("FORK: " + forkURL);
+                            graphBasedAnalyzer.analyzeCommitHistory(forkURL, projectUrl, getActiveForksFromAPI);
+                        }
                     }
                 } else {
                     io.writeTofile(projectUrl + "\n", output_dir + "forkListNull.txt");

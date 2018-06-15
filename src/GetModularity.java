@@ -97,7 +97,8 @@ public class GetModularity {
 
                 for (boolean b : filterOutStopFile) {
                     int threshold = 10;
-                    while (threshold < 100) {
+                    while (threshold < 40) {
+//                    while (threshold < 100) {
                         for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
                             System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
                             getModularity.measureModularity(projectURL, threshold, b, year);

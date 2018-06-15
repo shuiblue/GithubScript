@@ -35,7 +35,7 @@ public class AnalyzeCommitChangedFile {
     }
 
 
-    public void analyzeChangedFile(HashSet<String> commitSet) {
+    public void analyzeChangedFile(HashSet<String> commitSet,String projectURL) {
         IO_Process io = new IO_Process();
         LocalDateTime now = LocalDateTime.now();
 
@@ -65,110 +65,114 @@ public class AnalyzeCommitChangedFile {
             HashSet<String> miss_Clone_project = new HashSet<>();
             for (String commit : commitSet) {
                 String[] commit_info = commit.split(",");
-                //repo.repoURL, c.commitSHA, c.id
-                String projectURL = commit_info[0];
-                if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
+                String commitshaID = commit_info[1];
 
-                    String sha = commit_info[1];
-                    String commitshaID = io.getCommitID(sha);
-                    System.out.println(sha);
-                    ArrayList<String> changedfiles = io.getCommitFromCMD(sha, projectURL);
-                    if (changedfiles == null) {
+                int commitChangeAnalyed = io. commitExitsINChangedFileTable (commitshaID);
+                if(commitChangeAnalyed==0) {
+                    String sha = commit_info[0];
+                    //repo.repoURL, c.commitSHA, c.id
+                    if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
+
+                        System.out.println(sha);
+                        ArrayList<String> changedfiles = io.getCommitFromCMD(sha, projectURL);
+                        if (changedfiles == null) {
 //                        System.out.println("commit does not exist in local git history");
-                        io.writeTofile(sha + "," + projectURL + "\n", output_dir + "lostCommit.txt");
-                        continue;
-                    } else if (changedfiles.get(0).trim().equals("")) {
-//                        System.out.println("no commit in pr" );
-                        io.writeTofile(sha + "," + projectURL + "\n", output_dir + "noCommit.txt");
-                        continue;
-                    }
-
-                    int index_d = 0;
-
-                    long start_commit = System.nanoTime();
-                    int count = 0;
-                    for (String file : changedfiles) {
-                        index_d++;
-                        String[] arr = file.split("\t");
-                        int addLine = 0, deleteLine = 0;
-                        String fileName, changeType;
-                        String addedFile = "";
-                        String deletedFile = "";
-                        String renamedFile = "";
-                        String modifiedFile = "";
-                        String copiedFile = "";
-                        int readmeAdded = 0;
-                        int addFile_linesAdded = 0;
-                        int modifyFile_linesAdded = 0;
-                        if (arr.length == 4) {
-                            addLine = Integer.parseInt(arr[0]);
-                            deleteLine = Integer.parseInt(arr[1]);
-                            fileName = arr[2];
-                            changeType = arr[3];
-
-
-                            if (fileName.toLowerCase().contains("readme")) {
-                                readmeAdded += addLine;
-                            }
-
-                            int aboutConfig = 0;
-                            if (fileName.toLowerCase().contains("config")) {
-                                aboutConfig = 1;
-                            }
-
-                            if (changeType.equals("A")) {
-                                addedFile = fileName;
-                                addFile_linesAdded = addLine;
-                            } else if (changeType.equals("C")) {
-                                copiedFile = fileName;
-                            } else if (changeType.equals("D")) {
-                                deletedFile = fileName;
-                            } else if (changeType.equals("M")) {
-                                modifyFile_linesAdded = addLine;
-                                modifiedFile = fileName;
-                            } else if (changeType.equals("R")) {
-                                renamedFile = fileName;
-                            }
-
-                            /**   upsdate commit information into table**/
-
-                            preparedStmt.setString(1, addedFile);
-                            preparedStmt.setInt(2, addedFile.equals("") ? 0 : 1);
-                            preparedStmt.setString(3, modifiedFile);
-                            preparedStmt.setInt(4, modifiedFile.equals("") ? 0 : 1);
-                            preparedStmt.setString(5, renamedFile);
-                            preparedStmt.setInt(6, renamedFile.equals("") ? 0 : 1);
-                            preparedStmt.setString(7, copiedFile);
-                            preparedStmt.setInt(8, copiedFile.equals("") ? 0 : 1);
-                            preparedStmt.setString(9, deletedFile);
-                            preparedStmt.setInt(10, deletedFile.equals("") ? 0 : 1);
-                            preparedStmt.setInt(11, addFile_linesAdded);
-                            preparedStmt.setInt(12, modifyFile_linesAdded);
-                            preparedStmt.setInt(13, deleteLine);
-                            preparedStmt.setString(14, String.valueOf(now));
-                            preparedStmt.setInt(15, index_d);
-                            preparedStmt.setString(16, commitshaID);
-                            preparedStmt.setInt(17, readmeAdded);
-                            preparedStmt.setInt(18, aboutConfig);
-                            preparedStmt.setString(19, commitshaID);
-                            preparedStmt.setInt(20, index_d);
-                            preparedStmt.addBatch();
-                        } else {
-                            io.writeTofile(sha + "," + projectURL + "\n", output_dir + "noEditableFiles.txt");
+                            io.writeTofile(sha + "," + projectURL + "\n", output_dir + "lostCommit.txt");
                             continue;
+                        } else if (changedfiles.get(0).trim().equals("")) {
+//                        System.out.println("no commit in pr" );
+                            io.writeTofile(sha + "," + projectURL + "\n", output_dir + "noCommit.txt");
+                            continue;
+                        }
+
+                        int index_d = 0;
+
+                        int count = 0;
+                        for (String file : changedfiles) {
+                            index_d++;
+                            String[] arr = file.split("\t");
+                            int addLine = 0, deleteLine = 0;
+                            String fileName, changeType;
+                            String addedFile = "";
+                            String deletedFile = "";
+                            String renamedFile = "";
+                            String modifiedFile = "";
+                            String copiedFile = "";
+                            int readmeAdded = 0;
+                            int addFile_linesAdded = 0;
+                            int modifyFile_linesAdded = 0;
+                            if (arr.length == 4) {
+                                addLine = Integer.parseInt(arr[0]);
+                                deleteLine = Integer.parseInt(arr[1]);
+                                fileName = arr[2];
+                                changeType = arr[3];
+
+
+                                if (fileName.toLowerCase().contains("readme")) {
+                                    readmeAdded += addLine;
+                                }
+
+                                int aboutConfig = 0;
+                                if (fileName.toLowerCase().contains("config")) {
+                                    aboutConfig = 1;
+                                }
+
+                                if (changeType.equals("A")) {
+                                    addedFile = fileName;
+                                    addFile_linesAdded = addLine;
+                                } else if (changeType.equals("C")) {
+                                    copiedFile = fileName;
+                                } else if (changeType.equals("D")) {
+                                    deletedFile = fileName;
+                                } else if (changeType.equals("M")) {
+                                    modifyFile_linesAdded = addLine;
+                                    modifiedFile = fileName;
+                                } else if (changeType.equals("R")) {
+                                    renamedFile = fileName;
+                                }
+
+                                /**   upsdate commit information into table**/
+
+                                preparedStmt.setString(1, addedFile);
+                                preparedStmt.setInt(2, addedFile.equals("") ? 0 : 1);
+                                preparedStmt.setString(3, modifiedFile);
+                                preparedStmt.setInt(4, modifiedFile.equals("") ? 0 : 1);
+                                preparedStmt.setString(5, renamedFile);
+                                preparedStmt.setInt(6, renamedFile.equals("") ? 0 : 1);
+                                preparedStmt.setString(7, copiedFile);
+                                preparedStmt.setInt(8, copiedFile.equals("") ? 0 : 1);
+                                preparedStmt.setString(9, deletedFile);
+                                preparedStmt.setInt(10, deletedFile.equals("") ? 0 : 1);
+                                preparedStmt.setInt(11, addFile_linesAdded);
+                                preparedStmt.setInt(12, modifyFile_linesAdded);
+                                preparedStmt.setInt(13, deleteLine);
+                                preparedStmt.setString(14, String.valueOf(now));
+                                preparedStmt.setInt(15, index_d);
+                                preparedStmt.setString(16, commitshaID);
+                                preparedStmt.setInt(17, readmeAdded);
+                                preparedStmt.setInt(18, aboutConfig);
+                                preparedStmt.setString(19, commitshaID);
+                                preparedStmt.setInt(20, index_d);
+                                preparedStmt.addBatch();
+                            } else {
+                                io.writeTofile(sha + "," + projectURL + "\n", output_dir + "noEditableFiles.txt");
+                                continue;
+
+                            }
+                            if (++count % batchSize == 0) {
+                                io.executeQuery(preparedStmt);
+                                conn.commit();
+                            }
 
                         }
-                        if (++count % batchSize == 0) {
-                            io.executeQuery(preparedStmt);
-                            conn.commit();
-                        }
-
+                    } else {
+                        System.out.println(clone_dir + projectURL + " clone not available.");
+                        io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
+                        miss_Clone_project.add(projectURL);
+                        continue;
                     }
-                } else {
-                    System.out.println(clone_dir + projectURL + " clone not available.");
-                    io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
-                    miss_Clone_project.add(projectURL);
-                    continue;
+                }else{
+                    System.out.println(commitshaID +" analyzed in repo " + projectURL );
                 }
             }
             long end = System.nanoTime();
@@ -190,7 +194,7 @@ public class AnalyzeCommitChangedFile {
     static public void main(String[] args) {
         AnalyzeCommitChangedFile accf = new AnalyzeCommitChangedFile();
         IO_Process io = new IO_Process();
-        HashSet<String> todo_commits;
+        HashSet<String> todo_commits,allcommits;
         String[] repos = new String[0];
         try {
             repos = io.readResult(current_dir + "/input/file_repoList.txt").split("\n");
@@ -203,10 +207,12 @@ public class AnalyzeCommitChangedFile {
             System.out.println("restart loop..");
             count = 0;
             for (String projectURL : repos) {
-                todo_commits = io.get_un_analyzedCommit(projectURL);
-                if (todo_commits.size() > 0) {
-                    System.out.println(todo_commits.size() + " commits from " + projectURL);
-                    accf.analyzeChangedFile(todo_commits);
+                int projectID = io.getRepoId(projectURL);
+                System.out.println("get all commit for " + projectURL);
+
+                allcommits = io.getCommitList(projectID);
+                if (allcommits.size() > 0) {
+                    accf.analyzeChangedFile(allcommits,projectURL);
                 } else {
                     count++;
                 }

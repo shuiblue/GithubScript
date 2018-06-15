@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class AnalyzeGovernance {
     static String working_dir, pr_dir, output_dir, clone_dir;
@@ -40,7 +41,6 @@ public class AnalyzeGovernance {
             {
                 int projectID = io.getRepoId(projectUrl);
 
-                HashMap<Integer,String>  issueList = io.getIssueList(projectID);
                 System.out.println(projectUrl);
                 ArrayList<String> prList = io.getPRNumlist(projectUrl);
                 if (prList.size() == 0) {
@@ -51,18 +51,26 @@ public class AnalyzeGovernance {
 
 
                 for (String pr_id : prList) {
-                    String csvFile_dir = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
-                    String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
-                    boolean csvFileExist = new File(csvFile_dir).exists();
-                    boolean csvFileAlter_Exist = new File(csvFile_dir_alternative).exists();
 
-                    if (csvFileAlter_Exist || csvFileExist) {
-                        System.out.println("pr# " + pr_id);
-                        io.getIssuePRLink(pr_id,projectUrl, projectID, prList, csvFileExist,issueList);
-                    } else {
-                        System.out.println("pr#" + pr_id + " csv not available.");
-                        io.writeTofile(pr_id + "," + projectUrl + "\n", output_dir + "missPR_" + projectUrl + ".txt");
-                        break;
+                    int prExistIN_PR_issueMap = io.prExistIN_PR_issueMap(pr_id, projectID);
+
+                    if (prExistIN_PR_issueMap == 0) {
+                        System.out.println("parsing pr issue link...");
+                        String csvFile_dir = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
+                        String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
+                        boolean csvFileExist = new File(csvFile_dir).exists();
+                        boolean csvFileAlter_Exist = new File(csvFile_dir_alternative).exists();
+
+                        if (csvFileAlter_Exist || csvFileExist) {
+                            System.out.println("pr# " + pr_id);
+                            io.getIssuePRLink(pr_id, projectUrl, projectID, prList, csvFileExist);
+                        } else {
+                            System.out.println("pr#" + pr_id + " csv not available.");
+                            io.writeTofile(pr_id + "," + projectUrl + "\n", output_dir + "missPR_" + projectUrl + ".txt");
+                            break;
+                        }
+                    }else{
+                        System.out.println(projectUrl + " exist in pr issue map");
                     }
                 }
             }

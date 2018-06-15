@@ -54,42 +54,53 @@ public class InsertCommitFromPR {
             for (String projectUrl : repos) {
                 int projectID = io.getRepoId(projectUrl);
                 System.out.println(projectUrl);
+
                 ArrayList<String> prList = io.getPRNumlist(projectUrl);
                 if (prList.size() == 0) {
                     System.out.println(projectUrl + " pr api result not available");
                     io.writeTofile(projectUrl + "\n", output_dir + "miss_pr_api.txt");
                     continue;
+                }else{
+                    System.out.println(prList.size() +" pr from "+ projectUrl);
                 }
-                ArrayList<Integer> no_numOfCommits_PRList = io.getPRList_hasNo_numOfCommits(projectID);
-                System.out.println(no_numOfCommits_PRList.size() + " PRs has not update num_of_commit cell..");
+              /** todo  skip for now **/
+//                ArrayList<Integer> no_numOfCommits_PRList = io.getPRList_hasNo_numOfCommits(projectID);
+                ArrayList<Integer> no_numOfCommits_PRList = new ArrayList<>();
+//                System.out.println(no_numOfCommits_PRList.size() + " PRs has not update num_of_commit cell..");
 
                 for (String pr_id : prList) {
 
-                    String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
-                    String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
-                    boolean csvFileExist = new File(csvFile_dir).exists();
-                    boolean csvFileAlter_Exist = new File(csvFile_dir_alternative).exists();
+                    int prExist_PRC = io.prExistIN_PR_commitMap(pr_id, projectID);
+                    if (prExist_PRC == 0) {
+                        String csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
+                        String csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
+                        boolean csvFileExist = new File(csvFile_dir).exists();
+                        boolean csvFileAlter_Exist = new File(csvFile_dir_alternative).exists();
 
-                    if (csvFileAlter_Exist || csvFileExist) {
-                        System.out.println("pr# " + pr_id);
-                        ArrayList<String> commitList = analyzingPRs.getCommitsInPR(projectUrl, projectID, Integer.parseInt(pr_id), csvFileExist, csvFileAlter_Exist, no_numOfCommits_PRList);
-                        if (commitList.size() > 0) {
-                            analyzingPRs.insertMap_Commits_PR(projectID, Integer.parseInt(pr_id), commitList);
+                        if (csvFileAlter_Exist || csvFileExist) {
+                            System.out.println("pr# " + pr_id);
+                            ArrayList<String> commitList = analyzingPRs.getCommitsInPR(projectUrl, projectID, Integer.parseInt(pr_id), csvFileExist, csvFileAlter_Exist);
+                            if (commitList.size() > 0) {
+                                analyzingPRs.insertMap_Commits_PR(projectID, Integer.parseInt(pr_id), commitList);
+                            }
+
+                        } else {
+                            System.out.println("pr#" + pr_id + " csv not available.");
+                            io.writeTofile(pr_id + "," + projectUrl + "\n", output_dir + "missPR_" + projectUrl + ".txt");
+                            break;
                         }
 
-                    } else {
-                        System.out.println("pr#" + pr_id + " csv not available.");
-                        io.writeTofile(pr_id + "," + projectUrl + "\n", output_dir + "missPR_" + projectUrl + ".txt");
-                        break;
-                    }
+                    }else{
+                        System.out.println( projectUrl+" pr "+pr_id+" exist in PR_Commit table :)");
 
+                    }
                 }
             }
         }
     }
 
 
-    public ArrayList<String> getCommitsInPR(String projectUrl, int projectID, int pr_id, boolean csvFileExist, boolean csvFileAlter_Exist, ArrayList<Integer> no_numOfCommits_PRList) {
+    public ArrayList<String> getCommitsInPR(String projectUrl, int projectID, int pr_id, boolean csvFileExist, boolean csvFileAlter_Exist ) {
         IO_Process io = new IO_Process();
         LocalDateTime now = LocalDateTime.now();
         ArrayList<String> commitList = new ArrayList<>();
@@ -123,15 +134,11 @@ public class InsertCommitFromPR {
             } else {
                 commits = io.readCSV(csvFile_dir_alternative);
             }
-            if (no_numOfCommits_PRList.size() > 0 && no_numOfCommits_PRList.contains(pr_id)) {
-
-                preparedStmt_updatePR.setInt(1, commits.size());
+             preparedStmt_updatePR.setInt(1, commits.size());
                 preparedStmt_updatePR.setInt(2, pr_id);
                 preparedStmt_updatePR.setInt(3, projectID);
                 System.out.println(preparedStmt_updatePR.executeUpdate() + " rows updated num_commits in PR" + pr_id);
-            } else {
-                System.out.println("skip update num of commit for PR#" + pr_id);
-            }
+
 
             /**   get commits exist in DATABASE***/
             HashSet<String> existCommitInPRCmap = io.getExistCommits(projectID, pr_id);

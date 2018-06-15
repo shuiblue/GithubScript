@@ -225,6 +225,7 @@ public class IO_Process {
             System.out.println(projectUrl + " pr api not available yet. ");
             return new ArrayList<>();
         } else {
+            System.out.println("get pr list ...");
             try {
                 if (!new File(prNumList_filePath).exists() || io.readResult(prNumList_filePath).trim().equals("")) {
                     System.out.println("generating pr num list");
@@ -395,9 +396,6 @@ public class IO_Process {
             if (numUpdates[i] == -2)
                 System.out.println("Execution " + i +
                         ": unknown number of rows updated");
-//            else
-//                System.out.println("Execution " + i +
-//                        "successful: " + numUpdates[i] + " rows updated");
         }
 
         System.out.println(numUpdates.length + " rows updated");
@@ -472,6 +470,80 @@ public class IO_Process {
 
         return 0;
 
+    }
+
+    public int commitExitsINChangedFileTable(String commitshaID) {
+        String commitshaID_QUERY = "SELECT 1 from commit_changedFiles WHERE commit_uuid = \'" + commitshaID + "\' LIMIT 1";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            if (rs.next()) {               // Position the cursor                  4
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int prExistIN_PR_issueMap(String pr_id, int projectID) {
+        String commitshaID_QUERY = "SELECT 1 from PR_TO_ISSUE WHERE repoID = \'" + projectID + "\' and pull_request_id = \'" + pr_id + "\' LIMIT 1";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            if (rs.next()) {               // Position the cursor                  4
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int prExistIN_PR_commitMap(String pr_id, int projectID) {
+        String commitshaID_QUERY = "SELECT 1 from PR_Commit_map WHERE projectID = \'" + projectID + "\' and pull_request_id = \'" + pr_id + "\' LIMIT 1";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            if (rs.next()) {               // Position the cursor                  4
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    private String getIssueCreateatDate(int issueid) {
+        String createat = "";
+        String selectRepoID = "SELECT created_at FROM fork.ISSUE WHERE issue_id =" + issueid;
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(selectRepoID)) {
+            try (ResultSet rs = preparedStmt.executeQuery()) {
+                if (rs.next()) {
+                    createat = rs.getString(1);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return createat;
+
+    }
+
+    private int issueid_Exist(int s, int projectID) {
+        String commitshaID_QUERY = "SELECT 1 from ISSUE WHERE projectID = " + projectID + " and issue_id ="+s+" LIMIT 1";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            if (rs.next()) {               // Position the cursor                  4
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
 
@@ -892,7 +964,7 @@ public class IO_Process {
     }
 
 
-    public void getIssuePRLink(String pr_id, String projectUrl, int projectID, List<String> prList, boolean csvFileExist, HashMap<Integer, String> issueList) {
+    public void getIssuePRLink(String pr_id, String projectUrl, int projectID, List<String> prList, boolean csvFileExist) {
         String comment_csvFile_dir = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
         String comment_csvFile_dir_alternative = output_dir + "shurui.cache/get_pr_comments." + projectUrl.replace("/", ".") + "_" + pr_id + ".0.csv";
         String commit_csvFile_dir = output_dir + "shurui.cache/get_pr_commits." + projectUrl.replace("/", ".") + "_" + pr_id + ".csv";
@@ -908,10 +980,10 @@ public class IO_Process {
             comments = io.readCSV(comment_csvFile_dir_alternative);
             commits = io.readCSV(commit_csvFile_dir_alternative);
         }
-        Pattern issueLink = Pattern.compile("\\#[1-9][\\d]{1,4}([^0-9]|$)");
         HashSet<Integer> issues = new HashSet<>();
-        issues.addAll(getIssueCandidates(comments, issueList.keySet()));
-        issues.addAll(getIssueCandidates(commits, issueList.keySet()));
+        System.out.println("starting to parse commits and comments... " + projectUrl);
+        issues.addAll(getIssueCandidates(comments,projectID));
+        issues.addAll(getIssueCandidates(commits,projectID));
 
         if (issues.size() > 0) {
             System.out.println("issue list size: " + issues.size());
@@ -932,6 +1004,7 @@ public class IO_Process {
                  PreparedStatement preparedStmt = conn.prepareStatement(insert_PR_issueMap)) {
                 conn.setAutoCommit(false);
                 for (int issueid : issues) {
+                    String issue_created_at = io.getIssueCreateatDate(issueid);
                     //repoID
                     preparedStmt.setInt(1, projectID);
                     // , pull_request_id,
@@ -939,7 +1012,7 @@ public class IO_Process {
                     // issue_id,
                     preparedStmt.setInt(3, issueid);
                     // issue_created_at
-                    preparedStmt.setString(4, issueList.get(issueid));
+                    preparedStmt.setString(4, issue_created_at);
                     //repoID
                     preparedStmt.setInt(5, projectID);
                     // , pull_request_id,
@@ -964,26 +1037,29 @@ public class IO_Process {
 
     }
 
-    private HashSet<Integer> getIssueCandidates(List<List<String>> texts, Set<Integer> issueSet) {
+
+    private HashSet<Integer> getIssueCandidates(List<List<String>> texts,int projectID) {
         Pattern issueLink = Pattern.compile("\\#[1-9][\\d]{1,4}([^0-9]|$)");
         HashSet<Integer> issues = new HashSet<>();
-
+        System.out.println(texts.size() + " texts");
         for (List<String> comment : texts) {
+
             if (!comment.get(0).equals("")) {
                 String text = comment.get(2);
-
+                System.out.println(text);
                 Matcher m = issueLink.matcher(text);
                 while (m.find()) {
                     int s = Integer.parseInt(m.group().replaceAll("[^\\d]", "").trim());
-                    if (issueSet.contains(s)) {
+                    if (new IO_Process().issueid_Exist(s,projectID) == 0) {
                         issues.add(s);
-                        System.out.println(s);
+                        System.out.println(s + "issue exist in db ");
                     }
                 }
             }
         }
         return issues;
     }
+
 
 
     public void getPRfiles(String projectUrl, int projectID, List<String> prList) {
@@ -1210,19 +1286,40 @@ public class IO_Process {
         return changedFileResult;
     }
 
-
-    public HashSet<String> get_un_analyzedCommit(String projectURL) {
-        System.out.println("get un analyzed commit for " + projectURL);
-        HashSet<String> unAnalyzedCommit = new HashSet<>();
-        String query = "SELECT repo.repoURL, c.commitSHA, c.id \n" +
-                "FROM fork.Commit AS c , repository AS repo\n" +
-                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commit_uuid) AND c.projectID = repo.id AND repo.repoURL = \"" + projectURL + "\"";
+    public HashSet<String> getCommitList(int projectID) {
+        HashSet<String> allcommits = new HashSet<>();
+        String query = "SELECT  commitSHA,  id \n" +
+                "FROM fork.Commit    \n" +
+                "WHERE projectID = " + projectID;
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(query);
         ) {
             ResultSet rs = preparedStmt.executeQuery();
             while (rs.next()) {
-                unAnalyzedCommit.add(rs.getString(1) + "," + rs.getString(2) + "," + rs.getString(3));
+                allcommits.add(rs.getString(1) + "," + rs.getString(2));
+//                System.out.println(rs.getString(1)+","+rs.getString(2)+","+rs.getInt(3));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(" all commit: #" + allcommits.size());
+        return allcommits;
+    }
+
+
+    public HashSet<String> get_un_analyzedCommit(int projectID) {
+
+        HashSet<String> unAnalyzedCommit = new HashSet<>();
+        String query = "SELECT  c.commitSHA, c.id \n" +
+                "FROM fork.Commit AS c  \n" +
+                "WHERE NOT EXISTs (SELECT * FROM fork.commit_changedFiles cc WHERE c.id = cc.commit_uuid) AND c.projectID = " + projectID;
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                unAnalyzedCommit.add(rs.getString(1) + "," + rs.getString(2));
 //                System.out.println(rs.getString(1)+","+rs.getString(2)+","+rs.getInt(3));
             }
         } catch (SQLException e) {
@@ -1326,6 +1423,7 @@ public class IO_Process {
 
 
 }
+
 
 
 
