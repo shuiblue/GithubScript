@@ -243,6 +243,7 @@ public class AnalyzeCommitChangedFile {
                     sampledCommits.add(s);
                 }
                 if (allcommits.size() > 0) {
+                    System.out.println("start to analyze "+sampledCommits.size()+ " commits...");
                     accf.analyzeChangedFile(sampledCommits, projectURL);
                 } else {
                     count++;

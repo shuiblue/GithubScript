@@ -16,7 +16,7 @@ public class InsertCommitFromPR {
     static String working_dir, pr_dir, output_dir, clone_dir;
     static String myUrl, user, pwd;
     static String myDriver = "com.mysql.jdbc.Driver";
-    final int batchSize = 100;
+    final int batchSize = 5000;
 
     InsertCommitFromPR() {
         IO_Process io = new IO_Process();

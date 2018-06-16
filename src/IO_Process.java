@@ -31,7 +31,7 @@ public class IO_Process {
     static String github_url = "https://github.com/";
     String current_dir = System.getProperty("user.dir");
     static String working_dir, pr_dir, output_dir, clone_dir;
-    final int batchSize = 100;
+    final int batchSize = 5000;
 
     public IO_Process() {
 
