@@ -71,7 +71,6 @@ public class AnalyzeCommitChangedFile {
                 forkLoginIDSet.add(fork_loginID);
                 String forkURL = io.getForkURL_by_loginID(fork_loginID, projectID);
                 if (!forkURL.equals("")) {
-                    System.out.println("fork " + forkURL);
                     project_forks.add(forkURL);
                 }
             }
@@ -79,7 +78,7 @@ public class AnalyzeCommitChangedFile {
         System.out.println("cloning " + project_forks.size() + " forks of" + projectURL);
         new JgitUtility().cloneRepo_cmd(project_forks, projectURL, false);
 
-
+//Connection c = DriverManager.getConnection("jdbc:mysql://host:3306/db?useServerPrepStmts=false&rewriteBatchedStatements=true", "username", "password");
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(insert_changedFile_query);) {
             conn.setAutoCommit(false);
@@ -90,7 +89,7 @@ public class AnalyzeCommitChangedFile {
                 String commitshaID = commit_info[1];
 
 
-                if (analyzedCommits.contains(commitshaID)) {
+                if (!analyzedCommits.contains(commitshaID)) {
                     String sha = commit_info[0];
                     //repo.repoURL, c.commitSHA, c.id
                     if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
@@ -237,7 +236,7 @@ public class AnalyzeCommitChangedFile {
                 HashSet<String> sampledCommits = new HashSet<>();
 
                 for (String s : allcommits) {
-                    if (sampledCommits.size() > (allcommits.size() / 3)) {
+                    if (sampledCommits.size() > (allcommits.size() / 10)) {
                         break;
                     }
                     sampledCommits.add(s);

@@ -1429,7 +1429,7 @@ public class IO_Process {
         return forkSet;
     }
 
-    public HashSet<String> getExistCommits(int projectID) {
+    public HashSet<String> getExistCommits_inCommit(int projectID) {
         HashSet<String> commits = new HashSet<>();
         String query_getExistCommit = "SELECT DISTINCT commitSHA\n" +
                 "FROM   fork.Commit  " +
@@ -1450,26 +1450,30 @@ public class IO_Process {
         return commits;
     }
 
-    public HashSet<String> getExistCommits(int projectID, int pr_id) {
+    public HashSet<String> getExistCommits_inPRCommitMap(int projectID) {
+        long start = System.nanoTime();
+
         HashSet<String> commits = new HashSet<>();
-        String query_getExistCommit = "SELECT c.commitSHA\n" +
-                "FROM  Pull_Request as pr, PR_Commit_map as prc, Commit as c\n" +
-                "WHERE  pr.pull_request_ID = prc.pull_request_id and pr.projectID = prc.projectID " +
-                "and prc.commit_uuid = c.id and pr.projectID= " + projectID +
-                " and pr.pull_request_ID  = " + pr_id;
+        String query_getExistCommit = "SELECT  c.commitSHA, prc.pull_request_id\n" +
+                "FROM PR_Commit_map AS prc, Commit AS c\n" +
+                "WHERE prc.commit_uuid = c.id AND\n" +
+                "      prc.projectID = " + projectID;
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(query_getExistCommit);) {
 
             try (ResultSet rs = preparedStmt.executeQuery()) {
                 while (rs.next()) {
-                    String sha = rs.getString(1);
-                    commits.add(sha);
+                    commits.add(rs.getString(1)+","+rs.getInt(2));
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        long end = System.nanoTime();
+        long used = end - start;
+        System.out.println("get existing pr commit map :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
+
         return commits;
     }
 

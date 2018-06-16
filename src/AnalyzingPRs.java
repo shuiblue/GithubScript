@@ -15,7 +15,7 @@ public class AnalyzingPRs {
 
     static String working_dir, output_dir;
     static String myUrl, user, pwd;
-    final int batchSize = 100;
+    final int batchSize = 1000;
 
     AnalyzingPRs() {
         IO_Process io = new IO_Process();

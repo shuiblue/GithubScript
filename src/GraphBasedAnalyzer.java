@@ -62,7 +62,7 @@ public class GraphBasedAnalyzer {
         /** get repo list **/
 
         try {
-            repoList = io.readResult(current_dir + "/input/graph_repoList_f9_g5.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/graph_repoList_f8_g3.txt").split("\n");
 
         } catch (IOException e) {
             e.printStackTrace();

@@ -74,7 +74,6 @@ public class InsertCommit_graphBasedResult {
 
             HashMap<String, HashMap<String, List<String>>> forkOwnCode = getForkOwnCode(forkListInfo);
 
-
             HashSet<String> project_forks = new HashSet<>();
             try {
                 project_forks.addAll(Arrays.asList(io.readResult(output_dir + "result/" + repoUrl + "/ActiveForklist.txt").split("\n")));
@@ -86,47 +85,9 @@ public class InsertCommit_graphBasedResult {
             for (int i = 1; i < forkListInfo.length; i++) {
                 String forkINFO = forkListInfo[i];
                 String forkurl = forkINFO.split(",")[0];
-                String forkName = forkurl.split("/")[0];
-                String repoCloneDir = clone_dir + forkurl + "/";
 
-
-                /**   get all branch list**/
-//                String fork_cloneDir = clone_dir + forkurl + "/";
-//                String cmd_getOringinBranch = "git branch -a --list " + forkName + "*";
-//                String branchResult = io.exeCmd(cmd_getOringinBranch.split(" "), fork_cloneDir);
-//
-//                String[] branchList_array = branchResult.split("\n");
-//                ArrayList<String> branchList = new ArrayList<>();
-//                for (String br : branchList_array) {
-//                    if (!br.contains("HEAD")&&!br.trim().equals("")) {
-//                        branchList.add(br.trim());
-//                    }
-//                }
-//
-//
-//                File branchListFile = new File(repoCloneDir + forkurl.split("/")[0] + "_branchList.txt");
-//                if (!branchListFile.exists()) {
-//                    System.out.println("fork is not available");
-//                    continue;
-//                }
-//                if (branchList.size() == 0) {
-//                    try {
-//                        branchList.addAll(Arrays.asList(io.readResult(clone_dir + forkurl.split("/")[0] + "_branchList.txt").split("\n")));
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
                 System.out.println("insert commit...");
-
-
                 acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl);
-//                acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
-                System.out.println("update existing commit...");
-//                acc.updateCommitFromGraphResult(repoUrl, forkOwnCode, forkurl, branchList);
-//                acc.updateCommitFromGraphResult(repoUrl, forkOwnCode, forkurl);
-//                System.out.println("analyzing changed files...");
-//                acc.getCodechangedLOC(repoUrl, forkOwnCode, forkurl);
-////                acc.getCodechangedLOC(repoUrl, forkOwnCode, forkurl, branchList);
             }
 
             try {
@@ -145,161 +106,6 @@ public class InsertCommit_graphBasedResult {
      * @throws GitAPIException
      */
 
-
-    /**
-     * This function calculates code changes at LOC level, identifies number of lines
-     * There are 5 types of changes, ADD,MODIFY, DELETE, RENAME, COPY
-     *
-     * @param repoUrl
-     */
-    private void getCodechangedLOC(String repoUrl, HashMap<String, HashMap<String, List<String>>> forkOwnCode, String forkurl, ArrayList<String> branchList) {
-        LocalDateTime now = LocalDateTime.now();
-        IO_Process io = new IO_Process();
-        PreparedStatement preparedStmt;
-        HashMap<String, List<String>> onlyF_map = forkOwnCode.get("onlyF");
-        HashMap<String, List<String>> F2U_map = forkOwnCode.get("F2U");
-        HashSet<String> codeChangeCommits = new HashSet<>();
-        try {
-            Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
-            conn.setAutoCommit(false);
-
-            /** Get contribution code : onlyF and F2U  **/
-            Repository repo = new FileRepository(clone_dir + ".git");
-            Git git = new Git(repo);
-            RevWalk rw = new RevWalk(repo);
-
-            long start = System.nanoTime();
-            codeChangeCommits.addAll(onlyF_map.get(forkurl));
-            codeChangeCommits.addAll(F2U_map.get(forkurl));
-            int count = 0;
-            String insert_changedFile_query = " INSERT INTO fork.commit_changedFiles (" +
-                    "added_files_list  , added_files_num  , modify_files_list, modify_files_num , renamed_files_list ,renamed_files_num ,copied_files_list ," +
-                    " copied_files_num, deleted_files_list , deleted_files_num , add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commit_uuid,readme_loc )" +
-                    "  SELECT *" +
-                    "  FROM (SELECT" +
-                    "          ? AS a1,? AS a2,? AS a3,? AS a4,?  AS a17,? AS a5,? AS a6," +
-                    "? AS a7,? AS a8,? AS a9,? AS a10,? AS a11,? AS a12,? AS a13,? AS a14,? AS a15,? AS a16 ) AS tmp" +
-                    "  WHERE NOT EXISTS(" +
-                    "      SELECT *" +
-                    "      FROM fork.commit_changedFiles AS cc" +
-                    "      WHERE cc.commitsha_id = ?" +
-                    "      AND cc.index_changedFile = ?" +
-                    "  )" +
-                    "  LIMIT 1";
-            preparedStmt = conn.prepareStatement(insert_changedFile_query);
-
-            for (String sha : codeChangeCommits) {
-                RevCommit commit = io.getCommit(sha, repo, git, branchList);
-
-
-                if (commit != null && commit.getParentCount() > 0) {
-                    DiffFormatter df = io.getDiffFormat(repo);
-                    List<DiffEntry> diffs = io.getCommitDiff(commit, repo);
-
-                    HashSet<String> commit_fileSet = new HashSet<>();
-                    if (diffs.size() < 100) {
-                        start = System.nanoTime();
-                        for (int index_d = 1; index_d <= diffs.size(); index_d++) {
-                            HashSet<String> addFileSet = new HashSet();
-                            HashSet<String> deleteFileSet = new HashSet();
-                            HashSet<String> renameFileSet = new HashSet();
-                            HashSet<String> modifyFileSet = new HashSet();
-                            HashSet<String> copyFileSet = new HashSet();
-                            int readmeAdded = 0;
-                            int addFile_linesAdded = 0;
-                            int modifyFile_linesAdded = 0;
-                            int linesDeleted = 0;
-
-                            DiffEntry diff = diffs.get(index_d - 1);
-                            String fileName = diff.getNewPath();
-                            commit_fileSet.add(fileName);
-                            int tmp_linesAdded = 0;
-                            int tmp_linesDeleted = 0;
-                            FileHeader fileHeader = df.toFileHeader(diff);
-                            EditList edits = fileHeader.toEditList();
-                            for (int s = 0; s < edits.size(); s++) {
-                                Edit edit = edits.get(s);
-                                if (edit.toString().toLowerCase().startsWith("insert")) {
-                                    tmp_linesAdded += edit.getEndB() - edit.getBeginB();
-                                } else if (edit.toString().toLowerCase().startsWith("delete")) {
-                                    tmp_linesDeleted += edit.getEndA() - edit.getBeginA();
-                                } else {
-                                    tmp_linesDeleted += edit.getEndA() - edit.getBeginA();
-                                    tmp_linesAdded += edit.getEndB() - edit.getBeginB();
-                                }
-                            }
-                            linesDeleted += tmp_linesDeleted;
-                            if (fileName.toLowerCase().contains("readme")) {
-                                readmeAdded += tmp_linesAdded;
-                            }
-
-                            String changeType = diff.getChangeType().name();
-                            if (changeType.equals("ADD")) {
-                                addFileSet.add(fileName);
-                                addFile_linesAdded += tmp_linesAdded;
-                            } else if (changeType.equals("COPY")) {
-                                copyFileSet.add(fileName);
-                            } else if (changeType.equals("DELETE")) {
-                                deleteFileSet.add(fileName);
-                            } else if (changeType.equals("MODIFY")) {
-                                modifyFileSet.add(fileName);
-                                modifyFile_linesAdded += tmp_linesAdded;
-                            } else if (changeType.equals("RENAME")) {
-                                renameFileSet.add(fileName);
-                            }
-
-                            /**   upsdate commit information into table**/
-
-                            String commitshaID = io.getCommitID(sha);
-
-                            preparedStmt.setString(1, addFileSet.toString());
-                            preparedStmt.setInt(2, addFileSet.size());
-                            preparedStmt.setString(3, modifyFileSet.toString());
-                            preparedStmt.setInt(4, modifyFileSet.size());
-                            preparedStmt.setString(5, renameFileSet.toString());
-                            preparedStmt.setInt(6, renameFileSet.size());
-                            preparedStmt.setString(7, copyFileSet.toString());
-                            preparedStmt.setInt(8, copyFileSet.size());
-                            preparedStmt.setString(9, deleteFileSet.toString());
-                            preparedStmt.setInt(10, deleteFileSet.size());
-                            preparedStmt.setInt(11, addFile_linesAdded);
-                            preparedStmt.setInt(12, modifyFile_linesAdded);
-                            preparedStmt.setInt(13, linesDeleted);
-                            preparedStmt.setString(14, String.valueOf(now));
-                            preparedStmt.setInt(15, index_d);
-                            preparedStmt.setString(16, commitshaID);
-                            preparedStmt.setInt(17, readmeAdded);
-                            preparedStmt.setString(18, commitshaID);
-                            preparedStmt.setInt(19, index_d);
-                            preparedStmt.addBatch();
-
-                            if (++count % batchSize == 0) {
-                                io.executeQuery(preparedStmt);
-                                conn.commit();
-
-                            }
-                        }
-
-                    }
-                }
-            }
-            long end = System.nanoTime();
-            long used = end - start;
-            System.out.println("update  getCodechangedLOC :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
-
-            io.executeQuery(preparedStmt);
-            conn.commit();
-            preparedStmt.close();
-            conn.close();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-
-    }
 
 
     //    private void insertCommitFromGraphResult(String repoUrl, HashMap<String, HashMap<String, List<String>>> forkOwnCode, String forkurl, ArrayList<String> branchList) {
