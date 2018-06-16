@@ -145,6 +145,7 @@ public class IO_Process {
 
 
     public void deleteDir(File file) throws IOException {
+
         FileUtils.deleteDirectory(file);
     }
 
@@ -398,7 +399,7 @@ public class IO_Process {
                         ": unknown number of rows updated");
         }
 
-        System.out.println(numUpdates.length + " rows updated");
+        System.out.print(numUpdates.length + " rows updated....");
     }
 
     public String getRepoUrlByID(int projectID) {
@@ -472,12 +473,31 @@ public class IO_Process {
 
     }
 
+
+    public HashSet<String> commitChangedFileExists(int projectID) {
+        HashSet<String> commits = new HashSet<>();
+        String commitshaID_QUERY = "SELECT DISTINCT c.commitSHA\n" +
+                "from commit_changedFiles as cc, Commit as c\n" +
+                "WHERE cc.commit_uuid = c.id and c.projectID =" + projectID;
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                commits.add(rs.getString(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return commits;
+
+    }
+
     public int commitExitsINChangedFileTable(String commitshaID) {
         String commitshaID_QUERY = "SELECT 1 from commit_changedFiles WHERE commit_uuid = \'" + commitshaID + "\' LIMIT 1";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
             ResultSet rs = preparedStmt.executeQuery();
-            if (rs.next()) {               // Position the cursor                  4
+            if (rs.next()) {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
@@ -498,6 +518,44 @@ public class IO_Process {
             e.printStackTrace();
         }
         return 0;
+    }
+
+
+    public HashSet<String> prListExistIN_PR_commitMap(int projectID) {
+        HashSet<String> prList = new HashSet<>();
+        String selectRepoID = "SELECT pull_request_id FROM fork.PR_Commit_map WHERE projectID = ? ";
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(selectRepoID);) {
+
+            preparedStmt.setInt(1, projectID);
+            ResultSet rs = preparedStmt.executeQuery();
+
+            while (rs.next()) {
+                prList.add(String.valueOf(rs.getInt("pull_request_id")));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return prList;
+
+
+    }
+
+    public HashSet<String> prList_ExistIN_PR_commitMap(int projectID) {
+        HashSet<String> prList = new HashSet<>();
+        String commitshaID_QUERY = "SELECT DISTINCT pull_request_id from PR_Commit_map WHERE projectID = \'" + projectID + "\' ";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {               // Position the cursor                  4
+                prList.add(String.valueOf(rs.getInt(1)));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return prList;
     }
 
     public int prExistIN_PR_commitMap(String pr_id, int projectID) {
@@ -575,6 +633,22 @@ public class IO_Process {
         return 0;
     }
 
+    public String getForkURL_by_loginID(String fork_loginID, int projectID) {
+        String query = "select DISTINCT  repoURL\n" +
+                "  from repository\n" +
+                "where projectID = " + projectID + " and loginID =\'" + fork_loginID + "\';";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)) {
+            try (ResultSet rs = preparedStmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString(1);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
 
     public int getRepoId(String repoURL) {
         int repoID = -1;
@@ -615,23 +689,18 @@ public class IO_Process {
     }
 
 
-    ArrayList<String> getForkListFromRepoTable(String repoUrl) {
-        ArrayList<String> forkList = new ArrayList<>();
+    HashSet<String> getForkListFromRepoTable(int projectID) {
+        HashSet<String> forkList = new HashSet<>();
+        String selectRepoID = "SELECT repoURL FROM fork.repository WHERE projectID = ? AND isFork = TRUE ";
 
-        try {
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(selectRepoID)) {
 
-            Connection conn = DriverManager.getConnection(myUrl, user, pwd);
-            PreparedStatement preparedStmt;
-
-            String selectRepoID = "SELECT repoURL FROM fork.repository WHERE belongToRepo = ? AND isFork = TRUE ";
-            preparedStmt = conn.prepareStatement(selectRepoID);
-            preparedStmt.setString(1, repoUrl);
+            preparedStmt.setInt(1, projectID);
             ResultSet rs = preparedStmt.executeQuery();
-
             while (rs.next()) {
                 forkList.add(String.valueOf(rs.getString("repoURL")));
             }
-            conn.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -876,22 +945,25 @@ public class IO_Process {
 
     }
 
-    public void insertRepo(String repoURL) {
-        String insertProject = "INSERT INTO fork.repository (repoURL)" +
+    public void insertRepo(String repoURL, boolean isFork, int projectID, int upstreamID) {
+        String insertProject = "INSERT INTO fork.repository (repoURL,isFork,projectID,upstreamID)" +
                 "  SELECT *" +
                 "  FROM (SELECT" +
-                "          ? AS repourl) AS tmp" +
+                "          ? AS repourl, ? AS B, ? AS C,? AS D) AS tmp" +
                 "  WHERE NOT EXISTS(" +
                 "      SELECT repourl" +
                 "      FROM fork.repository AS repo" +
-                "      WHERE repo.repoURL= ?" +
+                "      WHERE repo.repoURL= ? AND (projectID IS NOT NULL AND projectID != 0) " +
                 "  )" +
                 "  LIMIT 1";
-//                " Values(\"" + repoURL + "\")";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(insertProject)) {
             preparedStmt.setString(1, repoURL);
-            preparedStmt.setString(2, repoURL);
+            preparedStmt.setBoolean(2, isFork);
+            preparedStmt.setInt(3, projectID);
+            preparedStmt.setInt(4, upstreamID);
+            preparedStmt.setString(5, repoURL);
+
             System.out.println("insert repo " + repoURL + " to database, affected " + preparedStmt.executeUpdate() + " row.");
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1078,29 +1150,30 @@ public class IO_Process {
                     " SELECT projectID FROM Pull_Request WHERE projectID = ? AND pull_request_ID = ?" +
                     ") LIMIT 1";
             int count = 0;
-            HashSet<String> existingForks = new HashSet<>();
-            for (List<String> pr : prs) {
-                if (!pr.get(0).equals("")) {
-                    System.out.println();
-                    long start = System.nanoTime();
-                    try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
-                         PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
-                        conn.setAutoCommit(false);
+            HashSet<String> existingForks = io.getForkListFromRepoTable(projectID);
+            System.out.println("there are " + existingForks.size() + " forks of " + projectUrl + " in DB.");
+            try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                 PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
+                conn.setAutoCommit(false);
+
+                for (List<String> pr : prs) {
+                    if (!pr.get(0).equals("")) {
+                        System.out.println();
                         int pr_id = Integer.parseInt(pr.get(9));
                         if (prList.contains(pr_id)) {
                             System.out.println("pass " + pr_id);
                             continue;
                         }
 
+                        System.out.println("pr " + pr_id + " " + projectUrl);
                         String author = pr.get(1);
 
                         /** insert fork to database**/
                         String forkURL = pr.get(7);
                         int forkID = io.getRepoId(forkURL);
-                        if (!existingForks.contains(forkURL) || forkID == -1) {
-                            io.insertRepo(forkURL);
-//                            GithubRepository fork = new GithubRepository().getRepoInfo(forkURL, projectUrl);
-//                            analyzeRepository.updateRepoInfo(fork);
+                        if (!forkURL.trim().equals("") && (!existingForks.contains(forkURL) || forkID == -1)) {
+                            boolean isFork = forkURL.equals(projectUrl) ? false : true;
+                            io.insertRepo(forkURL, isFork, projectID, projectID);
                             forkID = io.getRepoId(forkURL);
                         } else {
                             System.out.println(forkURL + "already in database :)");
@@ -1109,11 +1182,7 @@ public class IO_Process {
                         if (forkID == -1) {
                             System.out.println("fork: " + forkURL + " id is -1");
                         }
-                        existingForks.add(forkURL);
-
-
                         String created_at = pr.get(6);
-
                         String closed_at = pr.get(5);
                         String closed = closed_at.equals("") ? "false" : "true";
                         String merged_at = pr.get(11);
@@ -1151,21 +1220,17 @@ public class IO_Process {
                         preparedStmt.setInt(13, pr_id);
                         preparedStmt.addBatch();
 
-                        long end = System.nanoTime();
-                        System.out.println("insert ONE PR :" + TimeUnit.NANOSECONDS.toMillis(end - start) + " ms");
 
                         if (++count % batchSize == 0) {
                             io.executeQuery(preparedStmt);
                             conn.commit();
                         }
-
-                        io.executeQuery(preparedStmt);
-                        conn.commit();
-                    } catch (SQLException e) {
-                        e.printStackTrace();
                     }
-
                 }
+                io.executeQuery(preparedStmt);
+                conn.commit();
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -1295,9 +1360,9 @@ public class IO_Process {
         return changedFileResult;
     }
 
-    public HashSet<String> getCommitList(int projectID) {
-        HashSet<String> allcommits = new HashSet<>();
-        String query = "SELECT  commitSHA,  id \n" +
+    public List<String> getCommitList(int projectID) {
+        List<String> allcommits = new ArrayList<>();
+        String query = "SELECT  commitSHA,  id ,loginID \n" +
                 "FROM fork.Commit    \n" +
                 "WHERE projectID = " + projectID;
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
@@ -1305,7 +1370,7 @@ public class IO_Process {
         ) {
             ResultSet rs = preparedStmt.executeQuery();
             while (rs.next()) {
-                allcommits.add(rs.getString(1) + "," + rs.getString(2));
+                allcommits.add(rs.getString(1) + "," + rs.getString(2) + "," + rs.getString(3));
 //                System.out.println(rs.getString(1)+","+rs.getString(2)+","+rs.getInt(3));
             }
         } catch (SQLException e) {
@@ -1364,6 +1429,26 @@ public class IO_Process {
         return forkSet;
     }
 
+    public HashSet<String> getExistCommits(int projectID) {
+        HashSet<String> commits = new HashSet<>();
+        String query_getExistCommit = "SELECT DISTINCT commitSHA\n" +
+                "FROM   fork.Commit  " +
+                "WHERE  projectID= " + projectID;
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query_getExistCommit);) {
+
+            try (ResultSet rs = preparedStmt.executeQuery()) {
+                while (rs.next()) {
+                    String sha = rs.getString(1);
+                    commits.add(sha);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return commits;
+    }
 
     public HashSet<String> getExistCommits(int projectID, int pr_id) {
         HashSet<String> commits = new HashSet<>();

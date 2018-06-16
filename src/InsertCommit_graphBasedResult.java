@@ -21,13 +21,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by shuruiz on 2/27/18.
  */
-public class AnalyzeChangedFile_ClassifyCommit {
+public class InsertCommit_graphBasedResult {
     static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath, resultDirPath;
     static String myUrl, user, pwd;
     final int batchSize = 100;
     String[] commitType = {"onlyF", "F2U"};
 
-    public AnalyzeChangedFile_ClassifyCommit() {
+    public InsertCommit_graphBasedResult() {
         IO_Process io = new IO_Process();
         String current_dir = System.getProperty("user.dir");
         try {
@@ -48,7 +48,7 @@ public class AnalyzeChangedFile_ClassifyCommit {
     }
 
     static public void main(String[] args) {
-        AnalyzeChangedFile_ClassifyCommit acc = new AnalyzeChangedFile_ClassifyCommit();
+        InsertCommit_graphBasedResult acc = new InsertCommit_graphBasedResult();
         IO_Process io = new IO_Process();
         String[] repoList = {};
         io.rewriteFile("", resultDirPath + "File_history.csv");
@@ -310,6 +310,7 @@ public class AnalyzeChangedFile_ClassifyCommit {
         int onlyf_boolean, f2u_boolean;
         int repoID = io.getRepoId(forkurl);
         int projectID = io.getRepoId(repoUrl);
+
         String update_commit_query = " INSERT INTO fork.Commit (commitSHA, projectID, loginID, email, author_name, num_changedFiles, data_update_at, only_f, f2u,created_at,commit_repo_id) " +
                 "  SELECT *" +
                 "  FROM (SELECT" +
@@ -362,7 +363,6 @@ public class AnalyzeChangedFile_ClassifyCommit {
                     if (changedfiles.size() < 100) {
                         String commitid = io.getCommitID(sha);
                         if (commitid.equals("")) {
-
                             //(commitSHA,
                             preparedStmt_insert.setString(1, sha);
 
@@ -393,8 +393,7 @@ public class AnalyzeChangedFile_ClassifyCommit {
                             //SHA
                             preparedStmt_insert.setString(12, sha);
                             preparedStmt_insert.addBatch();
-                            io.executeQuery(preparedStmt_insert);
-                            conn.commit();
+
 
                             if (++count % batchSize == 0) {
                                 io.executeQuery(preparedStmt_insert);

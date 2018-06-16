@@ -86,15 +86,11 @@ public class GraphBasedAnalyzer {
                 /** get active fork list for given repository **/
                 System.out.println("get all active forks of repo: " + repoName);
 
-//            List<String> activeForkList = io.getActiveForksFromDatabase(projectUrl);
-
-                HashSet<String> activeForkList = new HashSet<>();
+                HashSet<String> activeForkList ;
                 if (getActiveForksFromAPI) {
                     File all_activeFork = new File(output_dir + "/result/" + projectUrl + "/all_ActiveForklist.txt");
-                    File selected_activeFork = new File(output_dir + "result/" + projectUrl + "/ActiveForklist.txt");
 
                     if (!all_activeFork.exists()) {
-
                         /**  get active forks using github api **/
                         String all_activeForkList = queryDataFromGithubAPI.getActiveForkList(projectUrl, hasTimeConstraint);
                         io.rewriteFile(all_activeForkList, output_dir + "result/" + projectUrl + "/all_ActiveForklist.txt");
@@ -131,7 +127,6 @@ public class GraphBasedAnalyzer {
                     }
                     System.out.println(activeForkList.size() + " forks has submitted PR..");
                     if (activeForkList.size() > maxAnalyzedForkNum) {
-                        System.out.println("shuffle activeforklist");
                         for (String fork : activeForkList) {
                             select_activeForkList.add(fork);
                             if (select_activeForkList.size() == maxAnalyzedForkNum)
