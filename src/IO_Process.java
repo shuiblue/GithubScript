@@ -399,6 +399,15 @@ public class IO_Process {
                         ": unknown number of rows updated");
         }
 
+        while (numUpdates.length==0){
+            System.out.println("query fail, sleep 5s and retry...");
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            executeQuery(preparedStmt);
+        }
         System.out.print(numUpdates.length + " rows updated....");
     }
 
@@ -476,7 +485,7 @@ public class IO_Process {
 
     public HashSet<String> commitChangedFileExists(int projectID) {
         HashSet<String> commits = new HashSet<>();
-        String commitshaID_QUERY = "SELECT DISTINCT c.commitSHA\n" +
+        String commitshaID_QUERY = "SELECT DISTINCT c.id\n" +
                 "from commit_changedFiles as cc, Commit as c\n" +
                 "WHERE cc.commit_uuid = c.id and c.projectID =" + projectID;
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
@@ -1118,7 +1127,6 @@ public class IO_Process {
 
             if (!comment.get(0).equals("")) {
                 String text = comment.get(2);
-                System.out.println(text);
                 Matcher m = issueLink.matcher(text);
                 while (m.find()) {
                     int s = Integer.parseInt(m.group().replaceAll("[^\\d]", "").trim());

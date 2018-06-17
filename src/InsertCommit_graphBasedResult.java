@@ -67,7 +67,12 @@ public class InsertCommit_graphBasedResult {
 
             String[] forkListInfo = new String[0];
             try {
-                forkListInfo = io.readResult(resultDirPath + repoUrl.replace("/", ".") + "_graph_result_allFork.csv").split("\n");
+                String forkListInfoString = io.readResult(resultDirPath + repoUrl.replace("/", ".") + "_graph_result_allFork.csv");
+                if (forkListInfoString.contains("0,0,0,0,[],[],[],[]")) {
+                    io.writeTofile(repoUrl + "\n", output_dir + "graph_redo.txt");
+                    continue;
+                }
+                forkListInfo = forkListInfoString.split("\n");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -86,7 +91,7 @@ public class InsertCommit_graphBasedResult {
                 String forkINFO = forkListInfo[i];
                 String forkurl = forkINFO.split(",")[0];
 
-                System.out.println("insert commit...");
+                System.out.println("insert commit...of repo " + forkurl);
                 acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl);
             }
 
@@ -107,7 +112,6 @@ public class InsertCommit_graphBasedResult {
      */
 
 
-
     //    private void insertCommitFromGraphResult(String repoUrl, HashMap<String, HashMap<String, List<String>>> forkOwnCode, String forkurl, ArrayList<String> branchList) {
     private void insertCommitFromGraphResult(String repoUrl, HashMap<String, HashMap<String, List<String>>> forkOwnCode, String forkurl) {
         IO_Process io = new IO_Process();
@@ -120,13 +124,14 @@ public class InsertCommit_graphBasedResult {
         String update_commit_query = " INSERT INTO fork.Commit (commitSHA, projectID, loginID, email, author_name, num_changedFiles, data_update_at, only_f, f2u,created_at,commit_repo_id) " +
                 "  SELECT *" +
                 "  FROM (SELECT" +
-                "          ? AS a,? AS b, ? AS c, ? AS d, ? AS e,? AS f, ? AS g ,? AS x, ? AS y,? AS createat,? as commitrepoid) AS tmp" +
+                "          ? AS a,? AS b, ? AS c, ? AS d, ? AS e,? AS f, ? AS g ,? AS x, ? AS y,? AS createat,? AS commitrepoid) AS tmp" +
                 "  WHERE NOT EXISTS(" +
                 "      SELECT commitSHA" +
                 "      FROM fork.Commit AS cc" +
                 "      WHERE cc.commitSHA = ?" +
                 "  )" +
                 "  LIMIT 1";
+        int count = 0;
         try (
                 Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
                 PreparedStatement preparedStmt_insert = conn.prepareStatement(update_commit_query);) {
@@ -147,7 +152,7 @@ public class InsertCommit_graphBasedResult {
                     f2u_boolean = 1;
                 }
 
-                int count = 0;
+
                 for (String sha : codeChangeCommits) {
                     System.out.println(sha);
                     String[] commitInfo = io.getCommitInfoFromCMD(sha, repoUrl);
@@ -179,7 +184,7 @@ public class InsertCommit_graphBasedResult {
                             // email,
                             preparedStmt_insert.setString(4, email);
                             // author_name,
-                            preparedStmt_insert.setString(5, author_fullName);
+                            preparedStmt_insert.setString(5, io.normalize(author_fullName));
 
                             // num_changedFiles,
                             preparedStmt_insert.setInt(6, changedfiles.size());
@@ -195,11 +200,11 @@ public class InsertCommit_graphBasedResult {
                             preparedStmt_insert.setString(10, created_at);
                             // commit repo id
 
-                            preparedStmt_insert.setInt(11,repoID);
+                            preparedStmt_insert.setInt(11, repoID);
                             //SHA
                             preparedStmt_insert.setString(12, sha);
                             preparedStmt_insert.addBatch();
-
+                            System.out.print("add 1 commit ...count " + count + "\n");
 
                             if (++count % batchSize == 0) {
                                 io.executeQuery(preparedStmt_insert);
@@ -208,8 +213,11 @@ public class InsertCommit_graphBasedResult {
                         }
                     }
                 }
-                io.executeQuery(preparedStmt_insert);
-                conn.commit();
+                if (count > 0) {
+                    System.out.println("count " + count);
+                    io.executeQuery(preparedStmt_insert);
+                    conn.commit();
+                }
             }
 
         } catch (SQLException e) {

@@ -43,53 +43,60 @@ public class AnalyzeCommitChangedFile {
                 "added_file  , added_files_num  , modified_file, modify_files_num , renamed_file ,renamed_files_num ,copied_file ," +
                 " copied_files_num, deleted_file , deleted_files_num , " +
                 "add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commit_uuid,readme_loc, about_config)" +
-                "  SELECT *" +
-                "  FROM (SELECT" +
-                "          ? AS a1,? AS a2,? AS a3,? AS a4,?  AS a30,? AS a5,? AS a6," +
-                "? AS a7,? AS a8,? AS a9,? AS a10,? AS a11,? AS a12,? AS a13,? AS a14,? AS a15,? AS a16 ,? AS a17) AS tmp" +
-                "  WHERE NOT EXISTS(" +
-                "      SELECT *" +
-                "      FROM fork.commit_changedFiles AS cc" +
-                "      WHERE cc.commit_uuid = ?" +
-                "      AND cc.index_changedFile = ?" +
-                "  )" +
-                "  LIMIT 1";
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+//                "  SELECT *" +
+//                "  FROM (SELECT" +
+//                "          ? AS a1,? AS a2,? AS a3,? AS a4,?  AS a30,? AS a5,? AS a6," +
+//                "? AS a7,? AS a8,? AS a9,? AS a10,? AS a11,? AS a12,? AS a13,? AS a14,? AS a15,? AS a16 ,? AS a17) AS tmp" +
+//                "  WHERE NOT EXISTS(" +
+//                "      SELECT *" +
+//                "      FROM fork.commit_changedFiles AS cc" +
+//                "      WHERE cc.commit_uuid = ?" +
+//                "      AND cc.index_changedFile = ?" +
+//                "  )" +
+//                "  LIMIT 1";
 
         int projectID = io.getRepoId(projectURL);
         HashSet<String> analyzedCommits = io.commitChangedFileExists(projectID);
-
+        System.out.println(analyzedCommits.size() + " commmit has been analyzed for changed File...");
 
         HashSet<String> project_forks = new HashSet<>();
         HashSet<String> forkLoginIDSet = new HashSet<>();
 
+        System.out.println("get sampled fork url");
+        HashSet<String> commitCandidates = new HashSet<>();
         for (String line : commitSet) {
             String[] arr = line.split(",");
+            //SELECT  commitSHA,  id ,loginID
             if (arr.length == 3) {
-                String fork_loginID = line.split(",")[2];
-                if (forkLoginIDSet.contains(fork_loginID)) continue;
-
-                forkLoginIDSet.add(fork_loginID);
-                String forkURL = io.getForkURL_by_loginID(fork_loginID, projectID);
-                if (!forkURL.equals("")) {
-                    project_forks.add(forkURL);
+                String commitshaID = arr[1];
+                if (!analyzedCommits.contains(commitshaID)) {
+                    String fork_loginID = arr[2];
+                    if (forkLoginIDSet.contains(fork_loginID)) continue;
+                    forkLoginIDSet.add(fork_loginID);
+                    String forkURL = io.getForkURL_by_loginID(fork_loginID, projectID);
+                    if (!forkURL.equals("")) {
+                        project_forks.add(forkURL);
+                        commitCandidates.add(line);
+                    }
                 }
             }
         }
         System.out.println("cloning " + project_forks.size() + " forks of" + projectURL);
-        new JgitUtility().cloneRepo_cmd(project_forks, projectURL, false);
 
+        if (project_forks.size() > 0) {
+            new JgitUtility().cloneRepo_cmd(project_forks, projectURL, false);
+            int count = 0;
 //Connection c = DriverManager.getConnection("jdbc:mysql://host:3306/db?useServerPrepStmts=false&rewriteBatchedStatements=true", "username", "password");
-        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
-             PreparedStatement preparedStmt = conn.prepareStatement(insert_changedFile_query);) {
-            conn.setAutoCommit(false);
-
-            HashSet<String> miss_Clone_project = new HashSet<>();
-            for (String commit : commitSet) {
-                String[] commit_info = commit.split(",");
-                String commitshaID = commit_info[1];
-
-
-                if (!analyzedCommits.contains(commitshaID)) {
+            try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                 PreparedStatement preparedStmt = conn.prepareStatement(insert_changedFile_query);) {
+                conn.setAutoCommit(false);
+                System.out.println(commitCandidates.size() + " commits is in the queue...");
+                HashSet<String> miss_Clone_project = new HashSet<>();
+                for (String commit : commitCandidates) {
+                    //SELECT  commitSHA,  id ,loginID
+                    String[] commit_info = commit.split(",");
+                    String commitshaID = commit_info[1];
                     String sha = commit_info[0];
                     //repo.repoURL, c.commitSHA, c.id
                     if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
@@ -106,11 +113,11 @@ public class AnalyzeCommitChangedFile {
 
                         int index_d = 0;
 
-                        int count = 0;
+
                         for (String file : changedfiles) {
                             index_d++;
                             String[] arr = file.split("\t");
-                            int addLine = 0, deleteLine = 0;
+                            int addLine, deleteLine;
                             String fileName, changeType;
                             String addedFile = "";
                             String deletedFile = "";
@@ -170,8 +177,6 @@ public class AnalyzeCommitChangedFile {
                                 preparedStmt.setString(16, commitshaID);
                                 preparedStmt.setInt(17, readmeAdded);
                                 preparedStmt.setInt(18, aboutConfig);
-                                preparedStmt.setString(19, commitshaID);
-                                preparedStmt.setInt(20, index_d);
                                 preparedStmt.addBatch();
                                 System.out.print("add 1 commit ...");
                             } else {
@@ -192,18 +197,18 @@ public class AnalyzeCommitChangedFile {
                         miss_Clone_project.add(projectURL);
                         continue;
                     }
-                } else {
-                    System.out.println(commitshaID + " analyzed in repo " + projectURL);
+
                 }
+                if (count > 0) {
+                    System.out.println("\n add all commit set data to database..");
+                    io.executeQuery(preparedStmt);
+                    conn.commit();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-            System.out.println("\n add all commit set data to database..");
-            io.executeQuery(preparedStmt);
-            conn.commit();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
-
     }
 
 
@@ -221,41 +226,37 @@ public class AnalyzeCommitChangedFile {
         System.out.println(repos.length + " projects ");
         int count = 0;
 
-        while (count < repos.length) {
-            System.out.println("restart loop..");
-            count = 0;
-            for (String projectURL : repos) {
-                int projectID = io.getRepoId(projectURL);
-                System.out.println("get all commit for " + projectURL);
+        count = 0;
+        for (String projectURL : repos) {
+            int projectID = io.getRepoId(projectURL);
+            System.out.println("get all commit for " + projectURL);
 
-                System.out.println("get all commit for database..");
-                List<String> allcommits = io.getCommitList(projectID);
-                Collections.shuffle(allcommits);
+            List<String> allcommits = io.getCommitList(projectID);
+            Collections.shuffle(allcommits);
 
-                System.out.println("Sampling 1/3 of all commits..");
-                HashSet<String> sampledCommits = new HashSet<>();
+            System.out.println("Sampling 1/3 of all commits..");
+            HashSet<String> sampledCommits = new HashSet<>();
 
-                for (String s : allcommits) {
-                    if (sampledCommits.size() > (allcommits.size() / 10)) {
-                        break;
-                    }
-                    sampledCommits.add(s);
+            for (String s : allcommits) {
+                if (sampledCommits.size() > (allcommits.size() / 10)) {
+                    break;
                 }
-                if (allcommits.size() > 0) {
-                    System.out.println("start to analyze "+sampledCommits.size()+ " commits...");
-                    accf.analyzeChangedFile(sampledCommits, projectURL);
-                } else {
-                    count++;
-                }
-                try {
-                    System.out.println("delete " + projectURL);
-                    io.deleteDir(new File(clone_dir + projectURL));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                sampledCommits.add(s);
             }
-
+            if (allcommits.size() > 0) {
+                System.out.println("start to analyze " + sampledCommits.size() + " commits...");
+                accf.analyzeChangedFile(sampledCommits, projectURL);
+            } else {
+                count++;
+            }
+            try {
+                System.out.println("\ndelete " + projectURL);
+                io.deleteDir(new File(clone_dir + projectURL));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+
 
     }
 

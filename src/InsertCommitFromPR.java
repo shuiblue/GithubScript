@@ -48,27 +48,27 @@ public class InsertCommitFromPR {
             e.printStackTrace();
         }
 
-        while (true) {
-            /*** insert pr info to  Pull_Request table***/
-            for (String projectUrl : repos) {
-                int projectID = io.getRepoId(projectUrl);
-                System.out.println(projectUrl);
+        /*** insert pr info to  Pull_Request table***/
+        for (String projectUrl : repos) {
+            int projectID = io.getRepoId(projectUrl);
+            System.out.println(projectUrl);
 
-                ArrayList<String> prList = io.getPRNumlist(projectUrl);
+            ArrayList<String> prList = io.getPRNumlist(projectUrl);
 
-                if (prList.size() == 0) {
-                    System.out.println(projectUrl + " pr api result not available");
-                    io.writeTofile(projectUrl + "\n", output_dir + "miss_pr_api.txt");
-                    continue;
-                } else {
-                    System.out.println(prList.size() + " pr from " + projectUrl);
-                }
+            if (prList.size() == 0) {
+                System.out.println(projectUrl + " pr api result not available");
+                io.writeTofile(projectUrl + "\n", output_dir + "miss_pr_api.txt");
+                continue;
+            } else {
+                System.out.println(prList.size() + " pr from " + projectUrl);
+            }
 
-                HashSet<String> analyzedPR = io.prList_ExistIN_PR_commitMap(projectID);
-                System.out.println("pr list size: " + prList.size());
-                prList.removeAll(analyzedPR);
-                System.out.println("after removing skiped pr, now prlist size: " + prList.size());
+            HashSet<String> analyzedPR = io.prList_ExistIN_PR_commitMap(projectID);
+            System.out.println("pr list size: " + prList.size());
+            prList.removeAll(analyzedPR);
+            System.out.println("after removing skiped pr, now prlist size: " + prList.size());
 
+            if (prList.size() > 0) {
                 int csvFileExist = -1;
 
                 if (csvFileExist == -1) {
@@ -83,9 +83,10 @@ public class InsertCommitFromPR {
                         System.out.println("no pr commit map, next repo...");
                     }
                 }
-
             }
+
         }
+
     }
 
 
@@ -149,7 +150,7 @@ public class InsertCommitFromPR {
                                 //author_name
                                 preparedStmt_1.setString(3, io.normalize(line.get(3)));
                                 //,email,
-                                preparedStmt_1.setString(4, line.get(2));
+                                preparedStmt_1.setString(4, io.normalize(line.get(2)));
                                 // projectID,
                                 preparedStmt_1.setInt(5, projectID);
                                 //data_update_at
@@ -157,7 +158,9 @@ public class InsertCommitFromPR {
                                 //sha
                                 preparedStmt_1.setString(7, line.get(4));
 //                                preparedStmt_1.setString(8, line.get(8));
-                                preparedStmt_1.addBatch();
+                                if (!preparedStmt_1.toString().contains("NOT SPECIFIED")) {
+                                    preparedStmt_1.addBatch();
+                                }
 
                                 if (++count % batchSize == 0) {
                                     System.out.println(count + " add batch to db... of repo " + projectUrl);
@@ -169,15 +172,14 @@ public class InsertCommitFromPR {
 
                                     conn1.commit();
                                 }
-                            } else {
-                                continue;
                             }
                         }
                     }
                 }
             }
-            if (!preparedStmt_1.toString().contains("NOT SPECIFIED")) {
-                System.out.println("insert num_commit " + count + " ..");
+
+            System.out.println("insert num_commit " + count + " ..");
+            if (count > 0) {
                 io.executeQuery(preparedStmt_1);
                 conn1.commit();
             }
@@ -222,9 +224,8 @@ public class InsertCommitFromPR {
                     // pull_request_id
                     preparedStmt_2.setInt(3, pr_id);
                     preparedStmt_2.addBatch();
+                    System.out.println("project:" + projectID + " add prc map.. count " + count);
                     if (++count % batchSize == 0) {
-                        System.out.println("add prc map.. count " + count);
-
                         io.executeQuery(preparedStmt_2);
                         conn2.commit();
                     }
