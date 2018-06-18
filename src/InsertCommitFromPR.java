@@ -63,10 +63,10 @@ public class InsertCommitFromPR {
                 System.out.println(prList.size() + " pr from " + projectUrl);
             }
 
-            HashSet<String> analyzedPR = io.prList_ExistIN_PR_commitMap(projectID);
-            System.out.println("pr list size: " + prList.size());
-            prList.removeAll(analyzedPR);
-            System.out.println("after removing skiped pr, now prlist size: " + prList.size());
+//            HashSet<String> analyzedPR = io.prList_ExistIN_PR_commitMap(projectID);
+//            System.out.println("pr list size: " + prList.size());
+//            prList.removeAll(analyzedPR);
+//            System.out.println("after removing skiped pr, now prlist size: " + prList.size());
 
             if (prList.size() > 0) {
                 int csvFileExist = -1;
@@ -134,7 +134,7 @@ public class InsertCommitFromPR {
                 preparedStmt_updatePR.setInt(1, commits.size());
                 preparedStmt_updatePR.setInt(2, pr_id);
                 preparedStmt_updatePR.setInt(3, projectID);
-
+                preparedStmt_updatePR.executeUpdate();
                 System.out.println(projectUrl + " has " + commits.size() + " commit in pr" + pr_id);
                 if (commits.size() < 50 & commits.size() > 0) {
                     for (List<String> line : commits) {
@@ -193,11 +193,20 @@ public class InsertCommitFromPR {
 
 
     public void insertMap_Commits_PR(ArrayList<String> pr_commit_map, int projectID) {
+
         IO_Process io = new IO_Process();
         String update_pr_commit_query = " INSERT INTO fork.PR_Commit_map (commit_uuid,projectID,pull_request_id) VALUES (?,?,?)";
 
-        System.out.println("insert pr commit map..., calculating existing maps...");
+        HashSet<String> commitSet = new HashSet<>();
+        for (String map : pr_commit_map) {
+            String[] arr = map.split(",");
+            String sha = arr[1];
+            commitSet.add(sha);
+        }
+        HashMap<String, String> sha_to_id = io.getCommitIdMap(commitSet);
+        System.out.println(sha_to_id.size() + " sha to id maps");
 
+        System.out.println("insert pr commit map..., calculating existing maps...");
         HashSet<String> commits_exist_PRC = io.getExistCommits_inPRCommitMap(projectID);
         System.out.println(commits_exist_PRC.size() + " maps exists ");
         try (Connection conn2 = DriverManager.getConnection(myUrl, user, pwd);
@@ -212,11 +221,15 @@ public class InsertCommitFromPR {
                 String sha = arr[1];
                 if (!commits_exist_PRC.contains(sha + "," + pr_id)) {
                     //commitsha_id,
-                    String commitID = io.getCommitID(sha);
-                    if (commitID.trim().equals("")) {
-                        System.out.println("project id " + projectID + " commit is empty : " + sha);
-                        io.writeTofile(projectID + "," + sha + "\n", output_dir + "commitNotINDB.txt");
-                        continue;
+                    String commitID = sha_to_id.get(sha);
+                    if(commitID!=null) {
+                        if (commitID.trim().equals("")) {
+                            System.out.println("project id " + projectID + " commit is empty : " + sha);
+                            io.writeTofile(projectID + "," + sha + "\n", output_dir + "commitNotINDB.txt");
+                            continue;
+                        }
+                    }else{
+                        System.out.println(sha +" id is null");
                     }
                     preparedStmt_2.setString(1, commitID);
                     // projectID,

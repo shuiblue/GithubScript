@@ -78,6 +78,9 @@ public class AnalyzeCommitChangedFile {
                     if (!forkURL.equals("")) {
                         project_forks.add(forkURL);
                         commitCandidates.add(line);
+                        System.out.println(line);
+                    }else{
+                        System.out.println(projectID+","+fork_loginID +"  no forkurl?!");
                     }
                 }
             }
@@ -238,7 +241,7 @@ public class AnalyzeCommitChangedFile {
             HashSet<String> sampledCommits = new HashSet<>();
 
             for (String s : allcommits) {
-                if (sampledCommits.size() > (allcommits.size() / 10)) {
+                if (sampledCommits.size() > (allcommits.size() / 3)) {
                     break;
                 }
                 sampledCommits.add(s);

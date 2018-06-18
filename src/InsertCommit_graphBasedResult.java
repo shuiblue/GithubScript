@@ -154,8 +154,8 @@ public class InsertCommit_graphBasedResult {
 
 
                 for (String sha : codeChangeCommits) {
-                    System.out.println(sha);
                     String[] commitInfo = io.getCommitInfoFromCMD(sha, repoUrl);
+                    System.out.println(sha+" : size of commit info"+commitInfo.length);
                     String author_fullName = commitInfo[0];
                     String email = commitInfo[1];
                     String created_at = commitInfo[2];

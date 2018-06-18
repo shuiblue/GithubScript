@@ -71,6 +71,7 @@ public class GetModularity {
             if (!clone.exists()) {
                 io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
                 System.out.println(projectURL + " clone does not exist !");
+                io.cloneRepo("",projectURL);
                 continue;
             } else {
                 System.out.println(projectURL + " clone exist, start to calculate modularity...");
@@ -91,7 +92,7 @@ public class GetModularity {
                 System.out.println("pre firstCommitCreatedAt = " + firstCommitCreatedAt);
 
 //                if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
-                if (firstCommitCreatedAt > 10) firstCommitCreatedAt = 10;
+                if (firstCommitCreatedAt > 5) firstCommitCreatedAt = 5;
 
                 System.out.println("after firstCommitCreatedAt = " + firstCommitCreatedAt);
 

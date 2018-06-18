@@ -63,7 +63,7 @@ public class script_tmp {
             for (String line : repoList) {
                 String[] arr = line.split(",");
 
-                if (arr.length < 3 || (arr[2].contains("/") || arr[2].equals(""))) {
+                if (arr.length < 3 || (arr[2].contains("/") || arr[2].equals("")||arr[2].equals("null"))) {
                     System.out.println("login id: " + line);
                     String repoid = arr[1];
                     String loginid = arr[0].split("/")[0];

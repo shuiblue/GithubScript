@@ -1,10 +1,9 @@
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.HashMap;
+import java.util.HashSet;
 
 public class InsertModularity {
     static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath;
@@ -36,19 +35,12 @@ public class InsertModularity {
     public static void main(String[] args) {
         new InsertModularity();
         IO_Process io = new IO_Process();
+
+        //projectID,filterout_stopFile,threshold_num_files_per_commit,num_latest_year
+        HashSet<String> existingModResult = getExistMod();
+
         String insertIssueQuery = "INSERT INTO fork.Modularity(projectID, filterout_stopFile, num_latest_year, threshold_num_files_per_commit,modularity,num_commits_total,num_file_total) " +
-                "  SELECT *" +
-                "  FROM (SELECT" +
-                "          ? AS a,? AS b, ? AS c,? AS d ,? AS e, ? AS f, ? AS g) AS tmp" +
-                "  WHERE NOT EXISTS(" +
-                "      SELECT *" +
-                "      FROM fork.Modularity AS m" +
-                "      WHERE m.projectID = ?" +
-                "      AND m.filterout_stopFile= ?" +
-                "      AND m.num_latest_year= ?" +
-                "      AND m.threshold_num_files_per_commit= ?" +
-                "  )" +
-                "  LIMIT 1";
+                "VALUES (?,?,?,?,?,?,?)";
 
 
         try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
@@ -68,18 +60,17 @@ public class InsertModularity {
                                     String repoURL = modResult[0];
                                     int projectID = io.getRepoId(repoURL);
 
-                                    int modular_exist = io.checkModularityExist(projectID);
-                                    if (modular_exist == 0) {
+                                    String[] arr = file.getFileName().toString().split("_");
+                                    boolean filterout_stopFile = arr[arr.length - 1].contains("noStopFile") ? true : false;
+                                    int filter = filterout_stopFile ? 1 : 0;
+                                    String year = arr[arr.length - 3];
+                                    String threshold = arr[arr.length - 4];
+
+                                    //projectID,filterout_stopFile,threshold_num_files_per_commit,num_latest_year
+                                    if (existingModResult.contains(projectID + "," + filter + "," + threshold + "," + year)) {
                                         float mod = Float.parseFloat(modResult[1]);
                                         int num_commit = Integer.parseInt(modResult[2]);
                                         int num_file = Integer.parseInt(modResult[3].trim());
-
-
-                                        String[] arr = file.getFileName().toString().split("_");
-                                        boolean filterout_stopFile = arr[arr.length - 1].contains("noStopFile") ? true : false;
-                                        String year = arr[arr.length - 3];
-                                        String threshold = arr[arr.length - 4];
-
                                         try {
                                             preparedStmt_1.setInt(1, projectID);
                                             preparedStmt_1.setBoolean(2, filterout_stopFile);
@@ -88,13 +79,8 @@ public class InsertModularity {
                                             preparedStmt_1.setFloat(5, mod);
                                             preparedStmt_1.setInt(6, num_commit);
                                             preparedStmt_1.setInt(7, num_file);
-
-                                            preparedStmt_1.setInt(8, projectID);
-                                            preparedStmt_1.setBoolean(9, filterout_stopFile);
-                                            preparedStmt_1.setInt(10, Integer.parseInt(year));
-                                            preparedStmt_1.setInt(11, Integer.parseInt(threshold));
                                             preparedStmt_1.addBatch();
-
+                                            System.out.println("count " + count[0]);
                                             if (++count[0] % batchSize == 0) {
                                                 io.executeQuery(preparedStmt_1);
                                                 conn1.commit();
@@ -102,7 +88,7 @@ public class InsertModularity {
                                         } catch (SQLException e) {
                                             e.printStackTrace();
                                         }
-                                    }else{
+                                    } else {
                                         System.out.println(repoURL + " exist in database :)");
                                         return;
                                     }
@@ -118,6 +104,28 @@ public class InsertModularity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static HashSet<String> getExistMod() {
+        String query = "SELECT projectID,filterout_stopFile,threshold_num_files_per_commit,num_latest_year\n" +
+                "FROM Modularity";
+
+
+        HashSet<String> list = new HashSet<>();
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                list.add(rs.getInt(1) + "," + rs.getInt(2) + "," + rs.getInt(3) + "," + rs.getInt(4));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+
+
     }
 
 }

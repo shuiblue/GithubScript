@@ -120,9 +120,11 @@ public class testmysql {
             /**  insert ratio of merged pr  **/
             String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status.csv").split("\n");
             for (String repo : modularity_array) {
-                if (repo.contains("Rejected")) {
+                if (repo.contains("Merged")) {
+//                if (repo.contains("Rejected")) {
                     String[] repoInfo = repo.split(",");
-                    String insertQuery = "UPDATE fork.Final SET ratio_rejectedPR = ? WHERE repoID = ?";
+                    String insertQuery = "UPDATE fork.Final SET ratio_mergedPR = ? WHERE repoID = ?";
+//                    String insertQuery = "UPDATE fork.Final SET ratio_rejectedPR = ? WHERE repoID = ?";
 
                     preparedStmt = conn.prepareStatement(insertQuery);
                     preparedStmt.setString(1, repoInfo[4]);
