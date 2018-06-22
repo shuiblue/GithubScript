@@ -119,22 +119,18 @@ public class IO_Process {
     }
 
     public List<List<String>> readCSV(String filePath) {
-        List<List<String>> rows = new ArrayList<>();
         File csvFile = new File(filePath);
-        try (InputStream in = new FileInputStream(csvFile);) {
-            CSV csv = null;
-            try {
-                csv = new CSV(true, ',', in);
-                List<String> colNames = null;
-                if (csv.hasNext()) colNames = new ArrayList<String>(csv.next());
-                while (csv.hasNext()) {
-                    List<String> fields = new ArrayList<String>(csv.next());
-                    rows.add(fields);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        return readCSV(csvFile);
+    }
 
+    public List<List<String>> readCSV(File csvFile) {
+        List<List<String>> rows = new ArrayList<>();
+        try (InputStream in = new FileInputStream(csvFile);) {
+            CSV csv = new CSV(true, ',', in);
+            while (csv.hasNext()) {
+                List<String> fields = new ArrayList<>(csv.next());
+                rows.add(fields);
+            }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -142,7 +138,6 @@ public class IO_Process {
         }
         return rows;
     }
-
 
     public void deleteDir(File file) throws IOException {
 
@@ -1457,6 +1452,45 @@ public class IO_Process {
     }
 
 
+    public String[] getRepoList(String repoList_file) {
+        String[] repos = new String[0];
+        try {
+            repos = readResult(current_dir + "/input/" + repoList_file).split("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return repos;
+    }
+
+    public int insertUser(String loginID, String full_name,String email, String user_type ) {
+
+        String query = " INSERT INTO user (login_id, full_name, email, user_type)  \n" +
+                "VALUES (?,? ,?,?);";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);) {
+            preparedStmt.setString(1, loginID);
+            preparedStmt.setString(2, full_name);
+            preparedStmt.setString(3, email);
+            preparedStmt.setString(4, user_type);
+            int affectedRows = preparedStmt.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Creating user failed, no rows affected.");
+            }
+
+            ResultSet generatedKeys = preparedStmt.getGeneratedKeys();
+
+            if (generatedKeys.next()) {
+                return generatedKeys.getInt(1);
+
+            } else {
+                throw new SQLException("Creating user failed, no generated key obtained.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+
+    }
 }
 
 

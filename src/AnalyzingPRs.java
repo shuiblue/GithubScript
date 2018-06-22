@@ -72,7 +72,7 @@ public class AnalyzingPRs {
             }
 
             analyzingPRs.insertFork(projectUrl, projectID, prList);
-//            analyzingPRs.getPRfiles(projectUrl, projectID, prList);
+            analyzingPRs.getPRfiles(projectUrl, projectID, prList);
         }
     }
 

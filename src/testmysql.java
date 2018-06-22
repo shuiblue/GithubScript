@@ -15,7 +15,7 @@ import java.util.*;
  * Created by Alvin Alexander, http://alvinalexander.com
  */
 public class testmysql {
-    static String  user, pwd, myUrl, token;
+    static String user, pwd, myUrl, token;
     static String current_dir = System.getProperty("user.dir");
 
     public static void main(String[] args) {
@@ -88,22 +88,25 @@ public class testmysql {
 ////            String[] loc_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/codechange_median.csv").split("\n");
 ////            String[] loc_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/file_codechange_mean.csv").split("\n");
 //            String[] loc_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/file_codechange_median.csv").split("\n");
-//            for (int i =1;i< loc_array.length;i++) {
+//            for (int i =2;i< loc_array.length;i++) {
 //                String repo = loc_array[i];
 //                String[] repoInfo = repo.split(",");
-////                    String insertQuery = "UPDATE fork.Final SET fork.Final.code_changes_size_mean_loc = ? WHERE repoURL = ?";
-////                    String insertQuery = "UPDATE fork.Final SET fork.Final.code_changes_size_median_loc = ? WHERE repoURL = ?";
-////                    String insertQuery = "UPDATE fork.Final SET fork.Final.code_changes_size_mean_file = ? WHERE repoURL = ?";
-//                    String insertQuery = "UPDATE fork.Final SET fork.Final.code_changes_size_median_file = ? WHERE repoURL = ?";
+//                if(!repoInfo[2].equals("NA")) {
+////                    String insertQuery = "UPDATE fork.Final SET fork.Final.code_changes_size_mean_loc = ? WHERE repoID = ?";
+////                    String insertQuery = "UPDATE fork.Final SET fork.Final.code_changes_size_median_loc = ? WHERE repoID = ?";
+////                    String insertQuery = "UPDATE fork.Final SET fork.Final.code_changes_size_mean_file = ? WHERE repoID = ?";
+//                    String insertQuery = "UPDATE fork.Final SET fork.Final.code_changes_size_median_file = ? WHERE repoID = ?";
 //
 //                    preparedStmt = conn.prepareStatement(insertQuery);
 //                    preparedStmt.setString(1, repoInfo[2]);
-//                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
+//                    preparedStmt.setInt(2, Integer.parseInt(repoInfo[1]));
 //                    System.out.println(preparedStmt.toString());
+//
 //                    preparedStmt.execute();
+//                }
 //
 //            }
-//            /**  easiness **/
+            /**  easiness **/
 //            String[] easiness_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/easiness.csv").split("\n");
 //            for (int i =1;i< easiness_array.length;i++) {
 //                String repo = easiness_array[i];
@@ -118,22 +121,22 @@ public class testmysql {
 //        }
 
             /**  insert ratio of merged pr  **/
-            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status.csv").split("\n");
-            for (String repo : modularity_array) {
-                if (repo.contains("Merged")) {
-//                if (repo.contains("Rejected")) {
-                    String[] repoInfo = repo.split(",");
-                    String insertQuery = "UPDATE fork.Final SET ratio_mergedPR = ? WHERE repoID = ?";
-//                    String insertQuery = "UPDATE fork.Final SET ratio_rejectedPR = ? WHERE repoID = ?";
-
-                    preparedStmt = conn.prepareStatement(insertQuery);
-                    preparedStmt.setString(1, repoInfo[4]);
-                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
-                    System.out.println(preparedStmt.toString());
-                    System.out.println(preparedStmt.executeUpdate());
-
-                }
-            }
+//            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status.csv").split("\n");
+//            for (String repo : modularity_array) {
+//                if (repo.contains("Merged")) {
+////                if (repo.contains("Rejected")) {
+//                    String[] repoInfo = repo.split(",");
+//                    String insertQuery = "UPDATE fork.Final SET ratio_mergedPR = ? WHERE repoID = ?";
+////                    String insertQuery = "UPDATE fork.Final SET ratio_rejectedPR = ? WHERE repoID = ?";
+//
+//                    preparedStmt = conn.prepareStatement(insertQuery);
+//                    preparedStmt.setString(1, repoInfo[4]);
+//                    preparedStmt.setString(2, repoInfo[1].replace("\"",""));
+//                    System.out.println(preparedStmt.toString());
+//                    System.out.println(preparedStmt.executeUpdate());
+//
+//                }
+//            }
             /**  insert modularity of project  **/
 //            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/commitHistory/10_repo_ECI_all_file.csv").split("\n");
 //            for (String repo : modularity_array) {
@@ -151,21 +154,51 @@ public class testmysql {
 //                }
 //            }
 
-            /**  update percentage of issue_first result  **/
+            /**  update Boolean issue_first result in PR_ISSUE table **/
+            String[] issueFirst_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/pr_issue_raw.csv").split("\n");
+            for (int i = 1; i < issueFirst_array.length; i++) {
+
+                String repo = issueFirst_array[i];
+                System.out.println(repo);
+                String insertQuery = "";
+                repo = repo.replace("\"", "");
+
+                String[] repoInfo = repo.split(",");
+                if (repo.contains(",TRUE") || repo.contains(",FALSE")) {
+                    insertQuery = "UPDATE fork.PR_TO_ISSUE SET  issue_before_PR = ? WHERE repoID = ? AND  pull_request_id = ? AND issue_id = ?";
+                } else {
+                    continue;
+                }
+                preparedStmt = conn.prepareStatement(insertQuery);
+                preparedStmt.setBoolean(1, repoInfo[4].endsWith("TRUE") ? true : false);
+                preparedStmt.setInt(2, Integer.valueOf(repoInfo[1]));
+                preparedStmt.setInt(3, Integer.valueOf(repoInfo[2]));
+                preparedStmt.setInt(4, Integer.valueOf(repoInfo[3]));
+                preparedStmt.execute();
+
+            }
+
+            /**  update percentage of issue_first result in Final table **/
 //            String[] issueFirst_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/pr_issue.csv").split("\n");
-//            for (int i =1;i< issueFirst_array.length;i++) {
+//            for (int i = 1; i < issueFirst_array.length; i++) {
 //
 //                String repo = issueFirst_array[i];
-//                if(repo.contains(",TRUE,")) {
-//                    repo = repo.replace("\"", "");
+//                String insertQuery = "";
+//                repo = repo.replace("\"", "");
 //
-//                    String[] repoInfo = repo.split(",");
-//                    String insertQuery = "UPDATE fork.Final SET  central_management_index = ? WHERE repoID = ?";
-//                    preparedStmt = conn.prepareStatement(insertQuery);
-//                    preparedStmt.setDouble(1, Double.parseDouble(repoInfo[4]));
-//                    preparedStmt.setInt(2, Integer.parseInt(repoInfo[1]));
-//                    preparedStmt.execute();
+//                String[] repoInfo = repo.split(",");
+//
+//                if (repo.contains(",TRUE,")) {
+//                    insertQuery = "UPDATE fork.Final SET  issue_before_PR = ? WHERE repoID = ?";
+//                } else if (repo.contains(",FALSE,")) {
+//                    insertQuery = "UPDATE fork.Final SET  issue_after_PR = ? WHERE repoID = ?";
+//                }else{
+//                    continue;
 //                }
+//                preparedStmt = conn.prepareStatement(insertQuery);
+//                preparedStmt.setInt(1, Integer.valueOf(repoInfo[3]));
+//                preparedStmt.setInt(2, Integer.valueOf(repoInfo[1]));
+//                preparedStmt.execute();
 //            }
 
 

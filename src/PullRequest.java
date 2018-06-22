@@ -15,11 +15,10 @@ public class PullRequest {
     String merged;
 
 
-
     String forkURL;
-    HashSet<String> commitSet=new HashSet<>();
+    HashSet<String> commitSet = new HashSet<>();
 
-    public PullRequest(String pr_id,String forkName, String author,String forkURL, String created_at, String closed_at, String closed, String merged,  HashSet<String> commitSet) {
+    public PullRequest(String pr_id, String forkName, String author, String forkURL, String created_at, String closed_at, String closed, String merged, HashSet<String> commitSet) {
         this.pr_id = pr_id;
         this.forkName = forkName;
         this.author = author;
@@ -30,12 +29,15 @@ public class PullRequest {
         this.forkURL = forkURL;
         this.commitSet.addAll(commitSet);
     }
+
     public String getForkURL() {
         return forkURL;
     }
+
     public String getPr_id() {
         return pr_id;
     }
+
     public String getForkName() {
         return forkName;
     }
@@ -56,11 +58,9 @@ public class PullRequest {
     }
 
 
-
     public String getClosed() {
         return closed;
     }
-
 
 
     public String getMerged() {

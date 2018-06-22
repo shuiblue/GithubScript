@@ -48,6 +48,8 @@ public class InsertCommitFromPR {
             e.printStackTrace();
         }
 
+
+
         /*** insert pr info to  Pull_Request table***/
         for (String projectUrl : repos) {
             int projectID = io.getRepoId(projectUrl);
@@ -96,21 +98,8 @@ public class InsertCommitFromPR {
         ArrayList<String> pr_commit_map = new ArrayList<>();
 
         HashSet<String> commits_existinDB = io.getExistCommits_inCommit(projectID);
-
-
-//        String update_commit_query = " INSERT INTO fork.Commit  (commitSHA,loginID,author_name,email, projectID, data_update_at,created_at)" +
-//                "  SELECT *" +
-//                "  FROM (SELECT" +
-//                "          ? AS a,? AS b, ? AS c, ? AS d,? AS c1, ? AS d1, ? AS d2) AS tmp" +
-//                "  WHERE NOT EXISTS(" +
-//                "      SELECT commitSHA" +
-//                "      FROM fork.Commit AS cc" +
-//                "      WHERE cc.commitSHA = ?" +
-//                "  )" +
-//                "  LIMIT 1";
         String update_commit_query = " INSERT INTO fork.Commit  (commitSHA,loginID,author_name,email, projectID, data_update_at,created_at)" +
                 "VALUES  (?,?,?,?,?,?,?)";
-
 
         String updatePR = "UPDATE fork.Pull_Request SET num_commit = ? WHERE pull_request_ID = ? AND projectID = ?";
         try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);

@@ -3,5 +3,4 @@
  */
 public enum CommitType {
     origin, sync_upstream, merge_commit,other;
-
 }

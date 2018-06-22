@@ -49,6 +49,7 @@ public class InsertModularity {
             final int[] count = {0};
             Files.newDirectoryStream(Paths.get(historyDirPath), path -> path.toFile().isFile())
                     .forEach(file -> {
+
                                 if (file.getFileName().toString().endsWith(".txt")) {
                                     System.out.println(file.getFileName().toString());
                                     String[] modResult = {};
@@ -59,6 +60,7 @@ public class InsertModularity {
                                     }
                                     String repoURL = modResult[0];
                                     int projectID = io.getRepoId(repoURL);
+                                    System.out.println("project id:" + projectID);
 
                                     String[] arr = file.getFileName().toString().split("_");
                                     boolean filterout_stopFile = arr[arr.length - 1].contains("noStopFile") ? true : false;
@@ -67,7 +69,7 @@ public class InsertModularity {
                                     String threshold = arr[arr.length - 4];
 
                                     //projectID,filterout_stopFile,threshold_num_files_per_commit,num_latest_year
-                                    if (existingModResult.contains(projectID + "," + filter + "," + threshold + "," + year)) {
+                                    if (!existingModResult.contains(projectID + "," + filter + "," + threshold + "," + year)) {
                                         float mod = Float.parseFloat(modResult[1]);
                                         int num_commit = Integer.parseInt(modResult[2]);
                                         int num_file = Integer.parseInt(modResult[3].trim());

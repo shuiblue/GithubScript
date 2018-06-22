@@ -74,44 +74,45 @@ public class AnalyzeIssueResult {
                 if (new File(issue_file).exists()) {
                     List<List<String>> issueList = io.readCSV(issue_file);
                     for (List<String> issue : issueList) {
-                        String author = issue.get(1);
-                        String closed = issue.get(2);
-                        String closed_at = issue.get(3);
-                        String created_at = issue.get(4);
-                        String issue_num = issue.get(5);
-                        String title = issue.get(6);
-                        String updated_at = issue.get(7);
+                        if (!issue.get(0).equals("")) {
+                            String author = issue.get(1);
+                            String closed = issue.get(2);
+                            String closed_at = issue.get(3);
+                            String created_at = issue.get(4);
+                            String issue_num = issue.get(5);
+                            String title = issue.get(6);
+                            String updated_at = issue.get(7);
 
 
-                        // projectID,
-                        preparedStmt_1.setInt(1, projectID);
-                        //issue_id,
-                        preparedStmt_1.setInt(2, Integer.parseInt(issue_num));
+                            // projectID,
+                            preparedStmt_1.setInt(1, projectID);
+                            //issue_id,
+                            preparedStmt_1.setInt(2, Integer.parseInt(issue_num));
 
-                        //author,
-                        preparedStmt_1.setString(3, author);
-                        // closed,
-                        preparedStmt_1.setString(4, closed);
-                        // closed_at,
-                        preparedStmt_1.setString(5, closed_at);
-                        // created_at,
-                        preparedStmt_1.setString(6, created_at);
-                        // updated_at,
-                        preparedStmt_1.setString(7, updated_at);
-                        // title
-                        preparedStmt_1.setString(8, title);
-                        preparedStmt_1.addBatch();
+                            //author,
+                            preparedStmt_1.setString(3, author);
+                            // closed,
+                            preparedStmt_1.setString(4, closed);
+                            // closed_at,
+                            preparedStmt_1.setString(5, closed_at);
+                            // created_at,
+                            preparedStmt_1.setString(6, created_at);
+                            // updated_at,
+                            preparedStmt_1.setString(7, updated_at);
+                            // title
+                            preparedStmt_1.setString(8, title);
 
-                        // projectID,
-                        preparedStmt_1.setInt(9, projectID);
-                        //issue_id,
-                        preparedStmt_1.setInt(10, Integer.parseInt(issue_num));
 
-                        if (++count % batchSize == 0) {
-                            io.executeQuery(preparedStmt_1);
-                            conn1.commit();
+                            // projectID,
+                            preparedStmt_1.setInt(9, projectID);
+                            //issue_id,
+                            preparedStmt_1.setInt(10, Integer.parseInt(issue_num));
+                            preparedStmt_1.addBatch();
+                            if (++count % batchSize == 0) {
+                                io.executeQuery(preparedStmt_1);
+                                conn1.commit();
+                            }
                         }
-
                     }
                     System.out.println("inserting " + issueList.size() + " issue from " + repo);
                     io.executeQuery(preparedStmt_1);

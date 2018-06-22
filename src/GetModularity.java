@@ -59,7 +59,7 @@ public class GetModularity {
         /** get repo list **/
         String current_dir = System.getProperty("user.dir");
         try {
-            repoList = io.readResult(current_dir + "/input/repoList.txt").split("\n");
+            repoList = io.readResult(current_dir + "/input/mod_repoList.txt").split("\n");
 
         } catch (IOException e) {
             e.printStackTrace();
