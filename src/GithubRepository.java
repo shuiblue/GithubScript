@@ -57,6 +57,7 @@ public class GithubRepository {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println(fork_info_json);
         if (fork_info_json.size() > 0) {
             JSONObject fork_jsonObj = new JSONObject(fork_info_json.get(0));
             repo.setNum_forks((int) fork_jsonObj.get("forks_count"));

@@ -98,7 +98,7 @@ public class InsertCommitFromPR {
         ArrayList<String> pr_commit_map = new ArrayList<>();
 
         HashSet<String> commits_existinDB = io.getExistCommits_inCommit(projectID);
-        String update_commit_query = " INSERT INTO fork.Commit  (commitSHA,loginID,author_name,email, projectID, data_update_at,created_at)" +
+        String update_commit_query = " INSERT INTO fork.Commit  (SHA,loginID,author_name,email, projectID, data_update_at,created_at)" +
                 "VALUES  (?,?,?,?,?,?,?)";
 
         String updatePR = "UPDATE fork.Pull_Request SET num_commit = ? WHERE pull_request_ID = ? AND projectID = ?";
@@ -184,7 +184,7 @@ public class InsertCommitFromPR {
     public void insertMap_Commits_PR(ArrayList<String> pr_commit_map, int projectID) {
 
         IO_Process io = new IO_Process();
-        String update_pr_commit_query = " INSERT INTO fork.PR_Commit_map (commit_uuid,projectID,pull_request_id) VALUES (?,?,?)";
+        String update_pr_commit_query = " INSERT INTO fork.PR_Commit_map (sha,projectID,pull_request_id) VALUES (?,?,?)";
 
         HashSet<String> commitSet = new HashSet<>();
         for (String map : pr_commit_map) {
@@ -192,8 +192,6 @@ public class InsertCommitFromPR {
             String sha = arr[1];
             commitSet.add(sha);
         }
-        HashMap<String, String> sha_to_id = io.getCommitIdMap(commitSet);
-        System.out.println(sha_to_id.size() + " sha to id maps");
 
         System.out.println("insert pr commit map..., calculating existing maps...");
         HashSet<String> commits_exist_PRC = io.getExistCommits_inPRCommitMap(projectID);
@@ -209,18 +207,8 @@ public class InsertCommitFromPR {
                 /** put commit into commit_TABLE**/
                 String sha = arr[1];
                 if (!commits_exist_PRC.contains(sha + "," + pr_id)) {
-                    //commitsha_id,
-                    String commitID = sha_to_id.get(sha);
-                    if(commitID!=null) {
-                        if (commitID.trim().equals("")) {
-                            System.out.println("project id " + projectID + " commit is empty : " + sha);
-                            io.writeTofile(projectID + "," + sha + "\n", output_dir + "commitNotINDB.txt");
-                            continue;
-                        }
-                    }else{
-                        System.out.println(sha +" id is null");
-                    }
-                    preparedStmt_2.setString(1, commitID);
+
+                    preparedStmt_2.setString(1, sha);
                     // projectID,
                     preparedStmt_2.setInt(2, projectID);
                     // pull_request_id

@@ -2,13 +2,16 @@ import javax.swing.plaf.synth.SynthDesktopIconUI;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 
 public class script_tmp {
     static String user, pwd, myUrl;
     static String current_OS = System.getProperty("os.name").toLowerCase();
     static String github_api_repo = "https://api.github.com/repos/";
     static String github_url = "https://github.com/";
-    String current_dir = System.getProperty("user.dir");
+    static String current_dir = System.getProperty("user.dir");
     static String working_dir, pr_dir, output_dir, clone_dir;
     static int batchSize = 5000;
 
@@ -29,7 +32,78 @@ public class script_tmp {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        updateLoginID();
+//        updateLoginID();
+
+//        checkProjectName();
+
+//        checkAnalyzedGraph();
+        checkDupRepo();
+
+
+    }
+
+    private static void checkDupRepo() {
+        IO_Process io = new IO_Process();
+        HashSet<String> all_repo = new HashSet<>();
+        HashSet<String> analyzed_repo = new HashSet<>();
+        try {
+            all_repo.addAll(Arrays.asList(io.readResult(current_dir + "/input/graph_result_repoList.txt").split("\n")));
+            analyzed_repo.addAll(Arrays.asList(io.readResult(current_dir + "/input/f89.txt").split("\n")));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (String repo : all_repo) {
+            if (analyzed_repo.contains(repo.replace("/", "."))) {
+                sb.append(repo + "\n");
+            }
+        }
+        io.writeTofile(sb.toString(), output_dir + "/analyzed_graph.txt");
+    }
+
+    private static void checkAnalyzedGraph() {
+        IO_Process io = new IO_Process();
+        HashSet<String> all_repo = new HashSet<>();
+        HashSet<String> analyzed_repo = new HashSet<>();
+        try {
+            all_repo.addAll(Arrays.asList(io.readResult(current_dir + "/input/graph_result_repoList.txt").split("\n")));
+            analyzed_repo.addAll(Arrays.asList(io.readResult(current_dir + "/input/f89.txt").split("\n")));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (String repo : all_repo) {
+            if (!analyzed_repo.contains(repo.replace("/", "."))) {
+                sb.append(repo + "\n");
+            }
+        }
+        io.writeTofile(sb.toString(), output_dir + "/todo_graph.txt");
+    }
+
+    private static void checkProjectName() {
+        String current_dir = System.getProperty("user.dir");
+        HashSet<String> repoSet = new HashSet<>();
+        StringBuilder sb = new StringBuilder();
+        try {
+            List<String> repos = Arrays.asList(new IO_Process().readResult(current_dir + "/input/subjectProject.txt").split("\n"));
+            for (String r : repos) {
+                for (String r1 : repos) {
+                    if (r1.contains(r) & !r1.equals(r)) {
+                        repoSet.add(r);
+                    }
+                }
+            }
+            for (String rr : repoSet) {
+                sb.append(rr + "\n");
+            }
+            new IO_Process().rewriteFile(sb.toString(), output_dir + "comment_redo.txt");
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void updateLoginID() {
@@ -63,7 +137,7 @@ public class script_tmp {
             for (String line : repoList) {
                 String[] arr = line.split(",");
 
-                if (arr.length < 3 || (arr[2].contains("/") || arr[2].equals("")||arr[2].equals("null"))) {
+                if (arr.length < 3 || (arr[2].contains("/") || arr[2].equals("") || arr[2].equals("null"))) {
                     System.out.println("login id: " + line);
                     String repoid = arr[1];
                     String loginid = arr[0].split("/")[0];

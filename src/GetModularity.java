@@ -72,8 +72,9 @@ public class GetModularity {
                 io.writeTofile(projectURL + "\n", output_dir + "clone_miss.txt");
                 System.out.println(projectURL + " clone does not exist !");
                 io.cloneRepo("",projectURL);
-                continue;
-            } else {
+
+            }
+
                 System.out.println(projectURL + " clone exist, start to calculate modularity...");
 
                 String cmd_getFirstCommit = "git rev-list --max-parents=0 HEAD --pretty=\"%ar\"";
@@ -87,12 +88,16 @@ public class GetModularity {
                         System.out.println(line);
                         int currentResult = Integer.parseInt(line.split("years")[0].trim());
                         firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
+                    }else if(line.contains("year")){
+                        System.out.println(line);
+                        int currentResult = Integer.parseInt(line.split("year")[0].trim());
+                        firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
                     }
                 }
                 System.out.println("pre firstCommitCreatedAt = " + firstCommitCreatedAt);
 
 //                if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
-                if (firstCommitCreatedAt > 5) firstCommitCreatedAt = 5;
+                if (firstCommitCreatedAt > 10) firstCommitCreatedAt = 10;
 
                 System.out.println("after firstCommitCreatedAt = " + firstCommitCreatedAt);
 
@@ -107,7 +112,7 @@ public class GetModularity {
                         threshold += 20;
                     }
                 }
-            }
+
         }
     }
 
@@ -129,10 +134,10 @@ public class GetModularity {
         String outputFileName = projectURL.replace("/", "~") + "_" + threshold + "_" + within_year + "_year_" + fileScope;
         String outputPath = historyDirPath + outputFileName + ".txt";
         File output = new File(outputPath);
-        if (output.exists()) {
-            System.out.println("result exist: " + outputFileName);
-            return;
-        }
+//        if (output.exists()) {
+//            System.out.println("result exist: " + outputFileName);
+//            return;
+//        }
 
 
         /**  get all the branches **/
@@ -165,7 +170,7 @@ public class GetModularity {
                         String status = arr[0];
                         String fileName = arr[1];
                         if (status.equals("A") || status.equals("M")) {
-                            if ((filterOutStopFile && !isStopFile(fileName)) || !filterOutStopFile) {
+                            if ((filterOutStopFile && !io.isStopFile(fileName)) || !filterOutStopFile) {
                                 commit_fileSet.add(fileName);
                             }
                             allFileSet.addAll(commit_fileSet);
@@ -237,8 +242,6 @@ public class GetModularity {
                 } else if (co_changedFiles.size() == 1) {
                     support_matrix[index_a][index_a] += 1;
                 }
-            }else{
-                System.out.println();
             }
 
         }
@@ -284,14 +287,7 @@ public class GetModularity {
     }
 
 
-    private boolean isStopFile(String fileName) {
-        for (String file : stopFileSet) {
-            if (fileName.toLowerCase().contains(file)) {
-                return true;
-            }
-        }
-        return false;
-    }
+
 
 
 }

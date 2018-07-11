@@ -50,55 +50,61 @@ public class InsertCommit_graphBasedResult {
     static public void main(String[] args) {
         InsertCommit_graphBasedResult acc = new InsertCommit_graphBasedResult();
         IO_Process io = new IO_Process();
-        String[] repoList = {};
         io.rewriteFile("", resultDirPath + "File_history.csv");
 
         /** get repo list **/
         String current_dir = System.getProperty("user.dir");
+        String[] repoList = {};
         try {
             repoList = io.readResult(current_dir + "/input/graph_result_repoList.txt").split("\n");
-
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         JgitUtility jg = new JgitUtility();
         for (String repoUrl : repoList) {
-
-            String[] forkListInfo = new String[0];
-            try {
-                String forkListInfoString = io.readResult(resultDirPath + repoUrl.replace("/", ".") + "_graph_result_allFork.csv");
-                if (forkListInfoString.contains("0,0,0,0,[],[],[],[]")) {
-                    io.writeTofile(repoUrl + "\n", output_dir + "graph_redo.txt");
-                    continue;
+//            String graph_result_csv = resultDirPath + repoUrl.replace("/", ".") + "_graph_result.csv";
+            String graph_result_csv = resultDirPath + repoUrl.replace("/", ".") + "_graph_result_allFork.csv";
+            if (new File(graph_result_csv).exists()) {
+                System.out.println("analyze " + repoUrl);
+                String[] forkListInfo = new String[0];
+                //todo check empty graph csv
+                try {
+                    String forkListInfoString = io.readResult(graph_result_csv);
+                    forkListInfo = forkListInfoString.split("\n");
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-                forkListInfo = forkListInfoString.split("\n");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
 
-            HashMap<String, HashMap<String, List<String>>> forkOwnCode = getForkOwnCode(forkListInfo);
+                HashMap<String, HashMap<String, List<String>>> forkOwnCode = getForkOwnCode(forkListInfo);
+                HashSet<String> project_forks = new HashSet<>();
 
-            HashSet<String> project_forks = new HashSet<>();
-            try {
-                project_forks.addAll(Arrays.asList(io.readResult(output_dir + "result/" + repoUrl + "/ActiveForklist.txt").split("\n")));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            jg.cloneRepo_cmd(project_forks, repoUrl, true);
+                //todo: join forkList and forkListInfo ;
+                List<List<String>> forkList = io.readCSV(graph_result_csv);
+                for (int s = 1; s < forkList.size(); s++) {
+                    project_forks.add(forkList.get(s).get(0));
+                }
 
-            for (int i = 1; i < forkListInfo.length; i++) {
-                String forkINFO = forkListInfo[i];
-                String forkurl = forkINFO.split(",")[0];
+                System.out.println("start to clone " + project_forks.size() + " forks...");
+                jg.cloneRepo_cmd(project_forks, repoUrl, true);
 
-                System.out.println("insert commit...of repo " + forkurl);
-                acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl);
-            }
+                for (int i = 1; i < forkList.size(); i++) {
+                    List<String> forkINFO = forkList.get(i);
+                    String forkurl = forkINFO.get(0);
 
-            try {
-                io.deleteDir(new File(clone_dir + repoUrl));
-            } catch (IOException e) {
-                e.printStackTrace();
+                    System.out.println("insert commit...of repo " + forkurl);
+                    //todo check the logic
+                    acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl);
+                }
+
+                try {
+                    io.deleteDir(new File(clone_dir + repoUrl));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println(repoUrl + " not exist ");
+                io.writeTofile(repoUrl + "\n", output_dir + "miss_graph.txt");
             }
         }
     }
@@ -112,29 +118,31 @@ public class InsertCommit_graphBasedResult {
      */
 
 
-    //    private void insertCommitFromGraphResult(String repoUrl, HashMap<String, HashMap<String, List<String>>> forkOwnCode, String forkurl, ArrayList<String> branchList) {
     private void insertCommitFromGraphResult(String repoUrl, HashMap<String, HashMap<String, List<String>>> forkOwnCode, String forkurl) {
         IO_Process io = new IO_Process();
         HashMap<String, List<String>> onlyF_map = forkOwnCode.get("onlyF");
         HashMap<String, List<String>> F2U_map = forkOwnCode.get("F2U");
         int onlyf_boolean, f2u_boolean;
-        int repoID = io.getRepoId(forkurl);
         int projectID = io.getRepoId(repoUrl);
+        int repoID = io.getRepoId(forkurl);
 
-        String update_commit_query = " INSERT INTO fork.Commit (commitSHA, projectID, loginID, email, author_name, num_changedFiles, data_update_at, only_f, f2u,created_at,commit_repo_id) " +
-                "  SELECT *" +
-                "  FROM (SELECT" +
-                "          ? AS a,? AS b, ? AS c, ? AS d, ? AS e,? AS f, ? AS g ,? AS x, ? AS y,? AS createat,? AS commitrepoid) AS tmp" +
-                "  WHERE NOT EXISTS(" +
-                "      SELECT commitSHA" +
-                "      FROM fork.Commit AS cc" +
-                "      WHERE cc.commitSHA = ?" +
-                "  )" +
-                "  LIMIT 1";
-        int count = 0;
+        if (repoID == -1) {
+            boolean isFork = true;
+            repoID = io.insertFork(forkurl, isFork, projectID, projectID);
+        }
+
+        HashSet<String> commits_existinDB = io.getExistCommits_inCommit(projectID);
+
+        String insert_commit_query = " INSERT INTO fork.Commit (SHA, projectID, loginID, email, author_name, num_changedFiles, data_update_at, only_f, f2u,created_at,commit_repo_id) " +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+        String update_commit_query = " UPDATE fork.Commit SET  only_f=?, f2u = ?,commit_repo_id= ? WHERE SHA = ?";
+        int count_insert = 0;
+        int count_update = 0;
         try (
                 Connection conn = DriverManager.getConnection(myUrl, user, "shuruiz");
-                PreparedStatement preparedStmt_insert = conn.prepareStatement(update_commit_query);) {
+                PreparedStatement preparedStmt_insert = conn.prepareStatement(insert_commit_query);
+                Connection conn1 = DriverManager.getConnection(myUrl, user, "shuruiz");
+                PreparedStatement preparedStmt_update = conn1.prepareStatement(update_commit_query);) {
             conn.setAutoCommit(false);
 
             /** Get contribution code : onlyF and F2U  **/
@@ -153,30 +161,30 @@ public class InsertCommit_graphBasedResult {
                 }
 
 
+                HashSet<String> addedCommit = new HashSet<>();
                 for (String sha : codeChangeCommits) {
-                    String[] commitInfo = io.getCommitInfoFromCMD(sha, repoUrl);
-                    System.out.println(sha+" : size of commit info"+commitInfo.length);
-                    String author_fullName = commitInfo[0];
-                    String email = commitInfo[1];
-                    String created_at = commitInfo[2];
+                    if (!commits_existinDB.contains(sha)) {
+                        String[] commitInfo = io.getCommitInfoFromCMD(sha, repoUrl);
+                        System.out.println(sha + " : size of commit info " + commitInfo.length + " of project " + projectID);
+                        String author_fullName = commitInfo[0];
+                        String email = commitInfo[1];
+                        String created_at = commitInfo[2];
 
 
-                    ArrayList<String> changedfiles = io.getCommitFromCMD(sha, repoUrl);
+                        ArrayList<String> changedfiles = io.getCommitFromCMD(sha, repoUrl);
 
-                    if (changedfiles == null) {
-                        io.writeTofile(sha + "," + repoUrl + "\n", output_dir + "lostCommit.txt");
-                        continue;
-                    } else if (changedfiles.get(0).trim().equals("")) {
-                        io.writeTofile(sha + "," + repoUrl + "\n", output_dir + "noCommit.txt");
-                        continue;
-                    }
+                        if (changedfiles == null) {
+                            io.writeTofile(sha + "," + repoUrl + "\n", output_dir + "lostCommit.txt");
+                            continue;
+                        } else if (changedfiles.get(0).trim().equals("")) {
+                            io.writeTofile(sha + "," + repoUrl + "\n", output_dir + "noCommit.txt");
+                            continue;
+                        }
 
-                    if (changedfiles.size() < 100) {
-                        String commitid = io.getCommitID(sha);
-                        if (commitid.equals("")) {
+                        if (changedfiles.size() < 100) {
                             //(commitSHA,
                             preparedStmt_insert.setString(1, sha);
-
+                            addedCommit.add(sha);
                             // projectID,
                             preparedStmt_insert.setInt(2, projectID);
                             // loginID,
@@ -202,22 +210,47 @@ public class InsertCommit_graphBasedResult {
 
                             preparedStmt_insert.setInt(11, repoID);
                             //SHA
-                            preparedStmt_insert.setString(12, sha);
+//                                preparedStmt_insert.setString(12, sha);
                             preparedStmt_insert.addBatch();
-                            System.out.print("add 1 commit ...count " + count + "\n");
+                            System.out.println("add 1 commit ...count " + count_insert + "\n");
 
-                            if (++count % batchSize == 0) {
+                            if (++count_insert % batchSize == 0) {
                                 io.executeQuery(preparedStmt_insert);
                                 conn.commit();
+                                commits_existinDB.addAll(addedCommit);
+                                addedCommit = new HashSet<>();
                             }
+                        }
+                    } else {
+                        System.out.println(sha + " exists. onlyF : " + onlyf_boolean + " F2U: " + f2u_boolean);
+                        // SHA, only_f, f2u,commit_repo_id
+
+                        preparedStmt_update.setInt(1, onlyf_boolean);
+                        preparedStmt_update.setInt(2, f2u_boolean);
+                        preparedStmt_update.setInt(3, repoID);
+                        preparedStmt_update.setString(4, sha);
+                        preparedStmt_update.addBatch();
+
+                        if (++count_update % batchSize == 0) {
+                            io.executeQuery(preparedStmt_update);
+                            conn.commit();
                         }
                     }
                 }
-                if (count > 0) {
-                    System.out.println("count " + count);
+                if (count_insert > 0) {
+                    System.out.println("count insert " + count_insert);
                     io.executeQuery(preparedStmt_insert);
                     conn.commit();
+                    commits_existinDB.addAll(addedCommit);
+                    addedCommit = new HashSet<>();
                 }
+                if (count_update > 0) {
+                    System.out.println("count update " + count_update);
+                    io.executeQuery(preparedStmt_update);
+                    conn.commit();
+                }
+
+                codeChangeCommits = new HashSet<>();
             }
 
         } catch (SQLException e) {
@@ -271,7 +304,7 @@ public class InsertCommit_graphBasedResult {
                 System.out.println("analyzing " + type + " commits...");
                 String insert_changedFile_query = " UPDATE commit" +
                         " SET num_changedFiles = ?, authorName = ?, email = ?, data_update_at = ?, only_f = ?, f2u = ? " +
-                        " WHERE commitSHA =?";
+                        " WHERE SHA =?";
                 preparedStmt_update = conn.prepareStatement(insert_changedFile_query);
 
                 start = System.nanoTime();
@@ -284,19 +317,16 @@ public class InsertCommit_graphBasedResult {
                         List<DiffEntry> diffs = io.getCommitDiff(commit, repo);
 
                         if (diffs.size() < 100) {
-                            String commitid = io.getCommitID(sha);
-                            if (!commitid.equals("")) {
-                                System.out.println("updating existing commit ... ");
-                                preparedStmt_update.setInt(1, diffs.size());
-                                preparedStmt_update.setString(2, author_fullName);
-                                preparedStmt_update.setString(3, email);
-                                preparedStmt_update.setString(4, String.valueOf(now));
-                                preparedStmt_update.setInt(5, onlyf_boolean);
-                                preparedStmt_update.setInt(6, f2u_boolean);
-                                preparedStmt_update.setString(7, sha);
-                                preparedStmt_update.addBatch();
+                            System.out.println("updating existing commit ... ");
+                            preparedStmt_update.setInt(1, diffs.size());
+                            preparedStmt_update.setString(2, author_fullName);
+                            preparedStmt_update.setString(3, email);
+                            preparedStmt_update.setString(4, String.valueOf(now));
+                            preparedStmt_update.setInt(5, onlyf_boolean);
+                            preparedStmt_update.setInt(6, f2u_boolean);
+                            preparedStmt_update.setString(7, sha);
+                            preparedStmt_update.addBatch();
 
-                            }
                         }
                     }
 
@@ -319,7 +349,13 @@ public class InsertCommit_graphBasedResult {
         }
     }
 
-
+    /**
+     * This function remove redundant commits from the F2U or onlyU result.
+     *
+     * @param forkListInfo
+     * @param type
+     * @return
+     */
     private static HashMap<String, List<String>> removeRedundantCommits(String[] forkListInfo, String type) {
         HashSet<String> codeChangeCommits_all = new HashSet<>();
         HashSet<String> redundantCommit = new HashSet<>();
@@ -329,28 +365,16 @@ public class InsertCommit_graphBasedResult {
         for (int i = 1; i < forkListInfo.length; i++) {
             String forkINFO = forkListInfo[i];
             String forkurl = forkINFO.split(",")[0];
-            String repoCloneDir = clone_dir + forkurl + "/";
             /** Get contribution code : onlyF and F2U  **/
             String[] columns = forkINFO.split(",");
             ArrayList<String> commits;
-//            HashSet<String> commitsFromPr = new HashSet<>();
             if (type.equals("onlyF")) {
-
                 commits = new ArrayList<>(Arrays.asList(io.removeBrackets(columns[6]).split("/ ")));
             } else {
                 commits = new ArrayList<>(Arrays.asList(io.removeBrackets(columns[8]).split("/ ")));
-//                System.out.println("Get .. commit belong to PR  into F2U... repo:" + forkurl);
-//                commitsFromPr = getPRcommits(forkurl);
-//                System.out.println("commit belong to PR" + commitsFromPr.size());
-
             }
             commits.removeAll(redundantCommit);
             commits.remove("");
-//            System.out.println("commit from Graph" + commits.size());
-//            if (type.equals("F2U")) {
-//                commits.addAll(commitsFromPr);
-//            }
-//            System.out.println("ALL commits" + commits.size());
 
             for (String commit : commits) {
                 if (codeChangeCommits_all.contains(commit)) {

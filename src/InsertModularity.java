@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 public class InsertModularity {
     static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath;
@@ -35,76 +36,88 @@ public class InsertModularity {
     public static void main(String[] args) {
         new InsertModularity();
         IO_Process io = new IO_Process();
+        List<String> mod_left_repos = io.getRepoList("mod_left.txt");
 
-        //projectID,filterout_stopFile,threshold_num_files_per_commit,num_latest_year
-        HashSet<String> existingModResult = getExistMod();
+        for (String repo : mod_left_repos) {
+            //projectID,filterout_stopFile,threshold_num_files_per_commit,num_latest_year
+            HashSet<String> existingModResult = getExistMod();
 
-        String insertIssueQuery = "INSERT INTO fork.Modularity(projectID, filterout_stopFile, num_latest_year, threshold_num_files_per_commit,modularity,num_commits_total,num_file_total) " +
-                "VALUES (?,?,?,?,?,?,?)";
+            String insertIssueQuery = "INSERT INTO fork.Modularity(projectID, filterout_stopFile, num_latest_year, threshold_num_files_per_commit,modularity,num_commits_total,num_file_total) " +
+                    "VALUES (?,?,?,?,?,?,?)";
 
 
-        try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
-             PreparedStatement preparedStmt_1 = conn1.prepareStatement(insertIssueQuery);) {
-            conn1.setAutoCommit(false);
-            final int[] count = {0};
-            Files.newDirectoryStream(Paths.get(historyDirPath), path -> path.toFile().isFile())
-                    .forEach(file -> {
+            try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
+                 PreparedStatement preparedStmt_1 = conn1.prepareStatement(insertIssueQuery);) {
+                conn1.setAutoCommit(false);
+                final int[] count = {0};
+                Files.newDirectoryStream(Paths.get(historyDirPath), path -> path.toFile().isFile())
+                        .forEach(file -> {
 
-                                if (file.getFileName().toString().endsWith(".txt")) {
-                                    System.out.println(file.getFileName().toString());
-                                    String[] modResult = {};
-                                    try {
-                                        modResult = io.readResult(String.valueOf(file.toAbsolutePath())).split("\n")[0].split(",");
-                                    } catch (IOException e) {
-                                        e.printStackTrace();
-                                    }
-                                    String repoURL = modResult[0];
-                                    int projectID = io.getRepoId(repoURL);
-                                    System.out.println("project id:" + projectID);
-
-                                    String[] arr = file.getFileName().toString().split("_");
-                                    boolean filterout_stopFile = arr[arr.length - 1].contains("noStopFile") ? true : false;
-                                    int filter = filterout_stopFile ? 1 : 0;
-                                    String year = arr[arr.length - 3];
-                                    String threshold = arr[arr.length - 4];
-
-                                    //projectID,filterout_stopFile,threshold_num_files_per_commit,num_latest_year
-                                    if (!existingModResult.contains(projectID + "," + filter + "," + threshold + "," + year)) {
-                                        float mod = Float.parseFloat(modResult[1]);
-                                        int num_commit = Integer.parseInt(modResult[2]);
-                                        int num_file = Integer.parseInt(modResult[3].trim());
-                                        try {
-                                            preparedStmt_1.setInt(1, projectID);
-                                            preparedStmt_1.setBoolean(2, filterout_stopFile);
-                                            preparedStmt_1.setInt(3, Integer.parseInt(year));
-                                            preparedStmt_1.setInt(4, Integer.parseInt(threshold));
-                                            preparedStmt_1.setFloat(5, mod);
-                                            preparedStmt_1.setInt(6, num_commit);
-                                            preparedStmt_1.setInt(7, num_file);
-                                            preparedStmt_1.addBatch();
-                                            System.out.println("count " + count[0]);
-                                            if (++count[0] % batchSize == 0) {
-                                                io.executeQuery(preparedStmt_1);
-                                                conn1.commit();
+                                    String fileName = file.getFileName().toString();
+                                    if (fileName.endsWith(".txt")) {
+                                        if (fileName.contains(repo.replace("/", "~"))) {
+                                            System.out.println(fileName);
+                                            String[] modResult = {};
+                                            try {
+                                                modResult = io.readResult(String.valueOf(file.toAbsolutePath())).split("\n")[0].split(",");
+                                            } catch (IOException e) {
+                                                e.printStackTrace();
                                             }
-                                        } catch (SQLException e) {
-                                            e.printStackTrace();
+                                            String repoURL = modResult[0];
+                                            int projectID = io.getRepoId(repoURL);
+                                            System.out.println("project id:" + projectID+" url "+repoURL);
+
+                                            String[] arr = fileName.split("_");
+                                            boolean filterout_stopFile = arr[arr.length - 1].contains("noStopFile") ? true : false;
+                                            int filter = filterout_stopFile ? 1 : 0;
+                                            String year = arr[arr.length - 3];
+                                            String threshold = arr[arr.length - 4];
+
+
+                                            //projectID,filterout_stopFile,threshold_num_files_per_commit,num_latest_year
+                                            if (!existingModResult.contains(projectID + "," + filter + "," + threshold + "," + year)) {
+                                                if (!modResult[1].equals("NaN")) {
+                                                    float mod = Float.parseFloat(modResult[1]);
+                                                    System.out.println(" mod " + mod);
+                                                    int num_commit = Integer.parseInt(modResult[2]);
+                                                    int num_file = Integer.parseInt(modResult[3].trim());
+                                                    try {
+                                                        preparedStmt_1.setInt(1, projectID);
+                                                        preparedStmt_1.setBoolean(2, filterout_stopFile);
+                                                        preparedStmt_1.setInt(3, Integer.parseInt(year));
+                                                        preparedStmt_1.setInt(4, Integer.parseInt(threshold));
+                                                        preparedStmt_1.setFloat(5, mod);
+                                                        preparedStmt_1.setInt(6, num_commit);
+                                                        preparedStmt_1.setInt(7, num_file);
+                                                        preparedStmt_1.addBatch();
+                                                        System.out.println("count " + count[0]);
+                                                        if (++count[0] % batchSize == 0) {
+                                                            io.executeQuery(preparedStmt_1);
+                                                            conn1.commit();
+                                                        }
+                                                    } catch (SQLException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                } else {
+                                                   io.writeTofile(fileName+"\n",output_dir+"/Mod_NaN.txt");
+                                                }
+                                            } else {
+                                                System.out.println(repoURL + " exist in database :)");
+                                                return;
+                                            }
                                         }
-                                    } else {
-                                        System.out.println(repoURL + " exist in database :)");
-                                        return;
                                     }
                                 }
-                            }
-                    );
-            System.out.println("inserting modularity");
-            io.executeQuery(preparedStmt_1);
-            conn1.commit();
-            System.out.println("done ");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+                        );
+                System.out.println("inserting modularity");
+                io.executeQuery(preparedStmt_1);
+                conn1.commit();
+                System.out.println("done ");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

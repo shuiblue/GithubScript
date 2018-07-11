@@ -42,7 +42,7 @@ public class AnalyzeCommitChangedFile {
         String insert_changedFile_query = " INSERT INTO fork.commit_changedFiles (" +
                 "added_file  , added_files_num  , modified_file, modify_files_num , renamed_file ,renamed_files_num ,copied_file ," +
                 " copied_files_num, deleted_file , deleted_files_num , " +
-                "add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commit_uuid,readme_loc, about_config)" +
+                "add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commit_SHA,readme_loc, about_config)" +
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 //                "  SELECT *" +
 //                "  FROM (SELECT" +
@@ -57,6 +57,10 @@ public class AnalyzeCommitChangedFile {
 //                "  LIMIT 1";
 
         int projectID = io.getRepoId(projectURL);
+        if (projectID == -1) {
+            io.writeTofile(projectURL + "\n", output_dir + "repoNull.txt");
+            return;
+        }
         HashSet<String> analyzedCommits = io.commitChangedFileExists(projectID);
         System.out.println(analyzedCommits.size() + " commmit has been analyzed for changed File...");
 
@@ -67,11 +71,11 @@ public class AnalyzeCommitChangedFile {
         HashSet<String> commitCandidates = new HashSet<>();
         for (String line : commitSet) {
             String[] arr = line.split(",");
-            //SELECT  commitSHA,  id ,loginID
-            if (arr.length == 3) {
-                String commitshaID = arr[1];
-                if (!analyzedCommits.contains(commitshaID)) {
-                    String fork_loginID = arr[2];
+            //  commitSHA,   ,loginID
+            if (arr.length == 2) {
+                String sha = arr[0];
+                if (!analyzedCommits.contains(sha)) {
+                    String fork_loginID = arr[1];
                     if (forkLoginIDSet.contains(fork_loginID)) continue;
                     forkLoginIDSet.add(fork_loginID);
                     String forkURL = io.getForkURL_by_loginID(fork_loginID, projectID);
@@ -79,8 +83,8 @@ public class AnalyzeCommitChangedFile {
                         project_forks.add(forkURL);
                         commitCandidates.add(line);
                         System.out.println(line);
-                    }else{
-                        System.out.println(projectID+","+fork_loginID +"  no forkurl?!");
+                    } else {
+                        System.out.println(projectID + "," + fork_loginID + "  no forkurl?!");
                     }
                 }
             }
@@ -90,7 +94,6 @@ public class AnalyzeCommitChangedFile {
         if (project_forks.size() > 0) {
             new JgitUtility().cloneRepo_cmd(project_forks, projectURL, false);
             int count = 0;
-//Connection c = DriverManager.getConnection("jdbc:mysql://host:3306/db?useServerPrepStmts=false&rewriteBatchedStatements=true", "username", "password");
             try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
                  PreparedStatement preparedStmt = conn.prepareStatement(insert_changedFile_query);) {
                 conn.setAutoCommit(false);
@@ -99,7 +102,7 @@ public class AnalyzeCommitChangedFile {
                 for (String commit : commitCandidates) {
                     //SELECT  commitSHA,  id ,loginID
                     String[] commit_info = commit.split(",");
-                    String commitshaID = commit_info[1];
+//                    String commitshaID = commit_info[1];
                     String sha = commit_info[0];
                     //repo.repoURL, c.commitSHA, c.id
                     if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
@@ -177,7 +180,7 @@ public class AnalyzeCommitChangedFile {
                                 preparedStmt.setInt(13, deleteLine);
                                 preparedStmt.setString(14, String.valueOf(now));
                                 preparedStmt.setInt(15, index_d);
-                                preparedStmt.setString(16, commitshaID);
+                                preparedStmt.setString(16, sha);
                                 preparedStmt.setInt(17, readmeAdded);
                                 preparedStmt.setInt(18, aboutConfig);
                                 preparedStmt.addBatch();
@@ -227,31 +230,29 @@ public class AnalyzeCommitChangedFile {
             e.printStackTrace();
         }
         System.out.println(repos.length + " projects ");
-        int count = 0;
 
-        count = 0;
         for (String projectURL : repos) {
             int projectID = io.getRepoId(projectURL);
-            System.out.println("get all commit for " + projectURL);
+            System.out.println("get all PR for " + projectURL);
 
-            List<String> allcommits = io.getCommitList(projectID);
-            Collections.shuffle(allcommits);
+            List<String> PRs_merged = io.getPRList_merged(projectID, true);
+            System.out.println(PRs_merged.size() + " merged PR for " + projectURL);
 
-            System.out.println("Sampling 1/3 of all commits..");
-            HashSet<String> sampledCommits = new HashSet<>();
+            List<String> PRs_rejected = io.getPRList_merged(projectID, false);
+            System.out.println(PRs_rejected.size() + " reject PR for " + projectURL);
 
-            for (String s : allcommits) {
-                if (sampledCommits.size() > (allcommits.size() / 3)) {
-                    break;
-                }
-                sampledCommits.add(s);
-            }
-            if (allcommits.size() > 0) {
-                System.out.println("start to analyze " + sampledCommits.size() + " commits...");
-                accf.analyzeChangedFile(sampledCommits, projectURL);
-            } else {
-                count++;
-            }
+            HashSet<String> sampled_PRs = new HashSet<>();
+
+            System.out.println("sampling prs for project " + projectURL);
+            sampled_PRs.addAll(samplePRs(PRs_merged));
+            sampled_PRs.addAll(samplePRs(PRs_rejected));
+
+            if (sampled_PRs.size() == 0) continue;
+
+            HashSet<String> sampledCommits = io.getCommitsByPRlist(sampled_PRs, projectID);
+            System.out.println("start to analyze " + sampledCommits.size() + " commits...");
+            accf.analyzeChangedFile(sampledCommits, projectURL);
+
             try {
                 System.out.println("\ndelete " + projectURL);
                 io.deleteDir(new File(clone_dir + projectURL));
@@ -261,6 +262,23 @@ public class AnalyzeCommitChangedFile {
         }
 
 
+    }
+
+    public static HashSet<String> samplePRs(List<String> prs) {
+        HashSet<String> sampledCommits = new HashSet<>();
+
+        if (prs.size() > 50) {
+            Collections.shuffle(prs);
+            for (String s : prs) {
+                if (sampledCommits.size() > (prs.size() / 10)) {
+                    break;
+                }
+                sampledCommits.add(s);
+            }
+        } else {
+            sampledCommits.addAll(prs);
+        }
+        return sampledCommits;
     }
 
 
