@@ -57,16 +57,16 @@ public class GetMergedPR {
     public static void main(String[] args) {
         GetMergedPR getMergedPR = new GetMergedPR();
 
-        getMergedPR.containsMergedSHA("sdfsdf integrated #23223 ...","");
-        getMergedPR.containsMergedSHA(" sdfsdfs s23423", "");
-        getMergedPR.containsMergedSHA("werwer e30da6974e830f00998320348c09e8b09a68165b", "");
-        getMergedPR.containsMergedSHA("e30da6974e830f00998320348c09e8b09a68165b", "");
+//        getMergedPR.containsMergedSHA("sdfsdf integrated #23223 ...","");
+//        getMergedPR.containsMergedSHA(" sdfsdfs s23423", "");
+//        getMergedPR.containsMergedSHA("werwer e30da6974e830f00998320348c09e8b09a68165b", "");
+//        getMergedPR.containsMergedSHA("e30da6974e830f00998320348c09e8b09a68165b", "");
 
-//        HashMap<Integer, HashSet<Integer>> rejectedPR = getMergedPR.getClosedPR();
-//
-//        rejectedPR.forEach((projectID, prSet) -> {
-//            getMergedPR.checkPRstatus(projectID, prSet);
-//        });
+        HashMap<Integer, HashSet<Integer>> rejectedPR = getMergedPR.getClosedPR();
+
+        rejectedPR.forEach((projectID, prSet) -> {
+            getMergedPR.checkPRstatus(projectID, prSet);
+        });
 
 
     }
@@ -157,12 +157,12 @@ public class GetMergedPR {
         Pattern pattern = Pattern.compile("\\b[0-9a-f]{5,40}\\b");
         Matcher matcher = pattern.matcher(body);
         if (matcher.find()) {
-                String sha = matcher.group(0);
-                System.out.println(sha);
-                if (commitIsMerged(sha, projectURL)) {
-                    System.out.println("is a merged commit");
-                    return true;
-                }
+            String sha = matcher.group(0);
+            System.out.println(sha);
+            if (commitIsMerged(sha, projectURL)) {
+                System.out.println("is a merged commit");
+                return true;
+            }
 
         }
         return false;
