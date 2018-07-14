@@ -2,10 +2,7 @@ import org.apache.solr.common.util.Hash;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -44,17 +41,6 @@ public class AnalyzeCommitChangedFile {
                 " copied_files_num, deleted_file , deleted_files_num , " +
                 "add_loc , modify_loc , delete_loc , data_update_at ,index_changedFile,commit_SHA,readme_loc, about_config)" +
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-//                "  SELECT *" +
-//                "  FROM (SELECT" +
-//                "          ? AS a1,? AS a2,? AS a3,? AS a4,?  AS a30,? AS a5,? AS a6," +
-//                "? AS a7,? AS a8,? AS a9,? AS a10,? AS a11,? AS a12,? AS a13,? AS a14,? AS a15,? AS a16 ,? AS a17) AS tmp" +
-//                "  WHERE NOT EXISTS(" +
-//                "      SELECT *" +
-//                "      FROM fork.commit_changedFiles AS cc" +
-//                "      WHERE cc.commit_uuid = ?" +
-//                "      AND cc.index_changedFile = ?" +
-//                "  )" +
-//                "  LIMIT 1";
 
         int projectID = io.getRepoId(projectURL);
         if (projectID == -1) {
@@ -247,9 +233,16 @@ public class AnalyzeCommitChangedFile {
             sampled_PRs.addAll(samplePRs(PRs_merged));
             sampled_PRs.addAll(samplePRs(PRs_rejected));
 
+
             if (sampled_PRs.size() == 0) continue;
 
             HashSet<String> sampledCommits = io.getCommitsByPRlist(sampled_PRs, projectID);
+
+            HashSet<String> commit_from_graph = getCommitFromGraphResult(projectID);
+            System.out.println("sampled commits from pr :" + sampledCommits.size());
+            sampledCommits.addAll(commit_from_graph);
+            System.out.println("added commits from graph :" + sampledCommits.size());
+
             System.out.println("start to analyze " + sampledCommits.size() + " commits...");
             accf.analyzeChangedFile(sampledCommits, projectURL);
 
@@ -264,13 +257,38 @@ public class AnalyzeCommitChangedFile {
 
     }
 
+    private static HashSet<String> getCommitFromGraphResult(int projectID) {
+        String query = "SELECT SHA, commit_repo_id\n" +
+                "from fork.Commit\n" +
+                "WHERE projectID = " + projectID +
+                " and (f2u IS NOT NULL OR  only_f IS NOT NULL) ";
+
+
+        HashSet<String> allcommits = new HashSet<>();
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                allcommits.add(rs.getString(1) + "," + rs.getString(2));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
+        return allcommits;
+
+    }
+
     public static HashSet<String> samplePRs(List<String> prs) {
         HashSet<String> sampledCommits = new HashSet<>();
 
-        if (prs.size() > 50) {
+        if (prs.size() > 100) {
             Collections.shuffle(prs);
             for (String s : prs) {
-                if (sampledCommits.size() > (prs.size() / 10)) {
+                if (sampledCommits.size() > (prs.size() / 5)) {
                     break;
                 }
                 sampledCommits.add(s);

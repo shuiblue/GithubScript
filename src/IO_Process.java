@@ -623,19 +623,7 @@ public class IO_Process {
     }
 
 
-    public int issueExist(int projectID) {
-        String commitshaID_QUERY = "SELECT 1 from ISSUE WHERE projectID = \'" + projectID + "\' LIMIT 1";
-        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
-             PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
-            ResultSet rs = preparedStmt.executeQuery();
-            if (rs.next()) {               // Position the cursor                  4
-                return rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
+
 
     public int checkModularityExist(int projectID) {
         String commitshaID_QUERY = "SELECT 1 from fork.Modularity WHERE projectID = \'" + projectID + "\' LIMIT 1";
@@ -1306,7 +1294,7 @@ public class IO_Process {
 
     /**
      * get existing commits in database
-     * */
+     */
     public HashSet<String> getExistCommits_inCommit(int projectID) {
         HashSet<String> commits = new HashSet<>();
         String query_getExistCommit = "SELECT DISTINCT SHA\n" +
@@ -1496,7 +1484,7 @@ public class IO_Process {
         List<String> allPRS = new ArrayList<>();
         String mergedCommitID_query = "SELECT  pull_request_id\n" +
                 "FROM Pull_Request\n" +
-                "WHERE  projectID = " + projectID + " AND  merged = \'" + merged + "\';";
+                "WHERE  projectID = " + projectID + " AND  merge_allType =" + merged + ";";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(mergedCommitID_query);
         ) {
@@ -1514,7 +1502,7 @@ public class IO_Process {
     }
 
 
-    public HashSet<String> getCommitsByPRlist(HashSet<String> sampled_PRs, int projectID) {
+    public HashSet<String> getCommitsByPRlist(HashSet<String> sampled_PRs, int projectID){
 
         HashSet<String> allcommits = new HashSet<>();
         String commitList_query = "SELECT\n" +
@@ -1531,11 +1519,11 @@ public class IO_Process {
             ResultSet rs = preparedStmt.executeQuery();
             while (rs.next()) {
                 allcommits.add(rs.getString(1) + "," + rs.getString(2));
-                System.out.print(allcommits.size() + " commits added ,");
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        System.out.println("sampled " + allcommits.size() + " commits in pr");
         return allcommits;
 
 

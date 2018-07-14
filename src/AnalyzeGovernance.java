@@ -45,16 +45,191 @@ public class AnalyzeGovernance {
         /** parsing event, cross reference **/
 //        System.out.println(" analyzing event of pr and issue");
 //        parsingPR_ISSUE_Line_byEvent();
+
+        parsingIssueParticipants_PR_map();
 ////
 //
         /** analyzing pre-processed csv file **/
-        System.out.println(" insert cross ref to database");
-        insertCrossRefToDatabase();
+//        System.out.println(" insert cross ref to database");
+//        insertCrossRefToDatabase();
 //        System.out.println(" insert user and issue map");
 //        insertRepo_issue_user_map()[;
 //        System.out.println("insert label of pr and issue");
 //        insertIssue_label();
 
+//        parsingPR_ISSUE_Line_byEvent(128, "wbond/package_control_channel");
+
+
+    }
+
+    public static HashMap<Integer, HashSet<Integer>> getForkListFromRepoTable() {
+        HashMap<Integer, HashSet<Integer>> repo_issue_map = new HashMap<>();
+        String query = "SELECT  projectID,  issue1_id\n" +
+                "FROM crossReference\n" +
+                "  WHERE issue1_type = 'issue' AND issue2_type = 'pr' AND projectID=ref_projectID\n" +
+                "GROUP BY 1,2 \n" +
+                "ORDER BY issue1_id";
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)) {
+
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                int repoID = rs.getInt(1);
+                int issueID = rs.getInt(2);
+                HashSet<Integer> issueSet = new HashSet<>();
+                if (repo_issue_map.get(repoID) != null) {
+                    issueSet = repo_issue_map.get(repoID);
+                }
+                issueSet.add(issueID);
+                repo_issue_map.put(repoID, issueSet);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return repo_issue_map;
+
+    }
+
+    private static void parsingIssueParticipants_PR_map() {
+        IO_Process io = new IO_Process();
+        HashMap<Integer, HashSet<Integer>> repo_issue_map = getForkListFromRepoTable();
+        final int[] count = {0};
+        String query = "UPDATE fork.crossReference\n" +
+                "SET pre_communication = ?, same_owner = ?\n" +
+                "WHERE projectID = ? AND issue1_id = ? AND issue1_type = 'issue'\n" +
+                "      AND issue2_id = ? AND issue2_type = 'pr'\n" +
+                "      AND ref_projectID = ?";
+        try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt_1 = conn1.prepareStatement(query);) {
+            conn1.setAutoCommit(false);
+
+
+            repo_issue_map.forEach((projectID, issueSet) -> {
+                String projectURL = io.getRepoUrlByID(projectID);
+                System.out.println(projectURL);
+                StringBuilder sb = new StringBuilder();
+                for (Integer issue_id : issueSet) {
+                    String file_name = passResult_dir + "get_issue_timeline." + projectURL.replace("/", ".") + "_" + issue_id + ".csv";
+                    if (new File(file_name).exists()) {
+                        String issue_owner = getIssueOwner(projectID, issue_id);
+                        HashSet<String> participants = new HashSet<>();
+                        if (!issue_owner.equals("")) {
+                            participants.add(issue_owner);
+                        }
+                        HashMap<Integer, Boolean> PR_participant = new HashMap<>();
+                        System.out.println(projectURL + " issue " + issue_id);
+                        List<List<String>> rows = io.readCSV(file_name);
+                        for (List<String> r : rows) {
+                            if (!r.get(0).equals("") & r.size() > 9) {
+                                String event_type = r.get(9);
+                                String event_author = r.get(2);
+                                if (event_type.equals("cross-referenced")) {
+                                    int prID = Integer.parseInt(r.get(10));
+                                    String ref_type = r.get(14);
+                                    if (ref_type.equals("pull_request")) {
+                                        String author = getPRAuthor(projectID, prID);
+
+                                        if (!author.equals("")) {
+                                            if (!event_author.equals(author)) {
+                                                System.out.println("event author: " + event_author + " pr " + prID + " author :" + author);
+                                            }
+                                            if (participants.contains(author)) {
+                                                System.out.println(author + " communicate before pr");
+                                                boolean pre_com = true;
+                                                boolean sameOwner = false;
+                                                if (author.equals(issue_owner)) {
+                                                    System.out.println("same owner " + author);
+                                                    sameOwner = true;
+                                                }
+                                                sb.append(projectID + "," + issue_id + "," + prID + "," + pre_com + "," + sameOwner + "\n");
+                                                try {
+                                                    preparedStmt_1.setBoolean(1, pre_com);
+                                                    preparedStmt_1.setBoolean(2, sameOwner);
+                                                    preparedStmt_1.setInt(3, projectID);
+                                                    preparedStmt_1.setInt(4, issue_id);
+                                                    preparedStmt_1.setInt(5, prID);
+                                                    preparedStmt_1.setInt(6, projectID);
+                                                    preparedStmt_1.addBatch();
+                                                } catch (SQLException e) {
+                                                    e.printStackTrace();
+                                                }
+
+
+                                                if (++count[0] % 100 == 0) {
+                                                    io.executeQuery(preparedStmt_1);
+                                                    try {
+                                                        conn1.commit();
+                                                    } catch (SQLException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                    System.out.println(count + " count ");
+                                                    io.writeTofile(sb.toString(), output_dir + "pre_comm.txt");
+                                                    sb = new StringBuilder();
+                                                }
+
+                                                PR_participant.put(prID, true);
+                                            }
+                                            participants.add(author);
+                                        }
+                                    }
+                                    participants.add(event_author);
+
+                                }
+                            }
+                        }
+                    } else {
+                        io.writeTofile(file_name + "\n", output_dir + "miss_issueTimeline.txt");
+                    }
+                }
+
+                io.writeTofile(sb.toString(), output_dir + "pre_comm.txt");
+            });
+
+            io.executeQuery(preparedStmt_1);
+            conn1.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private static String getPRAuthor(Integer projectID, int prID) {
+        String query = "SELECT authorName\n" +
+                "FROM Pull_Request\n" +
+                "WHERE projectID = " + projectID + " AND pull_request_ID= " + prID;
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
+
+    }
+
+    private static String getIssueOwner(Integer projectID, Integer issue_id) {
+
+        String query = "SELECT author\n" +
+                "FROM ISSUE\n" +
+                "WHERE projectID = " + projectID + " AND issue_id= " + issue_id;
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
 
     }
 
@@ -97,7 +272,6 @@ public class AnalyzeGovernance {
                                             for (List<String> r : rows) {
                                                 if (!r.get(0).equals("") & r.size() > 9) {
                                                     String event_type = r.get(9);
-
 
 
                                                     if (event_type.equals("labeled")) {
@@ -189,6 +363,63 @@ public class AnalyzeGovernance {
 
     }
 
+    private static void parsingPR_ISSUE_Line_byEvent(int projectID, String repo) {
+        IO_Process io = new IO_Process();
+        System.out.println(repo);
+        try {
+            Files.newDirectoryStream(Paths.get(passResult_dir), path -> path.toFile().isFile())
+                    .forEach(file -> {
+                                StringBuilder sb_crossRef = new StringBuilder();
+                                StringBuilder sb_issue_label = new StringBuilder();
+
+                                String file_name = file.getFileName().toString();
+                                if ((file_name.startsWith("get_issue_timeline") || file_name.startsWith("get_pr_timeline"))
+                                        && file_name.contains(repo.replace("/", "."))) {
+                                    System.out.println(file_name);
+
+                                    String[] arr = file_name.split("_");
+                                    int issue_id = Integer.parseInt(arr[arr.length - 1].replace(".csv", ""));
+                                    String issue_type = file_name.contains("get_issue_timeline") ? "issue" : "pr";
+                                    HashSet<String> labels = new HashSet<>();
+
+                                    List<List<String>> rows = io.readCSV(file.toFile());
+                                    HashSet<String> loginID_set = new HashSet<>();
+                                    for (List<String> r : rows) {
+                                        if (!r.get(0).equals("") & r.size() > 9) {
+                                            String event_type = r.get(9);
+
+
+                                            if (event_type.equals("labeled")) {
+                                                labels.add(r.get(11));
+                                            } else if (event_type.equals("cross-referenced")) {
+
+                                                int id = Integer.parseInt(r.get(10));
+                                                String ref_projectURL = r.get(12);
+
+                                                String state = r.get(13);
+                                                String ref_type = r.get(14);
+                                                sb_crossRef.append(projectID + "," + issue_id + "," + issue_type + "," + ref_projectURL + "," + id + "," + ref_type + "," + state + "\n");
+                                            }
+                                        }
+                                    }
+
+
+                                    if (labels.size() > 0) {
+                                        sb_issue_label.append(projectID + "," + issue_id + "," + issue_type + ",[");
+                                        labels.forEach(p -> sb_issue_label.append(p + "/"));
+                                        sb_issue_label.append("]\n");
+                                    }
+                                    System.out.println(" issue " + issue_id + " of " + repo + " write to file");
+                                    io.writeTofile(sb_crossRef.toString(), PR_ISSUE_dir + projectID + "_crossRef.csv");
+                                    io.writeTofile(sb_issue_label.toString(), PR_ISSUE_dir + projectID + "_issue_label.csv");
+                                }
+                            }
+                    );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private static void insertIssue_label() {
         IO_Process io = new IO_Process();
@@ -231,6 +462,7 @@ public class AnalyzeGovernance {
                         preparedStmt_issue.setString(1, label);
                         preparedStmt_issue.setInt(3, projectID);
                         preparedStmt_issue.setInt(2, issue_id);
+
 
                         System.out.println("inserting issue label issue_id " + issue_id + " project ID " + projectID);
                         System.out.println("affect " + preparedStmt_issue.executeUpdate() + "rows");
@@ -351,7 +583,7 @@ public class AnalyzeGovernance {
                         preparedStmt_1.setString(5, association);
 
                         preparedStmt_1.addBatch();
-                        System.out.println("count " + count + " ... issue " + issue1_id + " user " + login_ID + " repo "+projectID);
+                        System.out.println("count " + count + " ... issue " + issue1_id + " user " + login_ID + " repo " + projectID);
                         if (++count % batchSize == 0) {
                             io.executeQuery(preparedStmt_1);
                             System.out.println("insert 100 query for project " + projectID);
@@ -378,7 +610,7 @@ public class AnalyzeGovernance {
         IO_Process io = new IO_Process();
         List<String> passedLines = new ArrayList<>();
         try {
-            passedLines = Arrays.asList(io.readResult(PR_ISSUE_dir + "313_343_passed_crossRef.txt").split("\n"));
+            passedLines = Arrays.asList(io.readResult(PR_ISSUE_dir + "128_passed_crossRef.txt").split("\n"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -388,7 +620,7 @@ public class AnalyzeGovernance {
         StringBuilder sb = new StringBuilder();
         int count = 0;
         try {
-            lines = io.readResult(PR_ISSUE_dir + "313_343_crossRef.csv").split("\n");
+            lines = io.readResult(PR_ISSUE_dir + "128_crossRef.csv").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -444,7 +676,7 @@ public class AnalyzeGovernance {
                         io.executeQuery(preparedStmt_1);
                         System.out.println("insert 100 query for project " + projectID);
                         conn1.commit();
-                        io.writeTofile(sb.toString(), PR_ISSUE_dir + "313_343_passed_crossRef.txt");
+                        io.writeTofile(sb.toString(), PR_ISSUE_dir + "128_passed_crossRef.txt");
                         sb = new StringBuilder();
                     }
                 } else {
@@ -453,7 +685,7 @@ public class AnalyzeGovernance {
             }
             io.executeQuery(preparedStmt_1);
             conn1.commit();
-            io.writeTofile(sb.toString(), PR_ISSUE_dir + "313_343_passed_crossRef.txt");
+            io.writeTofile(sb.toString(), PR_ISSUE_dir + "128_passed_crossRef.txt");
         } catch (SQLException e) {
             e.printStackTrace();
         }

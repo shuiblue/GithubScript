@@ -54,17 +54,18 @@ public class InsertCommit_graphBasedResult {
 
         /** get repo list **/
         String current_dir = System.getProperty("user.dir");
-        String[] repoList = {};
+        HashSet<String> repoList = new HashSet<>();
         try {
-            repoList = io.readResult(current_dir + "/input/graph_result_repoList.txt").split("\n");
+            repoList.addAll(Arrays.asList(io.readResult(current_dir + "/input/graph_result_repoList.txt").split("\n")));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         JgitUtility jg = new JgitUtility();
+        System.out.println(repoList.size() + " repos ");
         for (String repoUrl : repoList) {
-//            String graph_result_csv = resultDirPath + repoUrl.replace("/", ".") + "_graph_result.csv";
-            String graph_result_csv = resultDirPath + repoUrl.replace("/", ".") + "_graph_result_allFork.csv";
+            String graph_result_csv = resultDirPath + repoUrl.replace("/", ".") + "_graph_result.csv";
+//            String graph_result_csv = resultDirPath + repoUrl.replace("/", ".") + "_graph_result_allFork.csv";
             if (new File(graph_result_csv).exists()) {
                 System.out.println("analyze " + repoUrl);
                 String[] forkListInfo = new String[0];
@@ -91,10 +92,12 @@ public class InsertCommit_graphBasedResult {
                 for (int i = 1; i < forkList.size(); i++) {
                     List<String> forkINFO = forkList.get(i);
                     String forkurl = forkINFO.get(0);
-
-                    System.out.println("insert commit...of repo " + forkurl);
-                    //todo check the logic
-                    acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl);
+                    int projectID = io.getRepoId(repoUrl);
+                    if(projectID!=-1) {
+                        System.out.println("insert commit...of repo " + forkurl);
+                        //todo check the logic
+                        acc.insertCommitFromGraphResult(repoUrl, forkOwnCode, forkurl);
+                    }
                 }
 
                 try {

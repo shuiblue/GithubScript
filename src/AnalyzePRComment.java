@@ -4,6 +4,8 @@ import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AnalyzePRComment {
 
@@ -59,46 +61,48 @@ public class AnalyzePRComment {
                         .forEach(file -> {
                                     String file_name = file.getFileName().toString();
                                     if ((file_name.startsWith("get_pr_comments"))
-                                            && file_name.contains(projectUrl.replace("/", ".")+"_")) {
+                                            && file_name.contains(projectUrl.replace("/", ".") + "_")) {
                                         System.out.println(file_name);
                                         String[] arr = file_name.split("_");
-                                        int pr_id = Integer.parseInt(arr[arr.length - 1].replace(".csv", "").replace(".0",""));
+                                        int pr_id = Integer.parseInt(arr[arr.length - 1].replace(".csv", "").replace(".0", ""));
                                         ArrayList<String> dup_comments = new ArrayList<>();
                                         List<List<String>> rows = io.readCSV(file.toFile());
                                         boolean isDup = false;
                                         for (List<String> r : rows) {
                                             if (!r.get(0).equals("")) {
                                                 String comment = r.get(2);
-                                                if (comment.toLowerCase().contains("duplicate ") || comment.toLowerCase().contains("dup ")) {
-                                                    isDup = true;
-                                                    dup_comments.add(comment);
-                                                    System.out.println(comment);
-                                                }
+                                                isDup = isDuplicatePR(comment.toLowerCase());
+                                                dup_comments.add(comment);
+                                                System.out.println(comment);
+
                                             }
                                         }
-                                        try {
-                                            preparedStmt.setBoolean(1, isDup);
-                                            preparedStmt.setString(2, dup_comments.toString());
-                                            preparedStmt.setInt(3, projectID);
-                                            preparedStmt.setInt(4, pr_id);
-                                            preparedStmt.addBatch();
-                                            System.out.println("add comments of pr  " + pr_id + "from repo" + projectUrl);
+                                        if (dup_comments.size() > 0) {
+                                            try {
+                                                preparedStmt.setBoolean(1, isDup);
+                                                preparedStmt.setString(2, io.normalize(dup_comments.toString()));
+                                                preparedStmt.setInt(3, projectID);
+                                                preparedStmt.setInt(4, pr_id);
+                                                preparedStmt.addBatch();
+                                                System.out.println("add comments of pr  " + pr_id + "from repo" + projectUrl);
 
-                                            int batchSize = 100;
-                                            if (++count[0] % batchSize == 0) {
-                                                System.out.println("update  " + count[0] + "comments from repo" + projectUrl);
-                                                io.executeQuery(preparedStmt);
-                                                conn.commit();
+                                                int batchSize = 100;
+                                                if (++count[0] % batchSize == 0) {
+                                                    System.out.println("update  " + count[0] + "comments from repo" + projectUrl);
+                                                    io.executeQuery(preparedStmt);
+                                                    conn.commit();
+                                                }
+                                            } catch (SQLException e) {
+                                                e.printStackTrace();
                                             }
-                                        } catch (SQLException e) {
-                                            e.printStackTrace();
                                         }
                                     }
                                 }
                         );
-
-                io.executeQuery(preparedStmt);
-                conn.commit();
+                if (count[0]  > 0) {
+                    io.executeQuery(preparedStmt);
+                    conn.commit();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (SQLException e) {
@@ -108,6 +112,29 @@ public class AnalyzePRComment {
 
         }
 
+    }
+
+    private static boolean isDuplicatePR(String comment) {
+
+        Pattern p1 = Pattern.compile("(?:clos(?:e|ed|ing)|dup(?:licated?)?|super(?:c|s)ee?ded?|obsoleted?|replaced?|redundant|better (?:implementation|solution)" +
+                "|solved|fixed|done|going|merged|addressed|already|land(?:ed|ing)) (?:by|in|with|as|of|in favor of|at|since|via):? " +
+                "(?:#|https://github.com/(?:[\\w\\.-]+/)+(pull|issues))?");
+        Matcher m1 = p1.matcher(comment);
+        if (m1.find()) {
+            return true;
+        }
+        Pattern p2 = Pattern.compile("(?:#|https://github.com/(?:[\\w\\.-]+/)+(pull|issues))?" +
+                "(?:better (?:implementation|solution)|dup(?:licate)?|(?:fixe(?:d|s)|obsolete(?:d|s)|replace(?:d|s))')");
+        Matcher m2 = p2.matcher(comment);
+        if (m2.find()) {
+            return true;
+        }
+        Pattern p3 = Pattern.compile("dup(?:licated?)?:? (?:#|https://github.com/(?:[\\w\\.-]+/)+(pull|issues))?");
+        Matcher m3 = p3.matcher(comment);
+        if (m3.find()) {
+            return true;
+        }
+        return false;
     }
 
 }

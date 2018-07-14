@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 public class GetMergedPR {
     static String working_dir, pr_dir, output_dir, clone_dir, current_dir, PR_ISSUE_dir, timeline_dir;
     static String myUrl, user, pwd;
-    final int batchSize = 100;
 
     GetMergedPR() {
         IO_Process io = new IO_Process();
@@ -34,7 +33,8 @@ public class GetMergedPR {
         HashMap<Integer, HashSet<Integer>> rejectedPR = new HashMap<>();
         String query = "SELECT projectID, pull_request_ID\n" +
                 "FROM fork.Pull_Request\n" +
-                "WHERE merged = 'false' AND closed = 'true';";
+                "WHERE merged = 'false' AND closed = 'true' AND " +
+                "(Pull_Request.merge_2 IS NULL OR Pull_Request.merge_3 IS NULL OR Pull_Request.merge_4 IS NULL);";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(query)) {
             ResultSet rs = preparedStmt.executeQuery();
@@ -56,13 +56,9 @@ public class GetMergedPR {
 
     public static void main(String[] args) {
         GetMergedPR getMergedPR = new GetMergedPR();
-
-//        getMergedPR.containsMergedSHA("sdfsdf integrated #23223 ...","");
-//        getMergedPR.containsMergedSHA(" sdfsdfs s23423", "");
-//        getMergedPR.containsMergedSHA("werwer e30da6974e830f00998320348c09e8b09a68165b", "");
-//        getMergedPR.containsMergedSHA("e30da6974e830f00998320348c09e8b09a68165b", "");
-
         HashMap<Integer, HashSet<Integer>> rejectedPR = getMergedPR.getClosedPR();
+
+
 
         rejectedPR.forEach((projectID, prSet) -> {
             getMergedPR.checkPRstatus(projectID, prSet);
@@ -75,68 +71,100 @@ public class GetMergedPR {
         IO_Process io = new IO_Process();
         String projectURL = io.getRepoUrlByID(projectID);
 
+        boolean cloneExist = false;
+
         HashSet<String> prSet_status = new HashSet<>();
         for (int pr : prSet) {
-            String timeline_file = timeline_dir + "get_pr_timeline." + projectURL.replace("/", ".") + "_" + pr + ".csv";
-            if (new File(timeline_file).exists()) {
 
-                List<List<String>> timeline = io.readCSV(timeline_file);
-                for (int i = 1; i < timeline.size(); i++) {
-                    List<String> line = timeline.get(i);
-                    String event = line.get(9);
-                    String sha = line.get(6);
-                    int close_event_index = 0;
-
-                    /**  type 2:  check pr is closed by a commit*/
-                    if (event.equals("closed")) {
-                        close_event_index = i;
-                        if (!sha.equals("")) {
-                            prSet_status.add(pr + ",merged-2");
-                            System.out.println(projectURL + ", pr# " + pr + " is merged-2");
-                            io.writeTofile(projectURL + "," + pr + ",merged-2" + "\n", output_dir + "update_mergedPR.txt");
-
-                            continue;
-                        }
+                String timeline_file = timeline_dir + "get_pr_timeline." + projectURL.replace("/", ".") + "_" + pr + ".csv";
+                if (new File(timeline_file).exists()) {
+                    if (!cloneExist) {
+                        io.cloneRepo("", projectURL);
+                        cloneExist=true;
                     }
+                    List<List<String>> timeline = io.readCSV(timeline_file);
+                    int close_event_index = 0;
+                    for (int i = 1; i < timeline.size(); i++) {
+                        List<String> line = timeline.get(i);
+                        if (line.size() > 9) {
+                            String event = line.get(9);
+                            String sha = line.get(6);
 
 
-                    /**   type 4: check the comment before closing the pr contains keywords*/
-                    if (close_event_index > 1) {
-                        List<String> line_before_closing = timeline.get(close_event_index - 1);
-                        String event_before_closing_pr = line.get(9);
-                        if (event_before_closing_pr.equals("commented")) {
-                            String body = line_before_closing.get(5);
-                            if (checkPRIsMerged(body)) {
-                                prSet_status.add(pr + ",merged-4");
-                                System.out.println(projectURL + ", pr# " + pr + " is merged-4");
-                                io.writeTofile(projectURL + "," + pr + ",merged-4" + "\n", output_dir + "update_mergedPR.txt");
-
-                                continue;
+                            /**  type 2:  check pr is closed by a commit*/
+                            if (event.equals("closed")) {
+                                close_event_index = i;
+                                if (!sha.equals("")) {
+                                    prSet_status.add(pr + ",merged-2");
+                                    io.writeTofile(projectURL + "," + pr + ",merged-2" + "\n", output_dir + "update_mergedPR.txt");
+//                            System.out.println(projectURL + "," + pr + ",merged-2");
+                                    break;
+                                }
                             }
                         }
                     }
 
-
+                    /**   type 3: check the last 3 comment before closing the pr contains keywords and sha*/
+                    String comment = "";
+                    int count_comment = 0;
+                    boolean isMerge4 = false;
                     for (int s = close_event_index - 1; s > 0; s--) {
                         List<String> comment_candidate = timeline.get(s);
-                        int count_comment = 0;
-                        if (event.equals("commented") && count_comment < 3) {
-                            count_comment++;
-                            System.out.println("last " + count_comment + " comment");
-                            String body = comment_candidate.get(5);
+                        if (comment_candidate.size() > 9) {
+                            String event = comment_candidate.get(9);
+                            if (event.equals("commented")) {
+                                count_comment++;
+                                comment += comment_candidate.get(5);
+                                if (count_comment == 3) {
+                                    break;
+                                }
+                            }
 
-                            if (checkPRIsMerged(body) && containsMergedSHA(body, projectURL)) {
-                                prSet_status.add(pr + ",merged-3");
-                                System.out.println(projectURL + ", pr# " + pr + " is merged-3");
-                                io.writeTofile(projectURL + "," + pr + ",merged-3" + "\n", output_dir + "update_mergedPR.txt");
-                                continue;
+                            /**   type 4: check the comment before closing the pr contains keywords*/
+                            if (count_comment == 1) {
+                                if (checkPRIsMerged(comment)) {
+                                    prSet_status.add(pr + ",merged-4");
+//                            System.out.println(projectURL + ", pr# " + pr + " is merged-4");
+                                    io.writeTofile(projectURL + "," + pr + ",merged-4" + "\n", output_dir + "update_mergedPR.txt");
+                                    isMerge4 = true;
+                                    break;
+                                }
                             }
                         }
                     }
+
+
+                    /**   type 3: check the last 3 comment before closing the pr contains keywords and sha*/
+                    if (!isMerge4) {
+                        System.out.println(projectURL + ", " + pr + " Check type-3 merge:");
+                        boolean commentHasKeywords = checkPRIsMerged(comment);
+                        boolean shaMerged = false;
+                        if (commentHasKeywords) {
+                            System.out.println(" comment has keywords");
+                            shaMerged = containsMergedSHA(comment, projectURL);
+                            if (shaMerged) {
+                                System.out.println(" commit merged");
+                            } else {
+                                System.out.println(" SHA is not found/merged");
+                            }
+                        }
+                        if (!comment.equals("") && shaMerged) {
+                            prSet_status.add(pr + ",merged-3");
+                            System.out.println(projectURL + ", pr# " + pr + " is merged-3");
+                            io.writeTofile(projectURL + "," + pr + ",merged-3" + "\n", output_dir + "update_mergedPR.txt");
+                            break;
+                        }
+                        io.writeTofile(projectURL + "," + pr + " " + "\n", output_dir + "check_type3_mergedPR.txt");
+                    }
+                } else {
+                    io.writeTofile(projectURL + "," + pr + "\n", output_dir + "miss_timeline.txt");
                 }
-            } else {
-                io.writeTofile(projectURL + "," + pr + "\n", output_dir + "miss_timeline.txt");
-            }
+
+        }
+        try {
+            io.deleteDir(new File(clone_dir + projectURL));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
     }
@@ -144,6 +172,7 @@ public class GetMergedPR {
     private boolean checkPRIsMerged(String body) {
 //        Pattern pattern = Pattern.compile("(?:merg|appl|pull|push|integrat)(?:ing|i?ed)");
         Pattern pattern = Pattern.compile("\\b(merg|apply|appl|pull|push|integrat)(ing|i?ed)\\b");
+//        Pattern pattern = Pattern.compile("\\b(merg|apply|appl|pull|push|integrat|add)(ing|i?ed)\\b");
         Matcher matcher = pattern.matcher(body);
         if (matcher.find()) {
             String text = matcher.group(1);
@@ -157,23 +186,22 @@ public class GetMergedPR {
         Pattern pattern = Pattern.compile("\\b[0-9a-f]{5,40}\\b");
         Matcher matcher = pattern.matcher(body);
         if (matcher.find()) {
-            String sha = matcher.group(0);
-            System.out.println(sha);
+            String sha = matcher.group();
+            System.out.println("potential sha :" + sha);
             if (commitIsMerged(sha, projectURL)) {
                 System.out.println("is a merged commit");
                 return true;
             }
-
         }
+
         return false;
     }
 
     private boolean commitIsMerged(String sha, String projectURL) {
         IO_Process io = new IO_Process();
-        io.cloneRepo("", projectURL);
 
         String cloneForkCmd = "git cat-file -t " + sha;
-        if (io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/").equals("commit")) {
+        if (io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/").trim().equals("commit")) {
             return true;
         }
         return false;

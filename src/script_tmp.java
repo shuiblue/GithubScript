@@ -1,10 +1,7 @@
 import javax.swing.plaf.synth.SynthDesktopIconUI;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 public class script_tmp {
     static String user, pwd, myUrl;
@@ -37,8 +34,9 @@ public class script_tmp {
 //        checkProjectName();
 
 //        checkAnalyzedGraph();
-        checkDupRepo();
+//        checkDupRepo();
 
+        getRejectPR();
 
     }
 
@@ -159,6 +157,28 @@ public class script_tmp {
             e.printStackTrace();
         }
 
+
+    }
+
+    public static void getRejectPR() {
+
+        String query = "SELECT repo.repoURL,  pr.pull_request_ID\n" +
+                "FROM Pull_Request pr , repository repo \n" +
+                "WHERE pr.merge_allType = FALSE and repo.id = pr.projectID ;";
+
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                String url = rs.getString(1);
+                int prID = rs.getInt(2);
+                new IO_Process().writeTofile(url + "," + prID + "\n", output_dir + "rejectPR.txt");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
     }
 }

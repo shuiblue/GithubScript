@@ -248,7 +248,8 @@ public class GraphBasedAnalyzer {
         io.writeTofile(fork + "," + upstream + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
                         fork2Upstream.size() + "," + upstream2Fork.size() + "," +
                         onlyFork.toString().replace(",", "/") + "," +
-                        onlyUpstream.toString().replace(",", "/") + "," +
+//                        onlyUpstream.toString().replace(",", "/") +
+                        "," +
                         fork2Upstream.toString().replace(",", "/") + "," +
                         upstream2Fork.toString().replace(",", "/") + "\n"
                 , classifyCommit_file);
