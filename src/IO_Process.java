@@ -623,8 +623,6 @@ public class IO_Process {
     }
 
 
-
-
     public int checkModularityExist(int projectID) {
         String commitshaID_QUERY = "SELECT 1 from fork.Modularity WHERE projectID = \'" + projectID + "\' LIMIT 1";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
@@ -785,6 +783,11 @@ public class IO_Process {
     }
 
     public void cloneRepo(String forkUrl, String projectURL) {
+        if (!new File(clone_dir).exists()) {
+            new File(clone_dir).mkdirs();
+            System.out.println("clones file created");
+        }
+        System.out.println("cloning ...");
         String projectName = projectURL.split("/")[0];
         IO_Process io = new IO_Process();
         File upstreamFile = new File(clone_dir + projectURL + "/.git");
@@ -1143,6 +1146,27 @@ public class IO_Process {
     }
 
 
+    public String getIssueOwner(Integer projectID, Integer issue_id, String issue_or_pr) {
+
+        String query = "SELECT author\n" +
+                "FROM " + issue_or_pr + "\n" +
+                "WHERE projectID = " + projectID + " AND issue_id= " + issue_id;
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
+
+    }
+
+
     //    public void inserRepoToDB(GithubRepository repo) {
 //        System.out.println("get fork info: " + repo.getrepoUr);
 //        String query = "  INSERT INTO repository ( repoURL,loginID,repoName,isFork,UpstreamURL,belongToRepo,upstreamID,projectID," +
@@ -1385,7 +1409,7 @@ public class IO_Process {
     }
 
 
-    public List<String> getRepoList(String repoList_file) {
+    public List<String> getListFromFile(String repoList_file) {
         String[] repos = new String[0];
         try {
             repos = readResult(current_dir + "/input/" + repoList_file).split("\n");
@@ -1502,7 +1526,7 @@ public class IO_Process {
     }
 
 
-    public HashSet<String> getCommitsByPRlist(HashSet<String> sampled_PRs, int projectID){
+    public HashSet<String> getCommitsByPRlist(HashSet<String> sampled_PRs, int projectID) {
 
         HashSet<String> allcommits = new HashSet<>();
         String commitList_query = "SELECT\n" +

@@ -7,13 +7,13 @@ import java.util.List;
 
 public class AnalyzeEasiness {
 
-    static String working_dir, pr_dir, output_dir, clone_dir;
+    static String working_dir, pr_dir, output_dir, clone_dir, current_dir;
     static String myUrl, user, pwd;
     static int batchSize = 100;
 
     AnalyzeEasiness() {
         IO_Process io = new IO_Process();
-        String current_dir = System.getProperty("user.dir");
+        current_dir = System.getProperty("user.dir");
         try {
             String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
             working_dir = paramList[0];
@@ -34,19 +34,15 @@ public class AnalyzeEasiness {
 
         new AnalyzeEasiness();
         IO_Process io = new IO_Process();
-        String current_dir = System.getProperty("user.dir");
-        /*** insert repoList to repository table ***/
-        String[] repos = new String[0];
-        try {
-            repos = io.readResult(current_dir + "/input/easiness_repoList.txt").split("\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
+        /*** insert repoList to repository table ***/
+
+        List<String> repos = io.getListFromFile("easiness_repoList.txt");
 
         /*** insert pr info to  Pull_Request table***/
         for (String projectUrl : repos) {
             int projectID = io.getRepoId(projectUrl);
+            projectID = 70;
             System.out.println(projectUrl);
             String query = "SELECT\n" +
                     "  pr.pull_request_ID,\n" +
@@ -78,8 +74,10 @@ public class AnalyzeEasiness {
                 int count = 0;
 
                 for (String pr : pr_info) {
+                    if(!pr.startsWith("1,")){
+                        continue;
+                    }
                     System.out.println(pr);
-
                     String[] arr = pr.split(",");
                     int pr_id;
                     HashSet<String> added_files = new HashSet<>();
@@ -112,7 +110,7 @@ public class AnalyzeEasiness {
                     double easiness_filtered = 0.0;
                     if (added_size + changed_size > 0) {
 
-                        easiness = (double)added_size / (added_size + changed_size);
+                        easiness = (double) added_size / (added_size + changed_size);
 
                         List<String> filtered_added_file = io.removeStopFile(added_files);
                         int size_add_filter = filtered_added_file.size();
@@ -121,7 +119,7 @@ public class AnalyzeEasiness {
                         int size_change_filter = filtered_changed_file.size();
                         System.out.println("filtered add " + size_add_filter + " changed " + size_change_filter);
                         if (size_add_filter + size_change_filter > 0) {
-                            easiness_filtered =(double) size_add_filter / (size_add_filter + size_change_filter);
+                            easiness_filtered = (double) size_add_filter / (size_add_filter + size_change_filter);
                         }
                     }
 

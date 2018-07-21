@@ -49,7 +49,6 @@ public class InsertCommitFromPR {
         }
 
 
-
         /*** insert pr info to  Pull_Request table***/
         for (String projectUrl : repos) {
             int projectID = io.getRepoId(projectUrl);
@@ -102,6 +101,8 @@ public class InsertCommitFromPR {
                 "VALUES  (?,?,?,?,?,?,?)";
 
         String updatePR = "UPDATE fork.Pull_Request SET num_commit = ? WHERE pull_request_ID = ? AND projectID = ?";
+
+
         try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
              Connection conn3 = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt_updatePR = conn3.prepareStatement(updatePR);
@@ -131,7 +132,8 @@ public class InsertCommitFromPR {
 
                             String sha = line.get(8);
                             pr_commit_map.add(pr_id + "," + sha);
-                            if (!commits_existinDB.contains(sha)) {
+                            if (!commits_existinDB.contains(sha) ) {
+                                commits_existinDB.add(sha);
                                 //commitSHA
                                 preparedStmt_1.setString(1, sha);
                                 // loginID,
@@ -153,12 +155,7 @@ public class InsertCommitFromPR {
 
                                 if (++count % batchSize == 0) {
                                     System.out.println(count + " add batch to db... of repo " + projectUrl);
-                                    long start = System.nanoTime();
                                     io.executeQuery(preparedStmt_1);
-                                    long end = System.nanoTime();
-                                    long used = end - start;
-                                    System.out.println("insert 100 query :" + TimeUnit.NANOSECONDS.toMillis(used) + " ms");
-
                                     conn1.commit();
                                 }
                             }
@@ -192,6 +189,7 @@ public class InsertCommitFromPR {
             String sha = arr[1];
             commitSet.add(sha);
         }
+
 
         System.out.println("insert pr commit map..., calculating existing maps...");
         HashSet<String> commits_exist_PRC = io.getExistCommits_inPRCommitMap(projectID);

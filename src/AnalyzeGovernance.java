@@ -24,7 +24,8 @@ public class AnalyzeGovernance {
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
             clone_dir = output_dir + "clones/";
-            apiResult_dir = output_dir + "shurui_crossRef.cache/";
+//            apiResult_dir = output_dir + "shurui_crossRef.cache/";
+            apiResult_dir = output_dir + "shurui.cache/";
             passResult_dir = output_dir + "shurui_crossRef.cache_pass/";
             PR_ISSUE_dir = output_dir + "crossRef/";
             myUrl = paramList[1];
@@ -44,9 +45,9 @@ public class AnalyzeGovernance {
 
         /** parsing event, cross reference **/
 //        System.out.println(" analyzing event of pr and issue");
-//        parsingPR_ISSUE_Line_byEvent();
+        parsingPR_ISSUE_Line_byEvent();
 
-        parsingIssueParticipants_PR_map();
+//        parsingIssueParticipants_PR_map();
 ////
 //
         /** analyzing pre-processed csv file **/
@@ -62,7 +63,7 @@ public class AnalyzeGovernance {
 
     }
 
-    public static HashMap<Integer, HashSet<Integer>> getForkListFromRepoTable() {
+    public static HashMap<Integer, HashSet<Integer>> getRepoIssueMap() {
         HashMap<Integer, HashSet<Integer>> repo_issue_map = new HashMap<>();
         String query = "SELECT  projectID,  issue1_id\n" +
                 "FROM crossReference\n" +
@@ -93,7 +94,7 @@ public class AnalyzeGovernance {
 
     private static void parsingIssueParticipants_PR_map() {
         IO_Process io = new IO_Process();
-        HashMap<Integer, HashSet<Integer>> repo_issue_map = getForkListFromRepoTable();
+        HashMap<Integer, HashSet<Integer>> repo_issue_map = getRepoIssueMap();
         final int[] count = {0};
         String query = "UPDATE fork.crossReference\n" +
                 "SET pre_communication = ?, same_owner = ?\n" +
@@ -112,7 +113,7 @@ public class AnalyzeGovernance {
                 for (Integer issue_id : issueSet) {
                     String file_name = passResult_dir + "get_issue_timeline." + projectURL.replace("/", ".") + "_" + issue_id + ".csv";
                     if (new File(file_name).exists()) {
-                        String issue_owner = getIssueOwner(projectID, issue_id);
+                        String issue_owner = io.getIssueOwner(projectID, issue_id, "ISSUE");
                         HashSet<String> participants = new HashSet<>();
                         if (!issue_owner.equals("")) {
                             participants.add(issue_owner);
@@ -213,28 +214,9 @@ public class AnalyzeGovernance {
 
     }
 
-    private static String getIssueOwner(Integer projectID, Integer issue_id) {
-
-        String query = "SELECT author\n" +
-                "FROM ISSUE\n" +
-                "WHERE projectID = " + projectID + " AND issue_id= " + issue_id;
-
-        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
-             PreparedStatement preparedStmt = conn.prepareStatement(query);
-        ) {
-            ResultSet rs = preparedStmt.executeQuery();
-            if (rs.next()) {
-                return rs.getString(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return "";
-
-    }
 
     private static void parsingPR_ISSUE_Line_byEvent() {
-        List<String> repoList = new IO_Process().getRepoList("crossRef_repoList.txt");
+        List<String> repoList = new IO_Process().getListFromFile("crossRef_repoList.txt");
         IO_Process io = new IO_Process();
         List<String> passedFile = null;
         try {
@@ -249,6 +231,7 @@ public class AnalyzeGovernance {
             HashMap<String, String> use_map = new HashMap<>();
             try {
                 List<String> finalPassedFile = passedFile;
+                String finalRepo = repo;
                 Files.newDirectoryStream(Paths.get(apiResult_dir), path -> path.toFile().isFile())
                         .forEach(file -> {
                                     StringBuilder sb_crossRef = new StringBuilder();
@@ -258,7 +241,7 @@ public class AnalyzeGovernance {
                                     StringBuilder sb_passedFile = new StringBuilder();
                                     String file_name = file.getFileName().toString();
                                     if ((file_name.startsWith("get_issue_timeline") || file_name.startsWith("get_pr_timeline"))
-                                            && file_name.contains(repo.replace("/", "."))) {
+                                            && file_name.contains(finalRepo.replace("/", ".")+"_")) {
                                         System.out.println(file_name);
                                         if (!finalPassedFile.contains(file_name)) {
                                             sb_passedFile.append(file_name + "\n");
@@ -270,7 +253,7 @@ public class AnalyzeGovernance {
                                             List<List<String>> rows = io.readCSV(file.toFile());
                                             HashSet<String> loginID_set = new HashSet<>();
                                             for (List<String> r : rows) {
-                                                if (!r.get(0).equals("") & r.size() > 9) {
+                                                if (!r.get(0).equals("") & r.size() == 15) {
                                                     String event_type = r.get(9);
 
 
@@ -314,33 +297,42 @@ public class AnalyzeGovernance {
                                                         }
 
                                                     }
+                                                } else {
+                                                    System.out.println(file_name + " old file ");
+                                                    try {
+                                                        Files.deleteIfExists(file);
+                                                    } catch (IOException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                    break;
                                                 }
                                             }
+                                            if (loginID_set.size() > 0) {
 
-                                            for (String login_id : loginID_set) {
-                                                sb_issue_user.append(projectID + "," + issue_id + "," + issue_type + "," + login_id + "," + use_map.get(login_id) + "\n");
+                                                for (String login_id : loginID_set) {
+                                                    sb_issue_user.append(projectID + "," + issue_id + "," + issue_type + "," + login_id + "," + use_map.get(login_id) + "\n");
+                                                }
+
+                                                if (labels.size() > 0) {
+                                                    sb_issue_label.append(projectID + "," + issue_id + "," + issue_type + ",[");
+                                                    labels.forEach(p -> sb_issue_label.append(p + "/"));
+                                                    sb_issue_label.append("]\n");
+                                                }
+                                                System.out.println(" issue " + issue_id + " of " + finalRepo + " write to file");
+                                                io.writeTofile(sb_passedFile.toString(), PR_ISSUE_dir + "passedFile.txt");
+                                                io.writeTofile(sb_crossRef.toString(), PR_ISSUE_dir + "crossRef.csv");
+                                                io.writeTofile(sb_event.toString(), PR_ISSUE_dir + "eventList.csv");
+                                                io.writeTofile(sb_issue_label.toString(), PR_ISSUE_dir + "issue_label.csv");
+                                                io.writeTofile(sb_issue_user.toString(), PR_ISSUE_dir + "issue_pariticipants.csv");
+
+                                                System.out.println("move file " + file);
+                                                try {
+                                                    io.fileCopy(String.valueOf(file), file.toString().replace(apiResult_dir, passResult_dir));
+                                                    Files.deleteIfExists(file);
+                                                } catch (IOException e) {
+                                                    e.printStackTrace();
+                                                }
                                             }
-
-                                            if (labels.size() > 0) {
-                                                sb_issue_label.append(projectID + "," + issue_id + "," + issue_type + ",[");
-                                                labels.forEach(p -> sb_issue_label.append(p + "/"));
-                                                sb_issue_label.append("]\n");
-                                            }
-                                            System.out.println(" issue " + issue_id + " of " + repo + " write to file");
-                                            io.writeTofile(sb_passedFile.toString(), PR_ISSUE_dir + "passedFile.txt");
-                                            io.writeTofile(sb_crossRef.toString(), PR_ISSUE_dir + "crossRef.csv");
-                                            io.writeTofile(sb_event.toString(), PR_ISSUE_dir + "eventList.csv");
-                                            io.writeTofile(sb_issue_label.toString(), PR_ISSUE_dir + "issue_label.csv");
-                                            io.writeTofile(sb_issue_user.toString(), PR_ISSUE_dir + "issue_pariticipants.csv");
-
-                                            System.out.println("move file " + file);
-                                            try {
-                                                io.fileCopy(String.valueOf(file), file.toString().replace(apiResult_dir, passResult_dir));
-                                                Files.deleteIfExists(file);
-                                            } catch (IOException e) {
-                                                e.printStackTrace();
-                                            }
-
 
                                         } else {
                                             try {
