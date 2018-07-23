@@ -2,7 +2,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -11,7 +10,6 @@ public class InsertModularity {
     static String myUrl, user, pwd;
     static String myDriver = "com.mysql.jdbc.Driver";
     static int batchSize = 100;
-
 
     InsertModularity() {
         IO_Process io = new IO_Process();
@@ -22,7 +20,7 @@ public class InsertModularity {
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
             clone_dir = output_dir + "clones/";
-            historyDirPath = output_dir + "commitHistory/";
+            historyDirPath = output_dir + "comithis/";
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
@@ -156,8 +154,7 @@ public class InsertModularity {
         for (String repoURL : mod_left_repos) {
             System.out.println(repoURL);
 
-            String insertIssueQuery = "INSERT INTO fork.Final_modularity(projectID, `500Mod_allFile`,`500Mod_filterFile`,num_file_all,num_file_afterFilter,num_commit) " +
-                    "VALUES (?,?,?,?,?,?)";
+            String insertIssueQuery = "UPDATE  fork.Final_modularity SET `1000Mod_allFile` =?,`1000Mod_filterFile`=? WHERE projectID = ? ";
 
 
             try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
@@ -178,8 +175,8 @@ public class InsertModularity {
                     e.printStackTrace();
                 }
 
-                all_Mod_result = all_Mod_result[all_Mod_result.length-1].split(",");
-                filter_Mod_result = filter_Mod_result[filter_Mod_result.length-1].split(",");
+                all_Mod_result = all_Mod_result[all_Mod_result.length - 1].split(",");
+                filter_Mod_result = filter_Mod_result[filter_Mod_result.length - 1].split(",");
 
 
                 int projectID = io.getRepoId(repoURL);
@@ -209,12 +206,10 @@ public class InsertModularity {
 
                 num_file_afterFilter = Integer.parseInt(filter_Mod_result[3].trim());
                 try {
-                    preparedStmt_1.setInt(1, projectID);
-                    preparedStmt_1.setDouble(2, mod_all);
-                    preparedStmt_1.setDouble(3, mod_filter);
-                    preparedStmt_1.setInt(4, num_file_all);
-                    preparedStmt_1.setInt(5, num_file_afterFilter);
-                    preparedStmt_1.setDouble(6, num_commit);
+
+                    preparedStmt_1.setDouble(1, mod_all);
+                    preparedStmt_1.setDouble(2, mod_filter);
+                    preparedStmt_1.setInt(3, projectID);
                     preparedStmt_1.addBatch();
                     System.out.println("count " + count[0]);
                     if (++count[0] % batchSize == 0) {

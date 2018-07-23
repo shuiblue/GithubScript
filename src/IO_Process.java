@@ -28,14 +28,13 @@ import java.util.regex.Pattern;
  * Created by shuruiz on 10/19/17.
  */
 public class IO_Process {
-    static String current_OS = System.getProperty("os.name").toLowerCase();
     String token;
     String user, pwd, myUrl;
     static String github_api_repo = "https://api.github.com/repos/";
     static String github_url = "https://github.com/";
     String current_dir = System.getProperty("user.dir");
     static String working_dir, pr_dir, output_dir, clone_dir;
-    final int batchSize = 5000;
+    final int batchSize = 500;
     HashSet<String> stopFileSet = new HashSet<>();
     HashSet<String> sourceCodeSuffix = new HashSet<>();
 
@@ -389,6 +388,7 @@ public class IO_Process {
     public List<String> getCommitInBranch(String br, String after_Date, String project_cloneDir) {
         //todo git log -1 9b63430f349f7083d09d2db24d24908e1d277379 --pretty="%H" get author date
         String cmd_getCommit = "git log " + br + " --after=\"" + after_Date + "\" --pretty=\"%H\"";
+//        String cmd_getCommit = "git log --no-merges " + br + " --after=\"" + after_Date + "\" --pretty=\"%H\"";
         String commit_list = exeCmd(cmd_getCommit.split(" "), project_cloneDir);
         return Arrays.asList(commit_list.split("\n"));
     }

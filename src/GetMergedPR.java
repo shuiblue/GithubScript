@@ -19,7 +19,6 @@ public class GetMergedPR {
             clone_dir = output_dir + "clones/";
             PR_ISSUE_dir = output_dir + "crossRef/";
             timeline_dir = output_dir + "shurui_crossRef.cache_pass/";
-//            timeline_dir = output_dir + "shurui_crossRef.cache/";
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
@@ -34,7 +33,7 @@ public class GetMergedPR {
         HashMap<Integer, HashSet<Integer>> rejectedPR = new HashMap<>();
         String query = "SELECT projectID, pull_request_ID " +
                 "FROM fork.Pull_Request " +
-                "WHERE merge_allType = FALSE; ";
+                "WHERE merge_2Ref is null; ";
 //                "AND " +
 //                "(Pull_Request.merge_2 IS NULL OR Pull_Request.merge_3 IS NULL OR Pull_Request.merge_4 IS NULL);";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);

@@ -1,27 +1,17 @@
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
+
+
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.diff.*;
-import org.eclipse.jgit.internal.storage.file.FileRepository;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.patch.FileHeader;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.util.io.DisabledOutputStream;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.*;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class GetModularity {
     static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath, resultDirPath;
     static String myUrl, user, pwd;
+    int num_latestCommit = 1000;
     HashSet<String> stopFileSet = new HashSet<>();
 
 
@@ -34,7 +24,7 @@ public class GetModularity {
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
             clone_dir = output_dir + "clones/";
-            historyDirPath = output_dir + "commitHistory/";
+            historyDirPath = output_dir + "comithis/";
             resultDirPath = output_dir + "result/";
 
             myUrl = paramList[1];
@@ -166,7 +156,7 @@ public class GetModularity {
             commitSET.addAll(shaList);
             commitList.addAll(shaList);
             System.out.println(commitSET.size() + " commits for now");
-            if (commitSET.size() > 500) {
+            if (commitSET.size() > num_latestCommit) {
                 break;
             }
         }
@@ -177,7 +167,7 @@ public class GetModularity {
 
         HashSet<String> analyzedSHA = new HashSet<>();
             for (String sha : commitList) {
-                if(analyzedSHA.size()>500){
+                if(analyzedSHA.size()>num_latestCommit){
                     break;
                 }
                 if (analyzedSHA.contains(sha)) {
@@ -196,7 +186,8 @@ public class GetModularity {
                             String status = arr[0];
                             String fileName = arr[1];
                             if (status.equals("A") || status.equals("M")) {
-                                if ((filterOutStopFile && !io.isStopFile(fileName)) || !filterOutStopFile) {
+                                if ((filterOutStopFile && io.isSourceCode(fileName)) || !filterOutStopFile) {
+//                                if ((filterOutStopFile && !io.isStopFile(fileName)) || !filterOutStopFile) {
                                     commit_fileSet.add(fileName);
                                 }
                                 allFileSet.addAll(commit_fileSet);
@@ -244,7 +235,6 @@ public class GetModularity {
 
         System.out.println(" FileList size " + fileList.size());
         System.out.println(" support matrix, changed file set size: " + changedFilePair_Set.size());
-        int index = 0;
         for (HashSet<String> co_changedFiles : changedFilePair_Set) {
             List<String> list = new ArrayList<>();
             if (filterOutStopFile) {
@@ -280,14 +270,8 @@ public class GetModularity {
         System.out.println(" confidence matrix");
         int count_bigger_than_zero = 0;
         for (int i = 0; i < fileList.size(); i++) {
-            float appearance = support_matrix[i][i];
-
-            support_matrix[i][i] = 1;
             for (int j = 0; j < fileList.size(); j++) {
-                if (i != j && support_matrix[i][j] > 2) {
-                    float support = support_matrix[i][j];
-                    support_matrix[i][j] = support_matrix[i][j] / appearance;
-//                    io.writeTofile(fileList.get(i) + "," + fileList.get(j) + "," + support + "," + support_matrix[i][j] + "," + appearance + "\n", historyDirPath + projectURL + "/SC_table.csv");
+                if (i != j && support_matrix[i][j] > 0) {
                     count_bigger_than_zero++;
                 }
             }
@@ -296,14 +280,9 @@ public class GetModularity {
 
 
         int filesTotal = fileList.size();
-        System.out.println("write to file");
         float modularity = (float) count_bigger_than_zero / (filesTotal * filesTotal - filesTotal);
 
         int total_commit = commitSET.size();
-//        System.out.println("write to file:" + historyDirPath + outputFileName + "_Modularity.csv");
-//        io.writeTofile(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
-//                + (filesTotal * filesTotal - filesTotal) + " , " + total + " unique commits in total, all branches has " + total + " commits\n"
-//                + " , files in total: " + fileList.size() + "\n------\n", historyDirPath + outputFileName + "_Modularity.txt");
         System.out.println(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
                 + (filesTotal * filesTotal - filesTotal) + " , " + total_commit + " unique commits in total, all branches has " + total_commit + " commits , files in total: " + fileList.size() + "\n------\n");
 
