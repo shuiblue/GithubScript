@@ -1,4 +1,5 @@
-import javax.swing.plaf.synth.SynthDesktopIconUI;
+import Util.IO_Process;
+
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
@@ -106,7 +107,7 @@ public class script_tmp {
 
     public static void updateLoginID() {
         IO_Process io = new IO_Process();
-        String query = "SELECT repoURL,id,loginID\n" +
+        String query = "SELECT repoURL_old,id,loginID\n" +
                 "FROM repository";
 
         ArrayList<String> repoList = new ArrayList<>();
@@ -162,7 +163,7 @@ public class script_tmp {
 
     public static void getRejectPR() {
 
-        String query = "SELECT repo.repoURL,  pr.pull_request_ID\n" +
+        String query = "SELECT repo.repoURL_old,  pr.pull_request_ID\n" +
                 "FROM Pull_Request pr , repository repo \n" +
                 "WHERE pr.merge_allType = FALSE and repo.id = pr.projectID ;";
 

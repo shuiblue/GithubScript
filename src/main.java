@@ -1,6 +1,7 @@
+import Util.IO_Process;
+
 import java.io.File;
 import java.io.IOException;
-import java.text.DateFormat;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.*;
@@ -14,8 +15,8 @@ public class main {
     static boolean hasTimeConstraint = false;
 
     public static void main(String[] args) {
-        GraphBasedClassifier graphBasedClassifier = new GraphBasedClassifier();
-        NameBasedClassifier nameBasedClassifier = new NameBasedClassifier();
+        Commit.GraphBasedClassifier graphBasedClassifier = new Commit.GraphBasedClassifier();
+        Commit.NameBasedClassifier nameBasedClassifier = new Commit.NameBasedClassifier();
 
         IO_Process io = new IO_Process();
         current_dir = System.getProperty("user.dir");
@@ -126,7 +127,7 @@ public class main {
 ////
 ////
                 /** get fork info  **/
-//                GithubApiParser githubApiParser = new GithubApiParser();
+//                Util.GithubApiParser githubApiParser = new Util.GithubApiParser();
 //                StringBuilder sb = new StringBuilder();
 //                sb.append("forkUrl,fork_num,created_at,pushed_at,size,language,ownerID,public_repos,public_gists,followers,following,sign_up_time,user_type\n");
 //                io.rewriteFile(sb.toString(), current_dir + "/result/" + projectUrl + "/forkInfo.csv");

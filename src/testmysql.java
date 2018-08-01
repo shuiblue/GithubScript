@@ -1,7 +1,9 @@
 
 
+import Pull_Request.AnalyzingPRs;
+import Util.IO_Process;
+
 import java.io.IOException;
-import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -37,7 +39,7 @@ public class testmysql {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
+        HashMap<String, Integer> url_id = new HashMap<>();
 
         /**  insert duplicate pr info  **/
 ////            String[] dupPR = io.readResult("/Users/shuruiz/Box Sync/ForkData/dupPR/only_in_label.txt").split("\n");
@@ -252,84 +254,136 @@ public class testmysql {
 //                preparedStmt.execute();
 //            }
 
+
+        /**  easiness of PR loc  **/
+//        String[] easinessMerged_array = new String[0];
+//        try {
+//            easinessMerged_array = io.readResult("/Users/shuruiz/Work/ForkData/stat/easiness/easiness_PRloc.csv").split("\n");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        String insertQuery = "UPDATE fork.Pull_Request SET  easiness_loc = ?" +
+//                    " WHERE projectID = ? AND pull_request_ID = ?";
+//            int count = 0;
+//            try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+//                 PreparedStatement preparedStmt = conn.prepareStatement(insertQuery)) {
+//                conn.setAutoCommit(false);
+//
+//                for (int i = 1; i < easinessMerged_array.length; i++) {
+//                    String repo = easinessMerged_array[i];
+//                    if(repo.contains("NA")){
+//                        continue;
+//                    }
+//                    String[] repoInfo = repo.split(",");
+//
+//                    preparedStmt.setDouble(1, Double.parseDouble(repoInfo[3]));
+//                    preparedStmt.setInt(2, Integer.valueOf(repoInfo[1]));
+//                    preparedStmt.setInt(3,  Integer.valueOf(repoInfo[2]));
+//                    preparedStmt.addBatch();
+//                    System.out.print(count + " count ");
+//                    if (++count % 100 == 0) {
+//                        io.executeQuery(preparedStmt);
+//                        conn.commit();
+//                    }
+//
+//
+//                }
+//                io.executeQuery(preparedStmt);
+//                conn.commit();
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//            }
+//
+
         /**  update merged pr type 2 - type 4  **/
-//            String[] mergedPR = io.readResult("/home/feature/shuruiz/ForkData/update_mergedPR.txt").split("\n");
-            HashMap<String, Integer> url_id = new HashMap<>();
-        String[] mergedPR = new String[0];
-        try {
-//            mergedPR = io.readResult("/Users/shuruiz/Work/ForkData/0723update_mergedPR_type2r.txt").split("\n");
-            mergedPR = io.readResult("/home/feature/shuruiz/ForkData/0723update_mergedPR_type2r.txt").split("\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        int count = 0;
-            String insertQuery = "UPDATE fork.Pull_Request SET   merge_2Ref=?  WHERE projectID = ? AND pull_request_ID = ?";
-//            String insertQuery = "UPDATE fork.Pull_Request SET merge_2 = ? ,merge_2Ref=? ,merge_3 =? ,merge_4 =?  WHERE projectID = ? AND pull_request_ID = ?";
-            try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
-                 PreparedStatement preparedStmt = conn1.prepareStatement(insertQuery)) {
-                conn1.setAutoCommit(false);
-                for (int i = 0; i < mergedPR.length; i++) {
-                    if(!mergedPR[i].contains(",merged-2r")){
-                        continue;
-                    }
-                    String[] prinfo = mergedPR[i].split(",");
-                    String url = prinfo[0];
-                    int projectID;
-                    if (url_id.get(url) != null) {
-                        projectID = url_id.get(url);
-                    } else {
-                        projectID = io.getRepoId(url);
-                        url_id.put(url, projectID);
-                    }
-
-                    int pr_id = Integer.parseInt(prinfo[1]);
-                    String type = prinfo[2];
-
-                    boolean merge_2 = false;
-                    boolean merge_2Ref = false;
-                    boolean merge_3 = false;
-                    boolean merge_4 = false;
-                    if (type.equals("merged-2")) {
-                        merge_2 = true;
-                    } else if (type.equals("merged-2r")) {
-                        merge_2Ref = true;
-                    } else if (type.equals("merged-3")) {
-                        merge_3 = true;
-                    } else if (type.equals("merged-4")) {
-                        merge_4 = true;
-                    }
-
-//                    preparedStmt.setBoolean(1, merge_2);
-//                    preparedStmt.setBoolean(2, merge_2Ref);
-//                    preparedStmt.setBoolean(3, merge_3);
-//                    preparedStmt.setBoolean(4, merge_4);
-//                    preparedStmt.setInt(5, projectID);
-//                    preparedStmt.setInt(6, pr_id);
-
-                    preparedStmt.setBoolean(1, merge_2Ref);
-                    preparedStmt.setInt(2, projectID);
-                    preparedStmt.setInt(3, pr_id);
-                    preparedStmt.addBatch();
-                    System.out.print(count + " count ");
-                    System.out.println(projectID + "," + pr_id + "," + merge_2 + "," + merge_2Ref + "," + merge_3 + "," + merge_4);
-                    if (++count % 100 == 0) {
-                        io.executeQuery(preparedStmt);
-                        conn1.commit();
-                    }
-
-                }
-                io.executeQuery(preparedStmt);
-                conn1.commit();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+//        HashMap<String, Integer> url_id = new HashMap<>();
+//        String[] mergedPR = new String[0];
+//        try {
+//            mergedPR = io.readResult("/Users/shuruiz/Work/ForkData/update_mergedPR0729.txt").split("\n");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        int count = 0;
+//        String insertQuery = "UPDATE fork.Pull_Request " +
+//                "SET new_merge_1 = ? ,new_merge_2 = ? ,new_merge_2ref =? ," +
+//                "new_merge_3 =? ,new_merge_4 =?,new_merge_5 = ?  " +
+//                "WHERE projectID = ? AND pull_request_ID = ?";
+//        try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
+//             PreparedStatement preparedStmt = conn1.prepareStatement(insertQuery)) {
+//            conn1.setAutoCommit(false);
+//            for (int i = 0; i < mergedPR.length; i++) {
+//                String[] prinfo = mergedPR[i].split(",");
+//                String url = prinfo[0];
+//                int projectID;
+//                if (url_id.get(url) != null) {
+//                    projectID = url_id.get(url);
+//                } else {
+//                    projectID = io.getRepoId(url);
+//                    url_id.put(url, projectID);
+//                }
+//
+//                int pr_id = Integer.parseInt(prinfo[1]);
+//                String type = prinfo[2];
+//
+//                boolean merge_1 = false;
+//                boolean merge_2 = false;
+//                boolean merge_2Ref = false;
+//                boolean merge_3 = false;
+//                boolean merge_4 = false;
+//                boolean merge_5 = false;
+//
+//                if (type.equals("merged-1")) {
+//                    merge_1 = true;
+//                } else if (type.equals("merged-2")) {
+//                    merge_2 = true;
+//                } else if (type.equals("merged-2ref")) {
+//                    merge_2Ref = true;
+//                } else if (type.equals("merged-3")) {
+//                    merge_3 = true;
+//                } else if (type.equals("merged-4")) {
+//                    merge_4 = true;
+//                } else if (type.equals("merged-5")) {
+//                    merge_5 = true;
+//                }
+//
+//                preparedStmt.setBoolean(1, merge_1);
+//                preparedStmt.setBoolean(2, merge_2);
+//                preparedStmt.setBoolean(3, merge_2Ref);
+//                preparedStmt.setBoolean(4, merge_3);
+//                preparedStmt.setBoolean(5, merge_4);
+//                preparedStmt.setBoolean(6, merge_5);
+//                preparedStmt.setInt(7, projectID);
+//                preparedStmt.setInt(8, pr_id);
+//                preparedStmt.addBatch();
+//                System.out.print(count + " count ");
+//                System.out.println(projectID + "," + pr_id + "," + merge_1 + "," + merge_2 + "," + merge_2Ref + "," + merge_3 + "," + merge_4 + ", " + merge_5);
+//                if (++count % 100 == 0) {
+//                    io.executeQuery(preparedStmt);
+//                    conn1.commit();
+//                }
+//
+//            }
+//            io.executeQuery(preparedStmt);
+//            conn1.commit();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
 
         /**  update rejected PR status  **/
-//            String[] mergedPR = io.readResult("/Users/shuruiz/Work/ForkData/check_type3_mergedPR.txt").split("\n");
-//            int count = 0;
+//        String[] mergedPR = new String[0];
+//        try {
+////            mergedPR = io.readResult("/Users/shuruiz/Work/ForkData/noComments_rejectedPR-1120pm.txt").split("\n");
+//            mergedPR = io.readResult("/Users/shuruiz/Work/ForkData/check_type3_mergedPR-1120pm.txt").split("\n");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        int count = 0;
 //            String currentProject = "";
-//            int currentProject_id = -1;
-//            String insertQuery = "UPDATE fork.Pull_Request SET merge_2 = ? ,merge_3 =? ,merge_4 =?  WHERE projectID = ? AND pull_request_ID = ?";
+        int currentProject_id = -1;
+//            String insertQuery = "UPDATE fork.Pull_Request " +
+//                    "SET merge_2Ref =?    " +
+////                    "SET merge_2 = ? ,merge_2Ref =? ,merge_3 =? ,merge_4 =?  " +
+//                    "WHERE projectID = ? AND pull_request_ID = ? ";
 //            try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
 //                 PreparedStatement preparedStmt = conn1.prepareStatement(insertQuery)) {
 //                conn1.setAutoCommit(false);
@@ -343,12 +397,17 @@ public class testmysql {
 //                    }
 //                    int projectID = currentProject_id;
 //                    int pr_id = Integer.parseInt(prinfo[1].trim());
+////
+////                    preparedStmt.setBoolean(1, false);
+////                    preparedStmt.setBoolean(2, false);
+////                    preparedStmt.setBoolean(3, false);
+////                    preparedStmt.setBoolean(4, false);
+////                    preparedStmt.setInt(5, projectID);
+////                    preparedStmt.setInt(6, pr_id);
 //
 //                    preparedStmt.setBoolean(1, false);
-//                    preparedStmt.setBoolean(2, false);
-//                    preparedStmt.setBoolean(3, false);
-//                    preparedStmt.setInt(4, projectID);
-//                    preparedStmt.setInt(5, pr_id);
+//                    preparedStmt.setInt(2, projectID);
+//                    preparedStmt.setInt(3, pr_id);
 //                    preparedStmt.addBatch();
 //                    System.out.print(count + " count ");
 //                    System.out.println(mergedPR[i]);
@@ -360,6 +419,8 @@ public class testmysql {
 //                }
 //                io.executeQuery(preparedStmt);
 //                conn1.commit();
+//            } catch (SQLException e) {
+//                e.printStackTrace();
 //            }
 
         /**  update pr communication result  **/
@@ -405,15 +466,59 @@ public class testmysql {
 //                conn1.commit();
 //            }
 
-        /**  insert ratio of merged pr  **/
-//        String[] modularity_array = new String[0];
+        /**  insert duplicate comment**/
+//        HashMap<String, Integer> url_id = new HashMap<>();
+//        String[] array = new String[0];
 //        try {
-//            modularity_array = io.readResult("/Users/shuruiz/Work/ForkData/stat/csvFile/PR_Status.csv").split("\n");
-////            modularity_array = io.readResult("/Users/shuruiz/Work/ForkData/stat/csvFile/PR_Status_alltype.csv").split("\n");
+////            modularity_array = io.readResult("/Users/shuruiz/Work/ForkData/stat/csvFile/PR_Status.csv").split("\n");
+//            array = io.readResult("/Users/shuruiz/Work/ForkData/duplicateComment0729.txt").split("\n");
 //        } catch (IOException e) {
 //            e.printStackTrace();
 //        }
-//        String insertQuery = "UPDATE fork.Final_PR SET num_merged_PR = ? , ratio_merged_PR = ? WHERE projectID = ?";
+//        String updatequery = "UPDATE fork.Pull_Request SET dupPR_comment =TRUE , dup_related_comment = ? WHERE projectID = ? AND pull_request_ID = ?";
+//        int count = 0;
+//
+//        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+//             PreparedStatement preparedStmt = conn.prepareStatement(updatequery)) {
+//            conn.setAutoCommit(false);
+//            for (String line : array) {
+//                String[] repoInfo = line.split(",");
+//                String repourl = repoInfo[0];
+//                int repoID;
+//                if (url_id.get(repourl) == null) {
+//                    repoID = io.getRepoId(repourl);
+//                    url_id.put(repourl, repoID);
+//                } else {
+//                    repoID = url_id.get(repourl);
+//                }
+//
+//
+//                preparedStmt.setString(1, io.normalize(repoInfo[2]));
+//                preparedStmt.setInt(2, repoID);
+//                preparedStmt.setInt(3, Integer.parseInt(repoInfo[1]));
+////                preparedStmt.addBatch();
+//                System.out.println(preparedStmt.toString());
+//                System.out.println(preparedStmt.executeUpdate());
+//
+////                if (++count % 100 == 0) {
+////                    io.executeQuery(preparedStmt);
+////                    conn.commit();
+////                }
+//            }
+//            io.executeQuery(preparedStmt);
+//            conn.commit();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+        /**  insert ratio of merged pr  **/
+//        String[] modularity_array = new String[0];
+//        try {
+////            modularity_array = io.readResult("/Users/shuruiz/Work/ForkData/stat/csvFile/PR_Status.csv").split("\n");
+//            modularity_array = io.readResult("/Users/shuruiz/Work/ForkData/stat/csvFile/PR_Status_alltype_0726.csv").split("\n");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        String insertQuery = "UPDATE fork.Final_PR SET num_merged_PR_tmp = ? , ratio_merged_PR_tmp = ? WHERE projectID = ?";
 ////        String insertQuery = "UPDATE fork.Final_PR SET num_merged_PR_allType = ? , ratio_merged_PR_allType = ? WHERE projectID = ?";
 ////        String insertQuery = "UPDATE fork.Final_PR SET num_rejected_PR = ?  ,ratio_rejected_PR = ? WHERE projectID = ?";
 ////        String insertQuery = "UPDATE fork.Final_PR SET num_open_PR = ? ,ratio_open_PR = ? WHERE projectID = ?";
@@ -445,7 +550,7 @@ public class testmysql {
 //            e.printStackTrace();
 //        }
         /**  insert ratio of merged pr - ALL TYPE MERGE **/
-//            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status_alltype.csv").split("\n");
+//            String[] modularity_array = io.readResult("/Users/shuruiz/Box Sync/ForkData/0424/PR_Status_alltype_0726.csv").split("\n");
 //            for (String repo : modularity_array) {
 ////                if (repo.contains("Merged")) {
 //                if (repo.contains("Rejected")) {
@@ -560,7 +665,7 @@ public class testmysql {
 //                String[] upstream_INFO = io.readResult("/Users/shuruiz/Box Sync/ForkData/result/" + repourl + "/upstreamInfo.csv").split("\n")[1].split(",");
 //
 //
-//                String query = " update Fork.repository " +
+//                String query = " update Repository.Fork.repository " +
 //                        " set   num_of_forks = ?,created_at = ?, pushed_at = ? , size = ?, language = ?, ownerID = ? ,public_repos = ?" +
 //                        ",public_gists = ?, followers = ?, following = ?, sign_up_time = ?,user_type = ?, belongToRepo = ?, isFork=? " +
 //                        " where repoURL = ?";
@@ -586,7 +691,7 @@ public class testmysql {
 
 
         /*** insert pr info to  repo_PR table***/
-//            String selectSQL = " SELECT repoURL FROM Fork.repository";
+//            String selectSQL = " SELECT repoURL FROM Repository.Fork.repository";
 //            preparedStmt = conn.prepareStatement(selectSQL);
 //
 //            //Execute select SQL stetement
@@ -613,7 +718,7 @@ public class testmysql {
 //                    List<String> commits_F2U = Arrays.asList(io.removeBrackets(columns[8]).split("/ "));
 //                    List<String> commits_U2F = Arrays.asList(io.removeBrackets(columns[9]).split("/ "));
 //
-//                    String selectForkID = "SELECT id from Fork.repository where repoURL = ?";
+//                    String selectForkID = "SELECT id from Repository.Fork.repository where repoURL = ?";
 //                    preparedStmt = conn.prepareStatement(selectForkID);
 //                    preparedStmt.setString(1, forkurl);
 //                    ResultSet rs = preparedStmt.executeQuery();
@@ -623,7 +728,7 @@ public class testmysql {
 //                    }
 //
 //                    if(forkID != -1) {
-//                        String query = "  INSERT into Fork.repo_fork_commit_graph ( forkID, only_F, only_U, F2U, U2F, only_F_commit_list, F2U_commit_list, data_update_at) " +
+//                        String query = "  INSERT into Repository.Fork.repo_fork_commit_graph ( forkID, only_F, only_U, F2U, U2F, only_F_commit_list, F2U_commit_list, data_update_at) " +
 //                                "VALUES (?,?,?,?,?,?,?,?)";
 //                        preparedStmt = conn.prepareStatement(query);
 //
@@ -643,6 +748,50 @@ public class testmysql {
 //                }
 //
 //            }
+
+        /**  insert repo info left over**/
+//
+//        String[] repos = new String[0];
+//        try {
+//            repos = io.readResult("/Users/shuruiz/Work/ForkData/repoInfo.txt").split("\n");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        String insertQuery = "UPDATE fork.Final_fork SET num_star = ? , num_watcher = ? ,has_issue = ? ,network_count= ?, subscribers_count = ? WHERE projectID = ?";
+//        int count = 0;
+//        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+//             PreparedStatement preparedStmt = conn.prepareStatement(insertQuery)) {
+//            conn.setAutoCommit(false);
+//            for (String repo : repos) {
+//                String[] repoInfo = repo.split(",");
+//                String url = repoInfo[0];
+//                int projectID;
+//                if (url_id.get(url) != null) {
+//                    projectID = url_id.get(url);
+//                } else {
+//                    projectID = io.getRepoId(url);
+//                    url_id.put(url, projectID);
+//                }
+//                preparedStmt.setInt(1, Integer.parseInt(repoInfo[1]));
+//                preparedStmt.setInt(2, Integer.parseInt(repoInfo[2]));
+//                preparedStmt.setString(3, repoInfo[3]);
+//                preparedStmt.setInt(4, Integer.parseInt(repoInfo[4]));
+//                preparedStmt.setInt(5, Integer.parseInt(repoInfo[5]));
+//
+//                preparedStmt.setInt(6, projectID);
+//                preparedStmt.addBatch();
+//                System.out.print(count + " count ");
+//                if (++count % 100 == 0) {
+//                    io.executeQuery(preparedStmt);
+//                    conn.commit();
+//                }
+//            }
+//            io.executeQuery(preparedStmt);
+//            conn.commit();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
 
 
     }
