@@ -1,4 +1,4 @@
-package Commit;
+package Commit.Easiness;
 
 import Util.IO_Process;
 

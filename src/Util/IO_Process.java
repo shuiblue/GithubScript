@@ -697,7 +697,7 @@ public class IO_Process {
     }
 
 
-   public HashSet<String> getForkListFromRepoTable(int projectID) {
+    public HashSet<String> getForkListFromRepoTable(int projectID) {
         HashSet<String> forkList = new HashSet<>();
         String selectRepoID = "SELECT repoURL_old FROM fork.repository WHERE projectID = ? AND isFork = TRUE ";
 
@@ -1652,6 +1652,29 @@ public class IO_Process {
         return false;
     }
 
+
+    public ArrayList<String> getExternalShaList(List<String> shaList, String projectURL) {
+        ArrayList<String> externalCommitList = new ArrayList<>();
+
+        QueryDataFromGithubAPI queryDataFromGithubAPI = new QueryDataFromGithubAPI();
+
+        QueryDatabase qdb = new QueryDatabase();
+        List<String> coreTeamList = qdb.getCoreTeamList(projectURL);
+
+        for (String sha : shaList) {
+            String loginID = queryDataFromGithubAPI.getGithubLoginID(sha, projectURL);
+            if (!coreTeamList.contains(loginID)) {
+                if (!loginID.contains("bot")) {
+                    externalCommitList.add(sha);
+                }else{
+                    System.out.println(  loginID + " is bot ... ");
+                }
+            } else {
+                System.out.println(projectURL + " " + loginID + " is core ");
+            }
+        }
+        return externalCommitList;
+    }
 
 }
 

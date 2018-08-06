@@ -134,4 +134,11 @@ public class QueryDataFromGithubAPI {
     }
 
 
+    public String getGithubLoginID(String sha, String projectURL) {
+        String commitURL = github_api_repo + projectURL + "/commits/" + sha;
+        ArrayList<String> commitJson = new JsonUtility().readUrl(commitURL + "?access_token=" + token);
+        JSONObject fork_jsonObj = new JSONObject(commitJson.get(0));
+        return (String) ((JSONObject) fork_jsonObj.get("author")).get("login");
+
+    }
 }

@@ -45,7 +45,7 @@ public class AnalyzeGovernance {
 
         /** parsing event, cross reference **/
 //        System.out.println(" analyzing event of pr and issue");
-//        parsingPR_ISSUE_Line_byEvent();
+        parsingPR_ISSUE_Line_byEvent();
 
 //        parsingIssueParticipants_PR_map();
 ////

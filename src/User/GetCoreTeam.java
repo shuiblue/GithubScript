@@ -1,4 +1,4 @@
-package Repository;
+package User;
 
 import Util.IO_Process;
 
@@ -39,9 +39,9 @@ public class GetCoreTeam {
 
     public static void main(String[] args) {
         GetCoreTeam getCoreTeam = new GetCoreTeam();
-        getCoreTeam.getCoreTeamFromTimeline();
+//        getCoreTeam.getCoreTeamFromTimeline();
 //
-//        getCoreTeam.UpdatePRfromCoreTeam();
+        getCoreTeam.UpdatePRfromCoreTeam();
 //        getCoreTeam.UpdatePRfromCoreTeamToDeveloperTable();
 //        getCoreTeam.UpdateCoreTeamToFinalTable();
 
@@ -168,7 +168,7 @@ public class GetCoreTeam {
 
         String[] repos = new String[0];
         try {
-            repos = io.readResult(output_dir + "coreTeam.txt").split("\n");
+            repos = io.readResult(output_dir + "coreTeam0805.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }

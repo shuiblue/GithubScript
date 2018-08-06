@@ -12,9 +12,15 @@ import java.util.*;
 public class GetModularity {
     static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath, resultDirPath;
     static String myUrl, user, pwd;
-    int num_latestCommit = 100;
-    HashSet<String> stopFileSet = new HashSet<>();
+    static HashSet<String> stopFileSet = new HashSet<>();
+    static boolean[] filterOutStopFile = {true, false};
 
+    static boolean hasConstraintOnNumOfCommits = true;
+    static int num_latestCommit = 50;
+
+
+    static boolean timeConstraint = false;
+    static boolean commitNumConstraint = true;
 
     public GetModularity() {
         IO_Process io = new IO_Process();
@@ -27,11 +33,9 @@ public class GetModularity {
             clone_dir = output_dir + "clones/";
             historyDirPath = output_dir + "comithis_100/";
             resultDirPath = output_dir + "result/";
-
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
-
             stopFileSet.addAll(Arrays.asList(io.readResult(current_dir + "/input/StopFiles.txt").split("\n")));
         } catch (IOException e) {
             e.printStackTrace();
@@ -41,68 +45,26 @@ public class GetModularity {
 
 
     static public void main(String[] args) {
-        GetModularity getModularity = new GetModularity();
-
+        new GetModularity();
         IO_Process io = new IO_Process();
-        String[] repoList = {};
         io.rewriteFile("", resultDirPath + "File_history.csv");
 
         /** get repo list **/
         String current_dir = System.getProperty("user.dir");
-        try {
-            repoList = io.readResult(current_dir + "/input/mod_repoList.txt").split("\n");
+        List<String> repoList = io.getList_byFilePath(current_dir + "/input/repoList.txt");
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        boolean[] filterOutStopFile = {true, false};
         for (String projectURL : repoList) {
             File clone = new File(clone_dir + projectURL);
             if (!clone.exists()) {
                 System.out.println(projectURL + " clone does not exist , cloning now..");
                 io.cloneRepo("", projectURL);
-
             }
-
             System.out.println(projectURL + "  start to calculate modularity...");
 
-            String cmd_getFirstCommit = "git rev-list --max-parents=0 HEAD --pretty=\"%ar\"";
-            String projectCloneDir = clone_dir + projectURL + "/";
-            String[] commitArray = io.exeCmd(cmd_getFirstCommit.split(" "), projectCloneDir).split("\n");
-            System.out.println(commitArray.length + " root commits");
-
-//            int firstCommitCreatedAt = 0;
-//            for (String line : commitArray) {
-//                if (line.contains("years")) {
-//                    System.out.println(line);
-//                    int currentResult = Integer.parseInt(line.split("years")[0].trim());
-//                    firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
-//                } else if (line.contains("year")) {
-//                    System.out.println(line);
-//                    int currentResult = Integer.parseInt(line.split("year")[0].trim());
-//                    firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
-//                }
-//            }
-//            System.out.println("pre firstCommitCreatedAt = " + firstCommitCreatedAt);
-//
-////                if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
-//            if (firstCommitCreatedAt > 10) firstCommitCreatedAt = 10;
-//
-//            System.out.println("after firstCommitCreatedAt = " + firstCommitCreatedAt);
-
-
-            for (boolean b : filterOutStopFile) {
-                System.out.println("calculating modularity for " + projectURL + " filter out stop file -- " + b);
-//                    int threshold = 10;
-//                    while (threshold < 40) {
-////                    while (threshold < 100) {
-//                        for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
-//                            System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
-                getModularity.measureModularity(projectURL, 50, b, 10);
-//                        }
-//                        threshold += 20;
-//                    }
+            if (timeConstraint) {
+                calculateModularityByTimeConstraint(projectURL);
+            } else if (commitNumConstraint) {
+                calculateModularityByNumOfCommits(projectURL);
             }
 
             System.out.println("delete " + projectURL);
@@ -114,14 +76,67 @@ public class GetModularity {
         }
     }
 
+    private static void calculateModularityByNumOfCommits(String projectURL) {
+        for (boolean b : filterOutStopFile) {
+            System.out.println("calculating modularity for " + projectURL + " filter out stop file -- " + b);
+            measureModularity(projectURL, 50, b, 10);
+        }
+    }
+
+    private static void calculateModularityByTimeConstraint(String projectURL) {
+        IO_Process io = new IO_Process();
+        String cmd_getFirstCommit = "git rev-list --max-parents=0 HEAD --pretty=\"%ar\"";
+        String projectCloneDir = clone_dir + projectURL + "/";
+        String[] commitArray = io.exeCmd(cmd_getFirstCommit.split(" "), projectCloneDir).split("\n");
+        System.out.println(commitArray.length + " root commits");
+
+        int firstCommitCreatedAt = 0;
+        for (String line : commitArray) {
+            if (line.contains("years")) {
+                System.out.println(line);
+                int currentResult = Integer.parseInt(line.split("years")[0].trim());
+                firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
+            } else if (line.contains("year")) {
+                System.out.println(line);
+                int currentResult = Integer.parseInt(line.split("year")[0].trim());
+                firstCommitCreatedAt = firstCommitCreatedAt > currentResult ? firstCommitCreatedAt : currentResult;
+            }
+        }
+        System.out.println("pre firstCommitCreatedAt = " + firstCommitCreatedAt);
+
+//                if (firstCommitCreatedAt > 20) firstCommitCreatedAt = 20;
+        if (firstCommitCreatedAt > 10) firstCommitCreatedAt = 10;
+
+        System.out.println("after firstCommitCreatedAt = " + firstCommitCreatedAt);
+
+
+        for (boolean b : filterOutStopFile) {
+            System.out.println("calculating modularity for " + projectURL + " filter out stop file -- " + b);
+            int threshold = 10;
+            while (threshold < 40) {
+//                    while (threshold < 100) {
+                for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
+                    System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
+                    measureModularity(projectURL, 50, b, 10);
+                }
+                threshold += 20;
+            }
+        }
+
+    }
+
+
+    //todo:  find number of commits bigger than threshold
+
     /***
      * This function calculates modularity for each project by generating support matrix
      * @param projectURL
      * @throws IOException
      * @throws GitAPIException
      */
-    public void measureModularity(String projectURL, int threshold, boolean filterOutStopFile, int within_year) {
+    public static void measureModularity(String projectURL, int threshold, boolean filterOutStopFile, int within_year) {
         IO_Process io = new IO_Process();
+        HashSet<String> bigCommitSet = new HashSet<>();
         String after_Date = ZonedDateTime.now(ZoneOffset.UTC).minusYears(within_year).toInstant().toString();
         String project_cloneDir = clone_dir + projectURL + "/";
         String fileScope = "allfile";
@@ -131,12 +146,6 @@ public class GetModularity {
 
         String outputFileName = projectURL.replace("/", "~") + "_" + threshold + "_" + within_year + "_year_" + fileScope;
         String outputPath = historyDirPath + outputFileName + ".txt";
-        File output = new File(outputPath);
-//        if (output.exists()) {
-//            System.out.println("result exist: " + outputFileName);
-//            return;
-//        }
-
 
         /**  get all the branches **/
         String cmd_getOringinBranch = "git branch -a --list origin*";
@@ -149,63 +158,50 @@ public class GetModularity {
         }
 
         /** get commit from all branches **/
-        HashSet<String> commitSET = new HashSet<>();
-        ArrayList<String> commitList = new ArrayList<>();
-        for (String br : branchList) {
-            System.out.println("getting commits from branch " + br);
-            List<String> shaList = io.getCommitInBranch(br, after_Date, project_cloneDir);
-            commitSET.addAll(shaList);
-            commitList.addAll(shaList);
-            System.out.println(commitSET.size() + " commits for now");
-            if (commitSET.size() > num_latestCommit) {
-                break;
-            }
-        }
+        HashSet<String> commitSET = getCommitSet(after_Date, projectURL, project_cloneDir, branchList, hasConstraintOnNumOfCommits);
 
         /** analyze commit in each branch **/
         HashSet<String> allFileSet = new HashSet<>();
         ArrayList<HashSet<String>> changedFilePair_Set = new ArrayList<>();
 
         HashSet<String> analyzedSHA = new HashSet<>();
-            for (String sha : commitList) {
-                if(analyzedSHA.size()>num_latestCommit){
-                    break;
-                }
-                if (analyzedSHA.contains(sha)) {
-                    System.out.println("same sha , pass ");
-                    continue;
-                }
-                analyzedSHA.add(sha);
-
-//                System.out.println(sha + " count " + analyzedSHA.size());
-                ArrayList<String> changedFiles = io.getChangedFileStatus_ofCommit_FromCMD(sha, projectURL);
-                HashSet<String> commit_fileSet = new HashSet<>();
-                if (changedFiles.size() <= threshold) {
-                    for (String file : changedFiles) {
-                        if (!file.equals("")) {
-                            String[] arr = file.split("\t");
-                            String status = arr[0];
-                            String fileName = arr[1];
-                            if (status.equals("A") || status.equals("M")) {
-                                if ((filterOutStopFile && io.isSourceCode(fileName)) || !filterOutStopFile) {
+        for (String sha : commitSET) {
+            if (hasConstraintOnNumOfCommits && analyzedSHA.size() > num_latestCommit) {
+                break;
+            }
+            if (analyzedSHA.contains(sha)) {
+                System.out.println("same sha , pass ");
+                continue;
+            }
+            analyzedSHA.add(sha);
+            ArrayList<String> changedFiles = io.getChangedFileStatus_ofCommit_FromCMD(sha, projectURL);
+            HashSet<String> commit_fileSet = new HashSet<>();
+            if (changedFiles.size() <= threshold) {
+                for (String file : changedFiles) {
+                    if (!file.equals("")) {
+                        String[] arr = file.split("\t");
+                        String status = arr[0];
+                        String fileName = arr[1];
+                        if (status.equals("A") || status.equals("M")) {
+                            if ((filterOutStopFile && io.isSourceCode(fileName)) || !filterOutStopFile) {
 //                                if ((filterOutStopFile && !io.isStopFile(fileName)) || !filterOutStopFile) {
-                                    commit_fileSet.add(fileName);
-                                }
-                                allFileSet.addAll(commit_fileSet);
+                                commit_fileSet.add(fileName);
                             }
+                            allFileSet.addAll(commit_fileSet);
                         }
                     }
-
-                    if (commit_fileSet.size() == 1) {
-                        changedFilePair_Set.add(commit_fileSet);
-                    } else if (commit_fileSet.size() > 1) {
-                        HashSet<HashSet<String>> pairs = io.getAllPairs_string(commit_fileSet);
-                        changedFilePair_Set.addAll(pairs);
-                    }
                 }
 
-
+                if (commit_fileSet.size() == 1) {
+                    changedFilePair_Set.add(commit_fileSet);
+                } else if (commit_fileSet.size() > 1) {
+                    HashSet<HashSet<String>> pairs = io.getAllPairs_string(commit_fileSet);
+                    changedFilePair_Set.addAll(pairs);
+                }
+            } else {
+                bigCommitSet.add(sha);
             }
+        }
 
 
         ArrayList<String> fileList = new ArrayList<>();
@@ -276,9 +272,7 @@ public class GetModularity {
                     count_bigger_than_zero++;
                 }
             }
-
         }
-
 
         int filesTotal = fileList.size();
         float modularity = (float) count_bigger_than_zero / (filesTotal * filesTotal - filesTotal);
@@ -288,9 +282,30 @@ public class GetModularity {
                 + (filesTotal * filesTotal - filesTotal) + " , " + total_commit + " unique commits in total, all branches has " + total_commit + " commits , files in total: " + fileList.size() + "\n------\n");
 
         io.writeTofile(projectURL + "," + modularity * 100 + "," + total_commit + "," + filesTotal + "\n", outputPath);
+        io.writeTofile(projectURL + "," + bigCommitSet.toString() + "/" + commitSET.size() + "\n", historyDirPath + "bigCommit.txt");
 
         System.out.println("write to file:" + outputPath);
 
+    }
+
+    public static HashSet<String> getCommitSet(String after_Date, String projectURL, String project_cloneDir, ArrayList<String> branchList, boolean hasConstraintOnNumOfCommits) {
+        HashSet<String> commitSET = new HashSet<>();
+        IO_Process io = new IO_Process();
+        for (String br : branchList) {
+            System.out.println("getting commits from branch " + br);
+            List<String> shaList = io.getCommitInBranch(br, after_Date, project_cloneDir);
+
+            /** check author is core team member **/
+            ArrayList<String> external_shaList = io.getExternalShaList(shaList, projectURL);
+
+            commitSET.addAll(external_shaList);
+            System.out.println(commitSET.size() + " commits for now");
+
+            if (hasConstraintOnNumOfCommits && commitSET.size() > num_latestCommit) {
+                break;
+            }
+        }
+        return commitSET;
     }
 
 

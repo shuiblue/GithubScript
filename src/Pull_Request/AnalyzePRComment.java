@@ -1,7 +1,9 @@
 package Pull_Request;
 
+import Pull_Request.Merge_PR_Status.GetMergedPR;
 import Util.IO_Process;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -13,7 +15,7 @@ import java.util.List;
 
 public class AnalyzePRComment {
 
-    static String working_dir, output_dir;
+    static String working_dir, output_dir,clone_dir,timeline_dir;
     static String myUrl, user, pwd;
 
     AnalyzePRComment() {
@@ -23,10 +25,11 @@ public class AnalyzePRComment {
             String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
             working_dir = paramList[0];
             output_dir = working_dir + "ForkData/";
+            clone_dir = output_dir + "clones/";
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
-
+            timeline_dir = output_dir + "shurui_timeline.cache/";
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -47,9 +50,207 @@ public class AnalyzePRComment {
 
 //        detectDuplicateRelatedComments(repos);
 
-        calculatePRCommentLength(repos);
+//        calculatePRCommentLength(repos);
+//        calculatePRCommentLength_fromTimeline(repos);
+        calculatePRCommentLength_fromTimeline_new(repos);
+    }
+
+    private static void calculatePRCommentLength_fromTimeline_new(String[] repos) {
+        AnalyzePRComment analyzePRComment = new AnalyzePRComment();
+        HashMap<Integer, HashSet<Integer>> PR_set = analyzePRComment.getPR_noCommentParticipantsAnalysis();
+        PR_set.forEach((projectID, prSet) -> {
+            analyzePRComment.checkCommentsAndParticipants(projectID, prSet);
+        });
 
     }
+
+    private void checkCommentsAndParticipants(Integer projectID, HashSet<Integer> prSet) {
+        IO_Process io = new IO_Process();
+        String projectURL = io.getRepoUrlByID(projectID);
+        if (projectURL.equals("")) return;
+        String insert_query_1 = " UPDATE fork.Pull_Request" +
+                " SET num_comments_before_close = ? , num_comments_after_close = ? ,num_participants_before_close = ? , num_participants_after_close = ?  " +
+                "WHERE projectID = ? AND pull_request_ID=? ";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
+            conn.setAutoCommit(false);
+            final int[] count = {0};
+            for (int pr_id: prSet) {
+                System.out.println(projectURL + " , pr " + pr_id);
+
+                String timeline_file = timeline_dir + "get_pr_timeline." + projectURL.replace("/", ".") + "_" + pr_id + ".csv";
+//        String timeline_file = "/Users/shuruiz/Work/get_pr_timeline.twbs.bootstrap_3072.csv";
+                if (new File(timeline_file).exists()) {
+
+                    List<List<String>> rows = io.readCSV(timeline_file);
+
+
+                    HashSet<String> participants = new HashSet<>();
+                    int num_comments = 0;
+                    int num_comments_before_close = 0;
+                    int num_comments_after_close;
+
+
+                    int num_participants_before_close = 0;
+                    int num_participants_after_close;
+                    boolean hasCloseEvent = false;
+                    for (int i = 1; i < rows.size() - 1; i++) {
+                        List<String> line = rows.get(i);
+                        if (line.size() > 9) {
+                            String event = line.get(9);
+                            String loginID = line.get(2);
+                            participants.add(loginID);
+                            if (event.equals("closed")) {
+                                hasCloseEvent = true;
+                                num_comments_before_close = num_comments;
+                                num_participants_before_close = participants.size();
+                            } else if (event.equals("commented")) {
+                                num_comments++;
+                            }
+
+                        }
+                    }
+
+                    if (!hasCloseEvent) {
+                        num_comments_before_close = num_comments;
+                        num_participants_before_close = participants.size();
+                    }
+                    num_comments_after_close = num_comments;
+                    num_participants_after_close = participants.size();
+                    try {
+                        preparedStmt.setInt(1, num_comments_before_close);
+                        preparedStmt.setInt(2, num_comments_after_close);
+                        preparedStmt.setInt(3, num_participants_before_close);
+                        preparedStmt.setInt(4, num_participants_after_close);
+
+                        preparedStmt.setInt(5, projectID);
+                        preparedStmt.setInt(6, pr_id);
+                        System.out.println(projectURL + "," + pr_id + "," + num_comments_before_close + "," + num_comments_after_close + ","
+                                + num_participants_before_close + "," + num_participants_after_close + ",");
+                        preparedStmt.addBatch();
+                        int batchSize = 100;
+                        if (++count[0] % batchSize == 0) {
+                            System.out.println("update  " + count[0] + "comments from repo" + projectURL);
+                            io.executeQuery(preparedStmt);
+                            conn.commit();
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                }else {
+                    io.writeTofile(projectURL + "," + pr_id + "\n", output_dir + "miss_timeline.txt");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            io.deleteDir(new File(clone_dir + projectURL));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    private static void calculatePRCommentLength_fromTimeline(String[] repos) {
+
+        IO_Process io = new IO_Process();
+        final int[] count = {0};
+        for (String projectUrl : repos) {
+            int projectID = io.getRepoId(projectUrl);
+
+            String insert_query_1 = " UPDATE fork.Pull_Request" +
+                    " SET num_comments_before_close = ? , num_comments_after_close = ? ,num_participants_before_close = ? , num_participants_after_close = ?  " +
+                    "WHERE projectID = ? AND pull_request_ID=? ";
+            try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                 PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
+                conn.setAutoCommit(false);
+
+                Files.newDirectoryStream(Paths.get(output_dir + "shurui_timeline.cache/"), path -> path.toFile().isFile())
+                        .forEach(file -> {
+                                    String file_name = file.getFileName().toString();
+                                    if ((file_name.startsWith("get_pr_timeline"))
+                                            && file_name.contains(projectUrl.replace("/", ".") + "_")) {
+                                        System.out.println(file_name);
+                                        String[] arr = file_name.split("_");
+                                        String prID_str = arr[arr.length - 1].replace(".csv", "").replace(".0", "").replaceAll("\\D+","");;
+                                        if (prID_str.equals("")) {
+                                            return;
+                                        }
+                                        int pr_id = Integer.parseInt(prID_str);
+                                        List<List<String>> rows = io.readCSV(file.toFile());
+
+                                        HashSet<String> participants = new HashSet<>();
+                                        int num_comments = 0;
+                                        int num_comments_before_close = 0;
+                                        int num_comments_after_close;
+
+
+                                        int num_participants_before_close = 0;
+                                        int num_participants_after_close;
+                                        boolean hasCloseEvent = false;
+                                        for (int i = 1; i < rows.size() - 1; i++) {
+                                            List<String> line = rows.get(i);
+                                            if (line.size() > 9) {
+                                                String event = line.get(9);
+                                                String loginID = line.get(2);
+                                                participants.add(loginID);
+                                                if (event.equals("closed")) {
+                                                    hasCloseEvent = true;
+                                                    num_comments_before_close = num_comments;
+                                                    num_participants_before_close = participants.size();
+                                                } else if (event.equals("commented")) {
+                                                    num_comments++;
+                                                }
+
+                                            }
+                                        }
+
+                                        if (!hasCloseEvent) {
+                                            num_comments_before_close = num_comments;
+                                            num_participants_before_close = participants.size();
+                                        }
+                                        num_comments_after_close = num_comments;
+                                        num_participants_after_close = participants.size();
+                                        try {
+                                            preparedStmt.setInt(1, num_comments_before_close);
+                                            preparedStmt.setInt(2, num_comments_after_close);
+                                            preparedStmt.setInt(3, num_participants_before_close);
+                                            preparedStmt.setInt(4, num_participants_after_close);
+
+                                            preparedStmt.setInt(5, projectID);
+                                            preparedStmt.setInt(6, pr_id);
+                                            System.out.println(projectUrl + "," + pr_id + "," + num_comments_before_close + "," + num_comments_after_close + ","
+                                                    + num_participants_before_close + "," + num_participants_after_close + ",");
+                                            preparedStmt.addBatch();
+                                            int batchSize = 100;
+                                            if (++count[0] % batchSize == 0) {
+                                                System.out.println("update  " + count[0] + "comments from repo" + projectUrl);
+                                                io.executeQuery(preparedStmt);
+                                                conn.commit();
+                                            }
+                                        } catch (SQLException e) {
+                                            e.printStackTrace();
+                                        }
+
+                                    }
+                                }
+                        );
+                if (count[0] > 0) {
+                    io.executeQuery(preparedStmt);
+                    conn.commit();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+
+        }
+    }
+
 
     private static void calculatePRCommentLength(String[] repos) {
 
@@ -76,20 +277,20 @@ public class AnalyzePRComment {
                                         List<List<String>> rows = io.readCSV(file.toFile());
 
 
-                                            try {
-                                                preparedStmt.setInt(1, rows.size());
-                                                preparedStmt.setInt(2, projectID);
-                                                preparedStmt.setInt(3, pr_id);
-                                                preparedStmt.addBatch();
-                                                int batchSize = 100;
-                                                if (++count[0] % batchSize == 0) {
-                                                    System.out.println("update  " + count[0] + "comments from repo" + projectUrl);
-                                                    io.executeQuery(preparedStmt);
-                                                    conn.commit();
-                                                }
-                                            } catch (SQLException e) {
-                                                e.printStackTrace();
+                                        try {
+                                            preparedStmt.setInt(1, rows.size());
+                                            preparedStmt.setInt(2, projectID);
+                                            preparedStmt.setInt(3, pr_id);
+                                            preparedStmt.addBatch();
+                                            int batchSize = 100;
+                                            if (++count[0] % batchSize == 0) {
+                                                System.out.println("update  " + count[0] + "comments from repo" + projectUrl);
+                                                io.executeQuery(preparedStmt);
+                                                conn.commit();
                                             }
+                                        } catch (SQLException e) {
+                                            e.printStackTrace();
+                                        }
 
                                     }
                                 }
@@ -210,6 +411,32 @@ public class AnalyzePRComment {
             e.printStackTrace();
         }
         return repo_issue_map;
+
+    }
+
+    public HashMap<Integer,HashSet<Integer>> getPR_noCommentParticipantsAnalysis() {
+
+        HashMap<Integer, HashSet<Integer>>  PR_set = new HashMap<>();
+        String query = "SELECT projectID,pull_request_ID\n" +
+                "FROM Pull_Request\n"+
+                "WHERE num_comments_before_close is null; ";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                int projectID = rs.getInt(1);
+                int pr_ID = rs.getInt(2);
+                HashSet<Integer> prSet = new HashSet<>();
+                if (PR_set.get(projectID) != null) {
+                    prSet = PR_set.get(projectID);
+                }
+                prSet.add(pr_ID);
+                PR_set.put(projectID, prSet);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return PR_set;
 
     }
 

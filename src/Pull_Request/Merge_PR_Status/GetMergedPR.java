@@ -62,10 +62,10 @@ public class GetMergedPR {
 
     public static void main(String[] args) {
         GetMergedPR getMergedPR = new GetMergedPR();
-//        HashMap<Integer, HashSet<Integer>> rejectedPR = getMergedPR.getClosedPR();
-//        rejectedPR.forEach((projectID, prSet) -> {
-//            getMergedPR.checkPRstatus(projectID, prSet);
-//        });
+        HashMap<Integer, HashSet<Integer>> rejectedPR = getMergedPR.getClosedPR();
+        rejectedPR.forEach((projectID, prSet) -> {
+            getMergedPR.checkPRstatus(projectID, prSet);
+        });
 
 
     }
@@ -213,11 +213,6 @@ public class GetMergedPR {
 
 
     public void getEachPR(String projectURL, int pr) {
-//        projectURL = "twbs/bootstrap";
-//        pr = 8;
-//        docker/docker,24731
-//        docker/docker,8348
-
         System.out.println(projectURL + " , pr " + pr);
 
         IO_Process io = new IO_Process();
