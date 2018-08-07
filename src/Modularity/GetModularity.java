@@ -20,7 +20,6 @@ public class GetModularity {
 
 
     static boolean timeConstraint = false;
-    static boolean commitNumConstraint = true;
 
     public GetModularity() {
         IO_Process io = new IO_Process();
@@ -31,7 +30,7 @@ public class GetModularity {
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
             clone_dir = output_dir + "clones/";
-            historyDirPath = output_dir + "comithis_100/";
+            historyDirPath = output_dir + "comithis_new/";
             resultDirPath = output_dir + "result/";
             myUrl = paramList[1];
             user = paramList[2];
@@ -63,7 +62,7 @@ public class GetModularity {
 
             if (timeConstraint) {
                 calculateModularityByTimeConstraint(projectURL);
-            } else if (commitNumConstraint) {
+            } else if (hasConstraintOnNumOfCommits) {
                 calculateModularityByNumOfCommits(projectURL);
             }
 
@@ -150,9 +149,15 @@ public class GetModularity {
         /**  get all the branches **/
         String cmd_getOringinBranch = "git branch -a --list origin*";
         String[] branchList_array = io.exeCmd(cmd_getOringinBranch.split(" "), project_cloneDir).split("\n");
+
         ArrayList<String> branchList = new ArrayList<>();
+        String cmd_getDefaultBranch = "git symbolic-ref --short HEAD";
+        String defaultBranch = io.exeCmd(cmd_getDefaultBranch.split(" "), project_cloneDir).trim();
+
+        branchList.add(defaultBranch);
+
         for (String br : branchList_array) {
-            if (!br.contains("HEAD")) {
+            if (!br.contains("HEAD") && !br.contains("origin/" + defaultBranch)) {
                 branchList.add(br.trim());
             }
         }
@@ -282,7 +287,7 @@ public class GetModularity {
                 + (filesTotal * filesTotal - filesTotal) + " , " + total_commit + " unique commits in total, all branches has " + total_commit + " commits , files in total: " + fileList.size() + "\n------\n");
 
         io.writeTofile(projectURL + "," + modularity * 100 + "," + total_commit + "," + filesTotal + "\n", outputPath);
-        io.writeTofile(projectURL + "," + bigCommitSet.toString() + "/" + commitSET.size() + "\n", historyDirPath + "bigCommit.txt");
+        io.writeTofile(projectURL + "," + bigCommitSet.size() + "/" + commitSET.size() + "," + bigCommitSet.toString() + "\n", historyDirPath + "bigCommit.txt");
 
         System.out.println("write to file:" + outputPath);
 
@@ -296,7 +301,7 @@ public class GetModularity {
             List<String> shaList = io.getCommitInBranch(br, after_Date, project_cloneDir);
 
             /** check author is core team member **/
-            ArrayList<String> external_shaList = io.getExternalShaList(shaList, projectURL);
+            ArrayList<String> external_shaList = io.getExternalShaList(shaList, projectURL, num_latestCommit - commitSET.size());
 
             commitSET.addAll(external_shaList);
             System.out.println(commitSET.size() + " commits for now");

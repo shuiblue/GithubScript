@@ -1653,7 +1653,7 @@ public class IO_Process {
     }
 
 
-    public ArrayList<String> getExternalShaList(List<String> shaList, String projectURL) {
+    public ArrayList<String> getExternalShaList(List<String> shaList, String projectURL, int num_latestCommit) {
         ArrayList<String> externalCommitList = new ArrayList<>();
 
         QueryDataFromGithubAPI queryDataFromGithubAPI = new QueryDataFromGithubAPI();
@@ -1663,14 +1663,22 @@ public class IO_Process {
 
         for (String sha : shaList) {
             String loginID = queryDataFromGithubAPI.getGithubLoginID(sha, projectURL);
+            if (loginID.equals("authorIsNull")) {
+                externalCommitList.add(sha);
+                continue;
+            }
             if (!coreTeamList.contains(loginID)) {
                 if (!loginID.contains("bot")) {
                     externalCommitList.add(sha);
-                }else{
-                    System.out.println(  loginID + " is bot ... ");
+                } else {
+                    System.out.println(loginID + " is bot ... ");
                 }
             } else {
                 System.out.println(projectURL + " " + loginID + " is core ");
+            }
+
+            if (externalCommitList.size() > num_latestCommit) {
+                return externalCommitList;
             }
         }
         return externalCommitList;

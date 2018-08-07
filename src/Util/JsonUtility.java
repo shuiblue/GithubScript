@@ -14,20 +14,15 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 public class JsonUtility {
-//    static String[] token;
-//    Util.JsonUtility(){
-//        Util.IO_Process io = new Util.IO_Process();
-//        String result_dir = "/Users/shuruiz/Box Sync/GithubScript-New/result/";
-//        try {
-//            token = io.readResult(result_dir + "/tokenArray.txt").split("\n");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+    static List<String> token;
+
 
     public static String json = "{ \"id\": 01, \"language\": \"Java\", \"edition\": \"third\", \"author\": \"Herbert Schildt\", \"chapters\": [\"chapter 1\",\"chapter 2\",\"chapter 3\"] }";
 
@@ -94,8 +89,10 @@ public class JsonUtility {
                     }
                 }
                 return json_block_array;
-            }else{
-                return  new ArrayList<>();
+            } else {
+
+
+                return new ArrayList<>();
             }
 
 
@@ -118,9 +115,9 @@ public class JsonUtility {
     public static void main(String args[]) {
         JsonUtility utility = new JsonUtility();
         ArrayList<String> json_block_array = new ArrayList<>();
-       IO_Process io = new IO_Process();
+        IO_Process io = new IO_Process();
         try {
-          String json_string =  io.readResult("/Users/shuruiz/Box Sync/queryGithub/timscaffidi/ofxVideoRecorder/pr.txt");
+            String json_string = io.readResult("/Users/shuruiz/Box Sync/queryGithub/timscaffidi/ofxVideoRecorder/pr.txt");
             if (!json_string.equals("[]")) {
                 if (json_string.startsWith("[")) {
                     if (json_string.contains(",{")) {

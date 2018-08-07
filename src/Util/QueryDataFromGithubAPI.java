@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 public class QueryDataFromGithubAPI {
     static String github_api_repo = "https://api.github.com/repos/";
@@ -117,7 +118,7 @@ public class QueryDataFromGithubAPI {
         StringBuilder sb = new StringBuilder();
         String[] forkArray = {};
         try {
-            forkArray = io.readResult(output_dir+"result/" + repo_url + "/all_ActiveForklist.txt").split("\n");
+            forkArray = io.readResult(output_dir + "result/" + repo_url + "/all_ActiveForklist.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -130,15 +131,30 @@ public class QueryDataFromGithubAPI {
             }
         }
 
-        io.rewriteFile(sb.toString(), output_dir+"result/"  + repo_url + "/ActiveForklist.txt");
+        io.rewriteFile(sb.toString(), output_dir + "result/" + repo_url + "/ActiveForklist.txt");
     }
 
 
     public String getGithubLoginID(String sha, String projectURL) {
-        String commitURL = github_api_repo + projectURL + "/commits/" + sha;
-        ArrayList<String> commitJson = new JsonUtility().readUrl(commitURL + "?access_token=" + token);
-        JSONObject fork_jsonObj = new JSONObject(commitJson.get(0));
-        return (String) ((JSONObject) fork_jsonObj.get("author")).get("login");
+        JsonUtility jsonReader = new JsonUtility();
+        String commitURL = github_api_repo + projectURL + "/commits/" + sha + "?access_token=" + token;
+        ArrayList<String> commitJson = jsonReader.readUrl(commitURL);
 
+
+        JSONObject fork_jsonObj = new JSONObject(commitJson.get(0));
+        if(!fork_jsonObj.get("author").toString().equals("null")){
+            return (String) ((JSONObject) fork_jsonObj.get("author")).get("login");
+        }else{
+            return "authorIsNull";
+        }
+
+
+    }
+
+
+    public static void main(String[] args) {
+        System.out.println(new QueryDataFromGithubAPI().getGithubLoginID( "cbaf7a7b79c78ec7d877f348d12102acde6adfa0","twbs/bootstrap"));
+        System.out.println(new QueryDataFromGithubAPI().getGithubLoginID( "1ea63d131279884ab3729111f22b455205eed6e7","twbs/bootstrap"));
+        System.out.println(new QueryDataFromGithubAPI().getGithubLoginID( "6cd67779434501eed6aea4ae62f2e4499e37702e","twbs/bootstrap"));
     }
 }
