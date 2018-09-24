@@ -13,7 +13,7 @@ import java.util.*;
 
 
 public class GraphBasedAnalyzer {
-    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir;
+    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir,result_dir;
     static String myUrl, user, pwd;
     static String myDriver = "com.mysql.jdbc.Driver";
     final int batchSize = 100;
@@ -34,8 +34,10 @@ public class GraphBasedAnalyzer {
             working_dir = paramList[0];
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
+            result_dir = output_dir + "result0821/";
+
             clone_dir = output_dir + "clones/";
-            graph_dir = output_dir + "Commit.Commit.ClassifyCommit/";
+            graph_dir = output_dir + "ClassifyCommit_new/";
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
@@ -81,32 +83,37 @@ public class GraphBasedAnalyzer {
 
             HashSet<String> activeForkList;
             if (getActiveForksFromAPI) {
-                File all_activeFork = new File(output_dir + "/result/" + projectUrl + "/all_ActiveForklist.txt");
+                String allActiveList = result_dir + projectUrl + "/all_ActiveForklist.txt";
+                File all_activeFork = new File(allActiveList);
 
-                if (!all_activeFork.exists()) {
-                    /**  get active forks using github api **/
-                    String all_activeForkList = queryDataFromGithubAPI.getActiveForkList(projectUrl, hasTimeConstraint);
-                    io.rewriteFile(all_activeForkList, output_dir + "result/" + projectUrl + "/all_ActiveForklist.txt");
+                try {
+                    if (!all_activeFork.exists() || (all_activeFork.exists() && !io.readResult(allActiveList).trim().equals(""))) {
+                        /**  get active forks using github api **/
+                          queryDataFromGithubAPI.getActiveForkList(projectUrl, hasTimeConstraint,projectUrl);
+
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
 
                 String all_activeForkList = "";
                 /**  randomize forks from active_fork_list **/
                 try {
-                    all_activeForkList = io.readResult(output_dir + "result/" + projectUrl + "/all_ActiveForklist.txt");
+                    all_activeForkList = io.readResult(result_dir + projectUrl + "/all_ActiveForklist.txt");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
                 if (all_activeForkList.split("\n").length <= maxAnalyzedForkNum) {
-                    io.rewriteFile(all_activeForkList, output_dir + "result/" + projectUrl + "/ActiveForklist.txt");
+                    io.rewriteFile(all_activeForkList, result_dir + projectUrl + "/ActiveForklist.txt");
                 } else {
-//                        io.rewriteFile(all_activeForkList, output_dir + "/result/" + projectUrl + "/all_ActiveForklist.txt");
+//                        io.rewriteFile(all_activeForkList, result_dir + projectUrl + "/all_ActiveForklist.txt");
                     System.out.println("randomly pick " + maxAnalyzedForkNum + " active forks...");
                     queryDataFromGithubAPI.getRamdomForks(projectUrl, maxAnalyzedForkNum);
                 }
 
                 try {
-                    select_activeForkList.addAll(Arrays.asList(io.readResult(output_dir + "result/" + projectUrl + "/ActiveForklist.txt").split("\n")));
+                    select_activeForkList.addAll(Arrays.asList(io.readResult(result_dir + projectUrl + "/ActiveForklist.txt").split("\n")));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

@@ -46,13 +46,13 @@ public class AddCoreTeam {
         IO_Process io = new IO_Process();
         String[] result = {};
         try {
-            result = io.readResult(output_dir + "coreTeam0805.txt").split("\n");
+            result = io.readResult(output_dir + "coreTeam0809.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
         int count = 0;
         String query = "UPDATE coreTeam\n" +
-                "SET num_coreTeamMember = ?, memberList = ? " +
+                "SET new_num_coreTeamMember = ?, new_memberList = ? " +
                 "WHERE projectID = ? ";
         try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn1.prepareStatement(query)) {

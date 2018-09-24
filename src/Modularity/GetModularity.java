@@ -1,7 +1,10 @@
 package Modularity;
 
 import Util.IO_Process;
+import Util.JsonUtility;
+import Util.QueryDatabase;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,7 +13,7 @@ import java.time.ZonedDateTime;
 import java.util.*;
 
 public class GetModularity {
-    static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath, resultDirPath;
+    static String working_dir, pr_dir, output_dir, clone_dir, historyDirPath, resultDirPath, token;
     static String myUrl, user, pwd;
     static HashSet<String> stopFileSet = new HashSet<>();
     static boolean[] filterOutStopFile = {true, false};
@@ -36,6 +39,8 @@ public class GetModularity {
             user = paramList[2];
             pwd = paramList[3];
             stopFileSet.addAll(Arrays.asList(io.readResult(current_dir + "/input/StopFiles.txt").split("\n")));
+
+            token = io.readResult(current_dir + "/input/token.txt").trim();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -76,10 +81,8 @@ public class GetModularity {
     }
 
     private static void calculateModularityByNumOfCommits(String projectURL) {
-        for (boolean b : filterOutStopFile) {
-            System.out.println("calculating modularity for " + projectURL + " filter out stop file -- " + b);
-            measureModularity(projectURL, 50, b, 10);
-        }
+        measureModularity(projectURL, 50, 10);
+
     }
 
     private static void calculateModularityByTimeConstraint(String projectURL) {
@@ -116,7 +119,7 @@ public class GetModularity {
 //                    while (threshold < 100) {
                 for (int year = 1; year <= firstCommitCreatedAt + 1; year++) {
                     System.out.println("analyzing repo: " + projectURL + ", threshold is " + threshold + "，within " + year + " years");
-                    measureModularity(projectURL, 50, b, 10);
+//                    measureModularity(projectURL, 50, b, 10);
                 }
                 threshold += 20;
             }
@@ -133,18 +136,11 @@ public class GetModularity {
      * @throws IOException
      * @throws GitAPIException
      */
-    public static void measureModularity(String projectURL, int threshold, boolean filterOutStopFile, int within_year) {
+    public static void measureModularity(String projectURL, int threshold, int within_year) {
         IO_Process io = new IO_Process();
         HashSet<String> bigCommitSet = new HashSet<>();
         String after_Date = ZonedDateTime.now(ZoneOffset.UTC).minusYears(within_year).toInstant().toString();
         String project_cloneDir = clone_dir + projectURL + "/";
-        String fileScope = "allfile";
-        if (filterOutStopFile) {
-            fileScope = "noStopFile";
-        }
-
-        String outputFileName = projectURL.replace("/", "~") + "_" + threshold + "_" + within_year + "_year_" + fileScope;
-        String outputPath = historyDirPath + outputFileName + ".txt";
 
         /**  get all the branches **/
         String cmd_getOringinBranch = "git branch -a --list origin*";
@@ -162,61 +158,70 @@ public class GetModularity {
             }
         }
 
-        /** get commit from all branches **/
-        HashSet<String> commitSET = getCommitSet(after_Date, projectURL, project_cloneDir, branchList, hasConstraintOnNumOfCommits);
+        /** get external commit from github api **/
+        List<String> commitSET = getExternalCommit(projectURL);
 
-        /** analyze commit in each branch **/
-        HashSet<String> allFileSet = new HashSet<>();
-        ArrayList<HashSet<String>> changedFilePair_Set = new ArrayList<>();
+        for (boolean filterOutStopFile : filterOutStopFile) {
+            String fileScope = "allfile";
+            if (filterOutStopFile) {
+                fileScope = "noStopFile";
+            }
+            String outputFileName = projectURL.replace("/", "~") + "_" + threshold + "_" + within_year + "_year_" + fileScope;
+            String outputPath = historyDirPath + outputFileName + ".txt";
+            System.out.println("calculating modularity for " + projectURL + " -- " + fileScope);
 
-        HashSet<String> analyzedSHA = new HashSet<>();
-        for (String sha : commitSET) {
-            if (hasConstraintOnNumOfCommits && analyzedSHA.size() > num_latestCommit) {
-                break;
-            }
-            if (analyzedSHA.contains(sha)) {
-                System.out.println("same sha , pass ");
-                continue;
-            }
-            analyzedSHA.add(sha);
-            ArrayList<String> changedFiles = io.getChangedFileStatus_ofCommit_FromCMD(sha, projectURL);
-            HashSet<String> commit_fileSet = new HashSet<>();
-            if (changedFiles.size() <= threshold) {
-                for (String file : changedFiles) {
-                    if (!file.equals("")) {
-                        String[] arr = file.split("\t");
-                        String status = arr[0];
-                        String fileName = arr[1];
-                        if (status.equals("A") || status.equals("M")) {
-                            if ((filterOutStopFile && io.isSourceCode(fileName)) || !filterOutStopFile) {
-//                                if ((filterOutStopFile && !io.isStopFile(fileName)) || !filterOutStopFile) {
-                                commit_fileSet.add(fileName);
+            /** analyze commit in each branch **/
+            HashSet<String> allFileSet = new HashSet<>();
+            ArrayList<HashSet<String>> changedFilePair_Set = new ArrayList<>();
+            int count_analyzedCommit = 0;
+
+            System.out.println("analyzing each commit...");
+            for (String sha : commitSET) {
+                if (count_analyzedCommit == num_latestCommit) {
+                    System.out.println(count_analyzedCommit + " commit analyzed");
+                    break;
+                }
+                ArrayList<String> changedFiles = io.getChangedFileStatus_ofCommit_FromCMD(sha, projectURL);
+                HashSet<String> commit_fileSet = new HashSet<>();
+                if (changedFiles.size() <= threshold) {
+
+
+                    for (String file : changedFiles) {
+                        if (!file.equals("")) {
+                            String[] arr = file.split("\t");
+                            String status = arr[0];
+                            String fileName = arr[1];
+                            if (status.equals("A") || status.equals("M")) {
+                                if ((filterOutStopFile && io.isSourceCode(fileName)) || !filterOutStopFile) {
+                                    commit_fileSet.add(fileName);
+                                }
+                                allFileSet.addAll(commit_fileSet);
                             }
-                            allFileSet.addAll(commit_fileSet);
                         }
                     }
-                }
 
-                if (commit_fileSet.size() == 1) {
-                    changedFilePair_Set.add(commit_fileSet);
-                } else if (commit_fileSet.size() > 1) {
-                    HashSet<HashSet<String>> pairs = io.getAllPairs_string(commit_fileSet);
-                    changedFilePair_Set.addAll(pairs);
+                    if (commit_fileSet.size() == 1) {
+                        changedFilePair_Set.add(commit_fileSet);
+                    } else if (commit_fileSet.size() > 1) {
+                        HashSet<HashSet<String>> pairs = io.getAllPairs_string(commit_fileSet);
+                        changedFilePair_Set.addAll(pairs);
+                    }
+
+                    count_analyzedCommit++;
+                } else {
+                    bigCommitSet.add(sha);
                 }
-            } else {
-                bigCommitSet.add(sha);
             }
-        }
 
 
-        ArrayList<String> fileList = new ArrayList<>();
-        fileList.addAll(allFileSet);
-        if (filterOutStopFile) {
-            fileList.removeAll(stopFileSet);
-        }
+            ArrayList<String> fileList = new ArrayList<>();
+            fileList.addAll(allFileSet);
+            if (filterOutStopFile) {
+                fileList.removeAll(stopFileSet);
+            }
 
 
-        /** generating graph, node--file, edge -- co-changed relation */
+            /** generating graph, node--file, edge -- co-changed relation */
 //        StringBuilder sb = new StringBuilder();
 //        sb.append("*Vertices " + fileList.size() + "\n");
 //        for (int i = 1; i <= fileList.size(); i++) {
@@ -225,76 +230,75 @@ public class GetModularity {
 //        sb.append("*Arcs\n");
 
 
-        /**  init support matrix **/
-        System.out.println(" init support matrix");
-        float[][] support_matrix = new float[fileList.size()][fileList.size()];
-        for (int i = 0; i < fileList.size(); i++) {
-            for (int j = 0; j < fileList.size(); j++) {
-                support_matrix[i][j] = 0;
-            }
-        }
-
-
-        System.out.println(" FileList size " + fileList.size());
-        System.out.println(" support matrix, changed file set size: " + changedFilePair_Set.size());
-        for (HashSet<String> co_changedFiles : changedFilePair_Set) {
-            List<String> list = new ArrayList<>();
-            if (filterOutStopFile) {
-                co_changedFiles.removeAll(stopFileSet);
-            }
-
-            if (co_changedFiles.size() > 0) {
-                list.addAll(co_changedFiles);
-                String a = list.get(0);
-                int index_a = fileList.indexOf(a);
-                if (co_changedFiles.size() == 2) {
-                    String b = list.get(1);
-                    int index_b = fileList.indexOf(b);
-                    support_matrix[index_a][index_b] += 1;
-                    support_matrix[index_b][index_a] += 1;
-                    support_matrix[index_a][index_a] += 1;
-                    support_matrix[index_b][index_b] += 1;
-
-
-                    /** generating graph, node--file, edge -- co-changed relation */
-//                sb.append((index_a + 1) + "," + (index_b + 1) + "\n");
-                } else if (co_changedFiles.size() == 1) {
-                    support_matrix[index_a][index_a] += 1;
+            /**  init support matrix **/
+            System.out.println(" init support matrix");
+            float[][] support_matrix = new float[fileList.size()][fileList.size()];
+            for (int i = 0; i < fileList.size(); i++) {
+                for (int j = 0; j < fileList.size(); j++) {
+                    support_matrix[i][j] = 0;
                 }
             }
 
-        }
+
+            System.out.println(" FileList size " + fileList.size());
+            System.out.println(" support matrix, changed file set size: " + changedFilePair_Set.size());
+            for (HashSet<String> co_changedFiles : changedFilePair_Set) {
+                List<String> list = new ArrayList<>();
+                if (filterOutStopFile) {
+                    co_changedFiles.removeAll(stopFileSet);
+                }
+
+                if (co_changedFiles.size() > 0) {
+                    list.addAll(co_changedFiles);
+                    String a = list.get(0);
+                    int index_a = fileList.indexOf(a);
+                    if (co_changedFiles.size() == 2) {
+                        String b = list.get(1);
+                        int index_b = fileList.indexOf(b);
+                        support_matrix[index_a][index_b] += 1;
+                        support_matrix[index_b][index_a] += 1;
+                        support_matrix[index_a][index_a] += 1;
+                        support_matrix[index_b][index_b] += 1;
+
+
+                        /** generating graph, node--file, edge -- co-changed relation */
+//                sb.append((index_a + 1) + "," + (index_b + 1) + "\n");
+                    } else if (co_changedFiles.size() == 1) {
+                        support_matrix[index_a][index_a] += 1;
+                    }
+                }
+
+            }
 /** generating graph, node--file, edge -- co-changed relation */
 //        /** generating graph, node--file, edge -- co-changed relation */
 //        io.rewriteFile(sb.toString(), historyDirPath + projectURL + "/CoChangedFileGraph.pajek.net");
 
 
-        System.out.println(" confidence matrix");
-        int count_bigger_than_zero = 0;
-        for (int i = 0; i < fileList.size(); i++) {
-            for (int j = 0; j < fileList.size(); j++) {
-                if (i != j && support_matrix[i][j] > 0) {
-                    count_bigger_than_zero++;
+            System.out.println(" confidence matrix");
+            int count_bigger_than_zero = 0;
+            for (int i = 0; i < fileList.size(); i++) {
+                for (int j = 0; j < fileList.size(); j++) {
+                    if (i != j && support_matrix[i][j] > 0) {
+                        count_bigger_than_zero++;
+                    }
                 }
             }
+
+            int filesTotal = fileList.size();
+            float modularity = (float) count_bigger_than_zero / (filesTotal * filesTotal - filesTotal);
+
+            System.out.println(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
+                    + (filesTotal * filesTotal - filesTotal) + "\n------\n");
+
+            io.writeTofile(projectURL + "," + modularity * 100 + "," + filesTotal + "\n", outputPath);
+            io.writeTofile(projectURL + "," + bigCommitSet.size() + "/" + count_analyzedCommit + "," + bigCommitSet.toString() + "\n", historyDirPath + "bigCommit.txt");
+
+            System.out.println("write to file:" + outputPath);
         }
-
-        int filesTotal = fileList.size();
-        float modularity = (float) count_bigger_than_zero / (filesTotal * filesTotal - filesTotal);
-
-        int total_commit = commitSET.size();
-        System.out.println(projectURL + " modularity: " + modularity * 100 + " %  = " + count_bigger_than_zero + " / "
-                + (filesTotal * filesTotal - filesTotal) + " , " + total_commit + " unique commits in total, all branches has " + total_commit + " commits , files in total: " + fileList.size() + "\n------\n");
-
-        io.writeTofile(projectURL + "," + modularity * 100 + "," + total_commit + "," + filesTotal + "\n", outputPath);
-        io.writeTofile(projectURL + "," + bigCommitSet.size() + "/" + commitSET.size() + "," + bigCommitSet.toString() + "\n", historyDirPath + "bigCommit.txt");
-
-        System.out.println("write to file:" + outputPath);
-
     }
 
-    public static HashSet<String> getCommitSet(String after_Date, String projectURL, String project_cloneDir, ArrayList<String> branchList, boolean hasConstraintOnNumOfCommits) {
-        HashSet<String> commitSET = new HashSet<>();
+    public static List<String> getCommitSet(String after_Date, String projectURL, String project_cloneDir, ArrayList<String> branchList, boolean hasConstraintOnNumOfCommits) {
+        List<String> commitSET = new ArrayList<>();
         IO_Process io = new IO_Process();
         for (String br : branchList) {
             System.out.println("getting commits from branch " + br);
@@ -313,5 +317,47 @@ public class GetModularity {
         return commitSET;
     }
 
+    private static List<String> getExternalCommit(String projectURL) {
+        List<String> coreTeamList = new QueryDatabase().getCoreTeamList(projectURL);
 
+
+        List<String> externalCommits = new ArrayList<>();
+        String commitURL = "https://api.github.com/repos/" + projectURL + "/commits?access_token=" + token + "&page=";
+        for (int i = 1; i <= 100; i++) {
+
+            JsonUtility jsonUtility = new JsonUtility();
+            ArrayList<String> commits_json = null;
+            try {
+                commits_json = jsonUtility.readUrl(commitURL + i);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if(commits_json.size()==0){
+                break;
+            }
+            for (String commitStr : commits_json) {
+                JSONObject commit_jsonObj = new JSONObject(commitStr);
+                String sha = (String) commit_jsonObj.get("sha");
+
+                if (!commit_jsonObj.get("author").toString().equals("null")&&!commit_jsonObj.get("author").toString().equals("{}")) {
+                    String loginID = (String) ((JSONObject) commit_jsonObj.get("author")).get("login");
+                    if (!coreTeamList.contains(loginID)) {
+                        if (!loginID.contains("bot")) {
+                            externalCommits.add(sha);
+                            System.out.println(externalCommits.size() + " external commits");
+                        } else {
+                            System.out.println(loginID + " is bot ... ");
+                        }
+                    } else {
+                        System.out.println(projectURL + " " + loginID + " is core ");
+                    }
+
+                    if (externalCommits.size() == num_latestCommit + 50) {
+                        return externalCommits;
+                    }
+                }
+            }
+        }
+        return externalCommits;
+    }
 }

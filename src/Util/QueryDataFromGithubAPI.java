@@ -17,7 +17,7 @@ public class QueryDataFromGithubAPI {
     static String github_api_repo = "https://api.github.com/repos/";
     static String github_api_user = "https://api.github.com/users/";
     static String github_api_search = "https://api.github.com/search/";
-    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir, token;
+    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir, token,result_dir;
     static String myUrl, user, pwd;
     static String myDriver = "com.mysql.jdbc.Driver";
     final int batchSize = 100;
@@ -31,6 +31,7 @@ public class QueryDataFromGithubAPI {
             working_dir = paramList[0];
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
+            result_dir = output_dir +"result0821/";
             clone_dir = output_dir + "clones/";
             graph_dir = output_dir + "Commit.Commit.ClassifyCommit/";
             myUrl = paramList[1];
@@ -49,14 +50,14 @@ public class QueryDataFromGithubAPI {
 
     /**
      * This function gets a list of forks of a repository
-     * input: repo_url
+     * input: repo
      * output: fork list
      *
-     * @param repo_url e.g. 'shuiblue/INFOX'
+     * @param repo e.g. 'shuiblue/INFOX'
      */
-    public String getActiveForkList(String repo_url, boolean hasTimeConstraint) {
+    public void getActiveForkList(String repo, boolean hasTimeConstraint,String projectURL) {
 
-        String forkUrl = github_api_repo + repo_url + "/forks?access_token=" + token + "&page=";
+        String forkUrl = github_api_repo + repo + "/forks?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
         StringBuilder sb = new StringBuilder();
         ArrayList<String> forks_has_forks = new ArrayList<>();
@@ -88,12 +89,12 @@ public class QueryDataFromGithubAPI {
                             Date pushed_time = formatter.parse(pushed_at.replaceAll("Z$", "+0000"));
                             if (created_time.before(pushed_time)) {
                                 if (name.length() > 0) {
-                                    sb.append(name + "," + repo_url + "," + created_at + "\n");
+                                    sb.append(name + "," + repo + "," + created_at + "\n");
                                 }
                             }
 
                         } else {
-                            sb.append(name + "," + repo_url + "," + created_at + "\n");
+                            sb.append(name + "," + repo + "," + created_at + "\n");
                         }
                     } catch (ParseException e) {
                         e.printStackTrace();
@@ -102,14 +103,16 @@ public class QueryDataFromGithubAPI {
             } else {
                 break;
             }
+            new IO_Process().writeTofile(sb.toString(), result_dir+ projectURL + "/all_ActiveForklist.txt");
+
         }
 
         for (String fork : forks_has_forks) {
-            sb.append(getActiveForkList(fork, hasTimeConstraint));
+             getActiveForkList(fork, hasTimeConstraint,projectURL);
         }
 
 
-        return sb.toString();
+
     }
 
 
@@ -118,7 +121,7 @@ public class QueryDataFromGithubAPI {
         StringBuilder sb = new StringBuilder();
         String[] forkArray = {};
         try {
-            forkArray = io.readResult(output_dir + "result/" + repo_url + "/all_ActiveForklist.txt").split("\n");
+            forkArray = io.readResult(result_dir + repo_url + "/all_ActiveForklist.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -131,7 +134,7 @@ public class QueryDataFromGithubAPI {
             }
         }
 
-        io.rewriteFile(sb.toString(), output_dir + "result/" + repo_url + "/ActiveForklist.txt");
+        io.rewriteFile(sb.toString(), result_dir + repo_url + "/ActiveForklist.txt");
     }
 
 

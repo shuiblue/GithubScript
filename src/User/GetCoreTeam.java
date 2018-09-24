@@ -39,9 +39,9 @@ public class GetCoreTeam {
 
     public static void main(String[] args) {
         GetCoreTeam getCoreTeam = new GetCoreTeam();
-//        getCoreTeam.getCoreTeamFromTimeline();
+        getCoreTeam.getCoreTeamFromTimeline();
 //
-        getCoreTeam.UpdatePRfromCoreTeam();
+//        getCoreTeam.UpdatePRfromCoreTeam();
 //        getCoreTeam.UpdatePRfromCoreTeamToDeveloperTable();
 //        getCoreTeam.UpdateCoreTeamToFinalTable();
 
@@ -53,7 +53,7 @@ public class GetCoreTeam {
 
         String[] repos = new String[0];
         try {
-            repos = io.readResult(output_dir + "coreTeam.txt").split("\n");
+            repos = io.readResult(output_dir + "coreTeam0811.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -108,7 +108,7 @@ public class GetCoreTeam {
 
         String[] repos = new String[0];
         try {
-            repos = io.readResult(output_dir + "coreTeam.txt").split("\n");
+            repos = io.readResult(output_dir + "coreTeam0811.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -168,7 +168,7 @@ public class GetCoreTeam {
 
         String[] repos = new String[0];
         try {
-            repos = io.readResult(output_dir + "coreTeam0805.txt").split("\n");
+            repos = io.readResult(output_dir + "coreTeam0811.txt").split("\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -261,15 +261,17 @@ public class GetCoreTeam {
                                         System.out.println(file_name);
 
                                         String[] arr = file_name.split("_");
-                                        String issueID_str= arr[arr.length - 1].replace(".csv", "").replaceAll("\\D+","");
-                                        if(issueID_str.equals("")){
+                                        String issueID_str = arr[arr.length - 1].replace(".csv", "").replaceAll("\\D+", "");
+                                        if (issueID_str.equals("")) {
                                             return;
                                         }
                                         int issue_id = Integer.parseInt(issueID_str);
                                         String issue_type = file_name.contains("get_issue_timeline") ? "issue" : "pr";
                                         List<List<String>> rows = io.readCSV(file.toFile());
 
-                                        for (List<String> r : rows) {
+                                        int merge_index = -1;
+                                        for (int index = 0; index < rows.size(); index++) {
+                                            List<String> r = rows.get(index);
                                             if (!r.get(0).equals("") & r.size() > 9) {
                                                 String event_type = r.get(9);
                                                 String closer;
@@ -283,10 +285,31 @@ public class GetCoreTeam {
                                                             HashSet<String> team = coreTeam.get(repo);
                                                             team.add(closer);
                                                             coreTeam.put(repo, team);
+                                                        } else if (index == merge_index + 1) {
+                                                            System.out.println(repo + "  " + event_type + " " + issue_id + " merged by " + closer);
+                                                            HashSet<String> team = coreTeam.get(repo);
+                                                            team.add(closer);
+                                                            coreTeam.put(repo, team);
                                                         }
+
                                                     }
                                                 }
 
+                                                if (event_type.equals("merged")) {
+                                                    merge_index = index;
+                                                }
+                                                if (event_type.equals("commented")) {
+                                                    String commenter = r.get(2);
+                                                    String association = r.get(3);
+                                                    if (association.toUpperCase().equals("MEMBER") ||
+                                                            association.toUpperCase().equals("OWNER") ||
+                                                            association.toUpperCase().equals("COLLABORATOR")) {
+                                                        System.out.println(association + " " + commenter);
+                                                        HashSet<String> team = coreTeam.get(repo);
+                                                        team.add(commenter);
+                                                        coreTeam.put(repo, team);
+                                                    }
+                                                }
 
                                             }
                                         }
@@ -298,15 +321,9 @@ public class GetCoreTeam {
                 e.printStackTrace();
             }
 
-            HashSet<String> memberSet= coreTeam.get(repo);
+            HashSet<String> memberSet = coreTeam.get(repo);
             System.out.println(repo + ", " + coreTeam.get(repo).size() + " core member.");
-            io.writeTofile(repo + "," + memberSet.size() + "," + memberSet.toString() + "\n", output_dir + "coreTeam.txt");
+            io.writeTofile(repo + "," + memberSet.size() + "," + memberSet.toString() + "\n", output_dir + "coreTeam0811.txt");
         }
-
-
-//        coreTeam.forEach((repo, memberSet) -> {
-//            System.out.println(repo + ", " + memberSet.size() + " core member.");
-//            io.writeTofile(repo + "," + memberSet.size() + "," + memberSet.toString() + "\n", output_dir + "coreTeam.txt");
-//        });
     }
 }

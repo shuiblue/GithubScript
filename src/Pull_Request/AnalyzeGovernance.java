@@ -45,18 +45,18 @@ public class AnalyzeGovernance {
 
         /** parsing event, cross reference **/
 //        System.out.println(" analyzing event of pr and issue");
-        parsingPR_ISSUE_Line_byEvent();
+//        parsingPR_ISSUE_Line_byEvent();
 
-//        parsingIssueParticipants_PR_map();
-////
-//
+        parsingIssueParticipants_PR_map();
+
+
         /** analyzing pre-processed csv file **/
-        System.out.println(" insert cross ref to database");
-        insertCrossRefToDatabase();
+//        System.out.println(" insert cross ref to database");
+//        insertCrossRefToDatabase();
 //        System.out.println(" insert user and issue map");
 //        insertRepo_issue_user_map()[;
 //        System.out.println("insert label of pr and issue");
-        insertIssue_label();
+//        insertIssue_label();
 
 //        parsingPR_ISSUE_Line_byEvent(128, "wbond/package_control_channel");
 
@@ -111,6 +111,8 @@ public class AnalyzeGovernance {
                 System.out.println(projectURL);
                 StringBuilder sb = new StringBuilder();
                 for (Integer issue_id : issueSet) {
+                    projectURL = "twbs/bootstrap";
+                    issue_id = 3098;
                     String file_name = passResult_dir + "get_issue_timeline." + projectURL.replace("/", ".") + "_" + issue_id + ".csv";
                     if (new File(file_name).exists()) {
                         String issue_owner = io.getIssueOwner(projectID, issue_id, "ISSUE");
@@ -129,18 +131,16 @@ public class AnalyzeGovernance {
                                     int prID = Integer.parseInt(r.get(10));
                                     String ref_type = r.get(14);
                                     if (ref_type.equals("pull_request")) {
-                                        String author = getPRAuthor(projectID, prID);
+                                        String pr_author = getPRAuthor(projectID, prID);
 
-                                        if (!author.equals("")) {
-                                            if (!event_author.equals(author)) {
-                                                System.out.println("event author: " + event_author + " pr " + prID + " author :" + author);
-                                            }
-                                            if (participants.contains(author)) {
-                                                System.out.println(author + " communicate before pr");
+                                        if (!pr_author.equals("")) {
+
+                                            if (participants.contains(pr_author)) {
+                                                System.out.println(pr_author + " communicate before pr");
                                                 boolean pre_com = true;
                                                 boolean sameOwner = false;
-                                                if (author.equals(issue_owner)) {
-                                                    System.out.println("same owner " + author);
+                                                if (pr_author.equals(issue_owner)) {
+                                                    System.out.println("same owner " + pr_author);
                                                     sameOwner = true;
                                                 }
                                                 sb.append(projectID + "," + issue_id + "," + prID + "," + pre_com + "," + sameOwner + "\n");
@@ -171,7 +171,7 @@ public class AnalyzeGovernance {
 
                                                 PR_participant.put(prID, true);
                                             }
-                                            participants.add(author);
+                                            participants.add(pr_author);
                                         }
                                     }
                                     participants.add(event_author);

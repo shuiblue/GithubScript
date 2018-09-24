@@ -68,7 +68,7 @@ public class IO_Process {
             File file = new File(filepath);
             // if file doesnt exists, then create it
             if (!file.exists()) {
-                file.getParentFile().mkdir();
+                file.getParentFile().mkdirs();
                 file.createNewFile();
             }
             FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
