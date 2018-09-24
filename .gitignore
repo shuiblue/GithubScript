@@ -41,3 +41,10 @@ out/
 
 .idea/
 .gradle/
+input/
+result/
+.gitignore
+build.gradle
+gradlew*
+.idea/
+gradle/wrapper/

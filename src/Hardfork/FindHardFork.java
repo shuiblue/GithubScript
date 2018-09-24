@@ -43,12 +43,11 @@ public class FindHardFork {
         findHardFork.getNameChangeForks();
         findHardFork.insertResultToDB();
 
+//        findHardFork.getCommitDiffForTwoRepos();
 
     }
 
-    /**
-     * Todo: move to IO DIR
-     */
+
     private void insertResultToDB() {
         IO_Process io = new IO_Process();
         String[] arr = {};
@@ -93,6 +92,7 @@ public class FindHardFork {
 
     private void getNameChangeForks() {
 
+
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         String query = "SELECT repoURL,upstreamURL,projectID,update_projectURL " +
                 "FROM repository_contribution \n" +
@@ -123,9 +123,7 @@ public class FindHardFork {
         }
     }
 
-    private void getDiffBetweenTwoRepo(String repo1, String repo2) {
-
+    private void getCommitDiffForTwoRepos(String repo1, String repo2){
 
     }
-
 }
