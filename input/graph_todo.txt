@@ -1,0 +1,1 @@
+spree-contrib/spree_reviews

@@ -259,7 +259,7 @@ public class InsertCommit_graphBasedResult {
         }
     }
 
-    private static HashMap<String, HashMap<String, List<String>>> getForkOwnCode(String[] forkListInfo) {
+    public static HashMap<String, HashMap<String, List<String>>> getForkOwnCode(String[] forkListInfo) {
         HashMap<String, HashMap<String, List<String>>> forkOwnCode = new HashMap<>();
         HashMap<String, List<String>> F2U_map = removeRedundantCommits(forkListInfo, "F2U");
         HashMap<String, List<String>> onlyF_map = removeRedundantCommits(forkListInfo, "onlyF");

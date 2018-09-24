@@ -45,7 +45,7 @@ public class AnalyzeEasiness {
         /*** insert pr info to  Pull_Request table***/
         for (String projectUrl : repos) {
             int projectID = io.getRepoId(projectUrl);
-            projectID = 70;
+//           int projectID = 111;
             System.out.println(projectUrl);
             String query = "SELECT\n" +
                     "  pr.pull_request_ID,\n" +
@@ -77,9 +77,7 @@ public class AnalyzeEasiness {
                 int count = 0;
 
                 for (String pr : pr_info) {
-                    if(!pr.startsWith("1,")){
-                        continue;
-                    }
+
                     System.out.println(pr);
                     String[] arr = pr.split(",");
                     int pr_id;

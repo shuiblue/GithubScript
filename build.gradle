@@ -2,6 +2,7 @@ group 'GithubScript'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
+//apply plugin:'application'
 
 sourceCompatibility = 1.8
 
@@ -20,7 +21,10 @@ dependencies {
     compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.2'
     // https://mvnrepository.com/artifact/nz.ac.waikato.cms.weka/weka-stable
     compile group: 'nz.ac.waikato.cms.weka', name: 'weka-stable', version: '3.8.2'
-
+// https://mvnrepository.com/artifact/org.apache.solr/solr-solrj
+    compile group: 'org.apache.solr', name: 'solr-solrj', version: '7.2.1'
+// https://mvnrepository.com/artifact/mysql/mysql-connector-java
+    compile group: 'mysql', name: 'mysql-connector-java', version: '5.1.6'
 
 
 }
@@ -37,3 +41,16 @@ sourceSets {
     }
 }
 
+
+//task execute(type: JavaExec, dependsOn: classes){
+//    if(project.hasProperty('myargs')){
+//        args(myargs.split(','))
+//    }
+//    main = mainClass
+//    classpath = sourceSets.main.runtimeClasspath
+//}
+
+//task run(type: JavaExec, dependsOn: classes) {
+//    main = 'Pull_Request.MyMainClass'
+//    classpath = sourceSets.main.runtimeClasspath
+//}

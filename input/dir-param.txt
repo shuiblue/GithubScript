@@ -1,0 +1,4 @@
+/Users/shuruiz/Work/
+jdbc:mysql://localhost:3307/fork?useServerPrepStmts=false&rewriteBatchedStatements=true
+shuruiz
+shuruiz

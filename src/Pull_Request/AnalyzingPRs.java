@@ -58,7 +58,7 @@ public class AnalyzingPRs {
             }
 
             int projectID = io.getRepoId(projectUrl);
-            HashSet<String> analyzedPR = io.getPRinDataBase(projectID);
+//            HashSet<String> analyzedPR = io.getPRinDataBase(projectID);
 
 //            prList.removeAll(analyzedPR);
 
@@ -71,9 +71,58 @@ public class AnalyzingPRs {
                 System.out.println(projectUrl + "projectID = -1");
             }
 
-            analyzingPRs.insertFork(projectUrl, projectID, prList);
-            analyzingPRs.getPRfiles(projectUrl, projectID, prList);
+//            analyzingPRs.insertFork(projectUrl, projectID, prList);
+//            analyzingPRs.getPRfiles(projectUrl, projectID, prList);
+            analyzingPRs.getPRTitle(projectUrl, projectID, prList);
 
+        }
+    }
+
+    private void getPRTitle(String projectUrl, int projectID, ArrayList<String> prList) {
+        System.out.println("analyze pr files of " + projectUrl);
+        IO_Process io = new IO_Process();
+        io.rewriteFile("", output_dir + "shurui.cache/" + projectUrl.replace("/", ".") + ".prNum.txt");
+        LocalDateTime now = LocalDateTime.now();
+
+        String csvFile_dir = output_dir + "shurui.cache/get_prs." + projectUrl.replace("/", ".") + ".csv";
+        if (new File(csvFile_dir).exists()) {
+            List<List<String>> prs = io.readCSV(csvFile_dir);
+            String insert_query_1 = " UPDATE fork.Pull_Request SET title = ? WHERE projectID = ? AND pull_request_ID = ?";
+            int count = 0;
+            try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                 PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
+                conn.setAutoCommit(false);
+
+                for (List<String> pr : prs) {
+                    if (!pr.get(0).equals("") && pr.size() > 9) {
+                        int pr_id = Integer.parseInt(pr.get(9));
+                        if (prList.contains(pr_id)) {
+                            System.out.println("pass " + pr_id);
+                            continue;
+                        }
+
+
+                        String title = pr.get(12);
+
+                        preparedStmt.setString(1, io.normalize(title));
+                        preparedStmt.setInt(2, projectID);
+                        preparedStmt.setInt(3, pr_id);
+                        preparedStmt.addBatch();
+                        System.out.println(count + "/ " + prList.size() + " ..." + projectUrl);
+                        System.out.println(projectUrl + " PR " + pr_id + "   " + title);
+
+                        if (++count % batchSize == 0) {
+                            System.out.println("insert " + count + "pr from repo" + projectUrl);
+                            io.executeQuery(preparedStmt);
+                            conn.commit();
+                        }
+                    }
+                }
+                io.executeQuery(preparedStmt);
+                conn.commit();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -108,7 +157,7 @@ public class AnalyzingPRs {
                         String author = pr.get(1);
                         /** insert fork to database**/
                         String forkURL = pr.get(7);
-                        if (existingForks.contains(forkURL)||forkURL.equals("")) {
+                        if (existingForks.contains(forkURL) || forkURL.equals("")) {
                             continue;
                         }
                         boolean isFork = true;
@@ -172,7 +221,7 @@ public class AnalyzingPRs {
                         String author = pr.get(1);
                         /** insert fork to database**/
                         String forkURL = pr.get(7);
-                        if(forkURL.equals("")){
+                        if (forkURL.equals("")) {
                             continue;
                         }
                         int forkID = io.getRepoId(forkURL);
@@ -213,10 +262,10 @@ public class AnalyzingPRs {
                         preparedStmt.setInt(12, projectID);
                         preparedStmt.setInt(13, pr_id);
                         preparedStmt.addBatch();
-                        System.out.println(count+"/ "+prList.size()+" ..."+projectUrl);
+                        System.out.println(count + "/ " + prList.size() + " ..." + projectUrl);
 
                         if (++count % batchSize == 0) {
-                            System.out.println("insert " + count + "pr from repo" +projectUrl );
+                            System.out.println("insert " + count + "pr from repo" + projectUrl);
                             io.executeQuery(preparedStmt);
                             conn.commit();
                         }

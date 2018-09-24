@@ -12,7 +12,7 @@ public class GetMergedPR {
     static String working_dir, pr_dir, output_dir, clone_dir, current_dir, PR_ISSUE_dir, timeline_dir;
     static String myUrl, user, pwd;
 
-    GetMergedPR() {
+    public GetMergedPR() {
         IO_Process io = new IO_Process();
         current_dir = System.getProperty("user.dir");
         try {
@@ -172,8 +172,8 @@ public class GetMergedPR {
     }
 
 
-    private String containsPotentialSHA(String body) {
-        Pattern pattern = Pattern.compile("\\b[0-9a-f]{7}|\\b[0-9a-f]{40}\\b");
+    public String containsPotentialSHA(String body) {
+        Pattern pattern = Pattern.compile("\\b[0-9a-f]{7} |\\b[0-9a-f]{40}\\b");
         Matcher matcher = pattern.matcher(body);
         if (matcher.find()) {
             String sha = matcher.group();

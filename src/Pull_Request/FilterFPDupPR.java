@@ -38,12 +38,13 @@ public class FilterFPDupPR {
 
     public static void main(String[] args) {
         new FilterFPDupPR();
-//        HashMap<Integer, HashSet<String>> pr_commentMap = getDuplicatePRComment();
-//        checkAuthors(pr_commentMap);
+        HashMap<Integer, HashSet<String>> pr_commentMap = getDuplicatePRComment();
+
+        checkAuthors(pr_commentMap);
 
 //        2nd step, insert into db
 
-        insertFP_prToDB();
+//        insertFP_prToDB();
 
     }
 
@@ -130,6 +131,8 @@ public class FilterFPDupPR {
         });
 
     }
+
+
 
     private static String getCommentAuthor(String projectURL, int prid, String dup_comment) {
         String fileName = output_dir + "shurui.cache/get_pr_comments." + projectURL.replace("/", ".") + "_" + prid + ".csv";

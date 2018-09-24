@@ -2,6 +2,7 @@ package Modularity;
 
 import Util.IO_Process;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -24,7 +25,7 @@ public class InsertModularity {
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
             clone_dir = output_dir + "clones/";
-            historyDirPath = output_dir + "comithis_100/";
+            historyDirPath = output_dir + "comithis_new/";
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
@@ -154,11 +155,11 @@ public class InsertModularity {
 
     public void getLast500Mod() {
         IO_Process io = new IO_Process();
-        List<String> mod_left_repos = io.getListFromFile("mod_left.txt");
+        List<String> mod_left_repos = io.getListFromFile("repoList.txt");
         for (String repoURL : mod_left_repos) {
             System.out.println(repoURL);
 
-            String insertIssueQuery = "UPDATE  fork.Final_modularity SET Mod_allFile_100 =?,Mod_filterFile_100=? WHERE projectID = ? ";
+            String insertIssueQuery = "UPDATE  fork.Final_modularity SET mod_external_50_allFile =?,mod_external_50_filterFile=? WHERE projectID = ? ";
 
 
             try (Connection conn1 = DriverManager.getConnection(myUrl, user, pwd);
@@ -170,6 +171,11 @@ public class InsertModularity {
                 String allfile_fileName = historyDirPath + repoURL.replace("/", "~") + "_50_10_year_allfile.txt";
                 String filtered_fileName = historyDirPath + repoURL.replace("/", "~") + "_50_10_year_noStopFile.txt";
 
+                if(!new File(allfile_fileName).exists()){
+                    System.out.println(repoURL +" no exist..");
+                    io.writeTofile(repoURL +"\n",output_dir+"mod_waiting.txt");
+                    continue;
+                }
                 String[] all_Mod_result = {};
                 String[] filter_Mod_result = {};
                 try {
@@ -187,14 +193,14 @@ public class InsertModularity {
                 System.out.println("project id:" + projectID + " url " + repoURL);
 
 
-                int num_commit = 0, num_file_all = 0, num_file_afterFilter = 0;
+//                int num_commit = 0, num_file_all = 0, num_file_afterFilter = 0;
                 double mod_all = 0, mod_filter = 0;
                 //projectID,filterout_stopFile,threshold_num_files_per_commit,num_latest_year
                 if (!all_Mod_result[1].equals("NaN")) {
                     mod_all = Double.parseDouble(all_Mod_result[1]);
                     System.out.println(" mod " + mod_all);
-                    num_commit = Integer.parseInt(all_Mod_result[2]);
-                    num_file_all = Integer.parseInt(all_Mod_result[3].trim());
+//                    num_commit = Integer.parseInt(all_Mod_result[2]);
+//                    num_file_all = Integer.parseInt(all_Mod_result[3].trim());
 
                 } else {
                     io.writeTofile(repoURL + ",all" + "\n", output_dir + "/Mod_NaN.txt");
@@ -208,7 +214,7 @@ public class InsertModularity {
                     io.writeTofile(repoURL + ",filter\n", output_dir + "/Mod_NaN.txt");
                 }
 
-                num_file_afterFilter = Integer.parseInt(filter_Mod_result[3].trim());
+//                num_file_afterFilter = Integer.parseInt(filter_Mod_result[3].trim());
                 try {
 
                     preparedStmt_1.setDouble(1, mod_all);
