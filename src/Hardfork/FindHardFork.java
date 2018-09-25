@@ -5,7 +5,10 @@ import Pull_Request.AnalyzingPRs;
 import Pull_Request.GetDupPR_pair;
 import Pull_Request.Merge_PR_Status.GetMergedPR;
 import Util.IO_Process;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -45,11 +48,27 @@ public class FindHardFork {
 //        findHardFork.getNameChangeForks();
 //        findHardFork.insertResultToDB();
 
-//        String[] repoPairList = io.readResult();
 
-        String repo1 = "kennethkalmer/ruote-kit";
-        String repo2 = "tosch/ruote-kit";
-        findHardFork.getCommitDiffForTwoRepos(repo1,repo2);
+        LineIterator it = null;
+        try {
+            it = FileUtils.lineIterator(new File("/Users/shuruiz/Work/ForkData/hardfork-exploration/hardfork.csv"), "UTF-8");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            while (it.hasNext()) {
+                String line = it.nextLine();
+                if(!line.equals("url\turl")) {
+                    String[] arr = line.split("\t");
+                    String repo1 = arr[0].replace("https://api.github.com/repos/","");
+                    String repo2 = arr[1].replace("https://api.github.com/repos/","");
+                    findHardFork.getCommitDiffForTwoRepos(repo1, repo2);
+                }
+            }
+        } finally {
+            LineIterator.closeQuietly(it);
+        }
+
 
     }
 
