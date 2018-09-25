@@ -26,7 +26,7 @@ public class GraphBasedAnalyzer {
     static boolean hasTimeConstraint = true;
 
 
-    GraphBasedAnalyzer() {
+    public GraphBasedAnalyzer() {
         IO_Process io = new IO_Process();
         current_dir = System.getProperty("user.dir");
         try {

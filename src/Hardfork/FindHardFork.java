@@ -1,5 +1,6 @@
 package Hardfork;
 
+import Commit.GraphBasedAnalyzer;
 import Pull_Request.AnalyzingPRs;
 import Pull_Request.GetDupPR_pair;
 import Pull_Request.Merge_PR_Status.GetMergedPR;
@@ -38,12 +39,17 @@ public class FindHardFork {
     }
 
     static public void main(String[] args) {
+        IO_Process io = new IO_Process();
         FindHardFork findHardFork = new FindHardFork();
 
-        findHardFork.getNameChangeForks();
-        findHardFork.insertResultToDB();
+//        findHardFork.getNameChangeForks();
+//        findHardFork.insertResultToDB();
 
-//        findHardFork.getCommitDiffForTwoRepos();
+//        String[] repoPairList = io.readResult();
+
+        String repo1 = "kennethkalmer/ruote-kit";
+        String repo2 = "tosch/ruote-kit";
+        findHardFork.getCommitDiffForTwoRepos(repo1,repo2);
 
     }
 
@@ -123,7 +129,11 @@ public class FindHardFork {
         }
     }
 
-    private void getCommitDiffForTwoRepos(String repo1, String repo2){
+    private void getCommitDiffForTwoRepos(String repo1, String repo2) {
+        IO_Process io = new IO_Process();
+        io.cloneRepo(repo1, repo2);
+
+        new GraphBasedAnalyzer().analyzeCommitHistory(repo1, repo2, false);
 
     }
 }
