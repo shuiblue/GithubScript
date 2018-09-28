@@ -51,18 +51,25 @@ public class FindHardFork {
 
         LineIterator it = null;
         try {
-            it = FileUtils.lineIterator(new File("/Users/shuruiz/Work/ForkData/hardfork-exploration/hardfork.csv"), "UTF-8");
+            it = FileUtils.lineIterator(new File("/usr0/home/shuruiz/hardfork/hardfork.csv"), "UTF-8");
+//            it = FileUtils.lineIterator(new File("/Users/shuruiz/Work/ForkData/hardfork-exploration/hardfork.csv"), "UTF-8");
         } catch (IOException e) {
             e.printStackTrace();
         }
         try {
             while (it.hasNext()) {
                 String line = it.nextLine();
-                if(!line.equals("url\turl")) {
+                if (!line.equals("url\turl")) {
                     String[] arr = line.split("\t");
-                    String repo1 = arr[0].replace("https://api.github.com/repos/","");
-                    String repo2 = arr[1].replace("https://api.github.com/repos/","");
-                    findHardFork.getCommitDiffForTwoRepos(repo1, repo2);
+                    String repo1 = arr[0].replace("https://api.github.com/repos/", "");
+                    String repo2 = arr[1].replace("https://api.github.com/repos/", "");
+
+                    if (!io.isForkAndUpstream(arr[1], arr[0])) {
+                        System.out.println(repo1 + " , " + repo2);
+                        findHardFork.getCommitDiffForTwoRepos(repo1, repo2);
+                    } else {
+                        System.out.println(repo2 + " is a fork of " + repo1);
+                    }
                 }
             }
         } finally {

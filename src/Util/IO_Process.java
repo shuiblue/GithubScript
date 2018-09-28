@@ -1684,6 +1684,27 @@ public class IO_Process {
         return externalCommitList;
     }
 
+    public boolean isForkAndUpstream(String forkUrl, String upstreamUrl) {
+
+        JsonUtility jsonUtility = new JsonUtility();
+        ArrayList<String> fork_info_json = null;
+        try {
+            fork_info_json = jsonUtility.readUrl(forkUrl);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (fork_info_json.size() > 0) {
+            JSONObject fork_jsonObj = new JSONObject(fork_info_json.get(0));
+            String parent_url = (String) ((JSONObject) fork_jsonObj.get("parent")).get("url");
+            if(upstreamUrl.equals(parent_url)){
+                return true;
+            }
+        }
+
+        return false;
+
+
+    }
 }
 
 
