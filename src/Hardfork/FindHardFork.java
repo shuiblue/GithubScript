@@ -14,11 +14,12 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class FindHardFork {
 
 
-    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, PR_ISSUE_dir, timeline_dir;
+    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, PR_ISSUE_dir, timeline_dir,hardfork_dir,checkedCandidates;
     static String myUrl, user, pwd;
 
     FindHardFork() {
@@ -32,6 +33,8 @@ public class FindHardFork {
             clone_dir = output_dir + "clones/";
             PR_ISSUE_dir = output_dir + "crossRef/";
             timeline_dir = output_dir + "shurui_crossRef.cache_pass/";
+            hardfork_dir = output_dir + "/hardfork-exploration/";
+            checkedCandidates =hardfork_dir+"checked_repo_pairs.txt";
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
@@ -45,14 +48,25 @@ public class FindHardFork {
         IO_Process io = new IO_Process();
         FindHardFork findHardFork = new FindHardFork();
 
+        HashSet<String> checkedRepoPairs = new HashSet<>();
+        try {
+
+            String[] checkedRepoPairs_arr = io.readResult(checkedCandidates).split("\n");
+            for(String s: checkedRepoPairs_arr){
+                checkedRepoPairs.add(s);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
 //        findHardFork.getNameChangeForks();
 //        findHardFork.insertResultToDB();
 
 
         LineIterator it = null;
         try {
-            it = FileUtils.lineIterator(new File("/usr0/home/shuruiz/hardfork/hardfork.csv"), "UTF-8");
-//            it = FileUtils.lineIterator(new File("/Users/shuruiz/Work/ForkData/hardfork-exploration/hardfork.csv"), "UTF-8");
+//            it = FileUtils.lineIterator(new File("/usr0/home/shuruiz/hardfork/hardfork.csv"), "UTF-8");
+            it = FileUtils.lineIterator(new File(hardfork_dir+"hardfork-filter.csv"), "UTF-8");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -61,11 +75,32 @@ public class FindHardFork {
                 String line = it.nextLine();
                 if (!line.equals("url\turl")) {
                     String[] arr = line.split("\t");
-                    String repo1 = arr[0].replace("https://api.github.com/repos/", "");
-                    String repo2 = arr[1].replace("https://api.github.com/repos/", "");
+                    String repo1 = arr[0].replace("https://api.github.com/repos/", "").trim();
+                    if(repo1.equals("url")) continue;
 
-                    if (!io.isForkAndUpstream(arr[1], arr[0])) {
+                    String repo2 = arr[1].replace("https://api.github.com/repos/", "").trim();
+
+                    // mark checked repo pairs
+                    int compare = repo1.compareTo(repo2);
+                    String currentRepoPair ="";
+                    if (compare <= 0){
+                        currentRepoPair = repo1+","+repo2;
+                    }
+                    else {
+                        currentRepoPair =repo2+","+repo1;
+                    }
+
+                    if(checkedRepoPairs.contains(currentRepoPair)){
+                        System.out.println(currentRepoPair + "have been checked; skip;");
+                        continue;
+                    }
+
+                    if (!io.isForkAndUpstream(arr[1].trim(), arr[0].trim())) {
                         System.out.println(repo1 + " , " + repo2);
+                        checkedRepoPairs.add(currentRepoPair);
+                        io.writeTofile(currentRepoPair+"\n",checkedCandidates);
+
+
                         findHardFork.getCommitDiffForTwoRepos(repo1, repo2);
                     } else {
                         System.out.println(repo2 + " is a fork of " + repo1);
@@ -157,9 +192,12 @@ public class FindHardFork {
 
     private void getCommitDiffForTwoRepos(String repo1, String repo2) {
         IO_Process io = new IO_Process();
-        io.cloneRepo(repo1, repo2);
-
-        new GraphBasedAnalyzer().analyzeCommitHistory(repo1, repo2, false);
+        String result = io.cloneRepo(repo1, repo2);
+        if (result.equals("success")) {
+            new GraphBasedAnalyzer().analyzeCommitHistory(repo1, repo2, false);
+        }else{
+            System.out.println("clone repo failed");
+        }
 
     }
 }

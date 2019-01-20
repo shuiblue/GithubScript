@@ -339,7 +339,9 @@ public class IO_Process {
             result = builder.toString();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            //  e.printStackTrace();
+            System.out.println(pathname + "does not exist. return");
+            return "noRepo";
         }
 
         return result.replace("\"", "");
@@ -491,9 +493,16 @@ public class IO_Process {
 
     public HashSet<String> commitChangedFileExists(int projectID) {
         HashSet<String> commits = new HashSet<>();
-        String commitshaID_QUERY = "SELECT DISTINCT c.SHA\n" +
-                "from commit_changedFiles as cc, Commit as c\n" +
-                "WHERE cc.commit_SHA = c.SHA and c.projectID =" + projectID;
+//        String commitshaID_QUERY = "SELECT DISTINCT c.SHA\n" +
+//                "from commit_changedFiles as cc, Commit as c\n" +
+//                "WHERE cc.commit_SHA = c.SHA and c.projectID =" + projectID;
+
+
+        String commitshaID_QUERY = "SELECT DISTINCT prc.SHA\n" +
+                "FROM commit_changedFiles AS cc\n" +
+                "  LEFT JOIN PR_Commit_map AS prc ON cc.commit_SHA = prc.SHA\n" +
+                "WHERE  prc.projectID = " + projectID;
+
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(commitshaID_QUERY)) {
             ResultSet rs = preparedStmt.executeQuery();
@@ -656,6 +665,34 @@ public class IO_Process {
         return "";
     }
 
+
+
+    public Set<String> getForkIDSet_by_loginID(Set<String> forkLoginIdSet, int projectID) {
+        String forkList_str = "";
+        for (String fork : forkLoginIdSet) {
+            forkList_str += "'"+fork+"',";
+        }
+        forkList_str = forkList_str.substring(0,forkList_str.length()-1);
+
+
+        Set<String> forkSet = new HashSet<>();
+
+        String query = "select DISTINCT  repoURL\n" +
+                "  from repository\n" +
+                "where projectID = " + projectID + " and loginID IN (" + forkList_str + ");";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)) {
+            try (ResultSet rs = preparedStmt.executeQuery()) {
+                while (rs.next()) {
+                    forkSet.add(rs.getString(1));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return forkSet;
+    }
+
     public int getRepoId(String repoURL) {
         int repoID = -1;
         String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL_old = \"" + repoURL + "\"";
@@ -784,7 +821,7 @@ public class IO_Process {
         }
     }
 
-    public void cloneRepo(String forkUrl, String projectURL) {
+    public String cloneRepo(String forkUrl, String projectURL) {
         if (!new File(clone_dir).exists()) {
             new File(clone_dir).mkdirs();
             System.out.println("clones file created");
@@ -805,13 +842,15 @@ public class IO_Process {
             System.out.println(forkUrl);
             String forkName = io.getForkURL(forkUrl.split("/")[0]);
             String cloneForkCmd = "git remote add " + forkName + " " + github_url + forkUrl + ".git";
-            io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
+            String result = io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
+            if (result.equals("noRepo")) return result;
 
             String fetchAll = "git fetch " + forkName;
             if (io.exeCmd(fetchAll.split(" "), clone_dir + projectURL + "/").contains("fatal: could not read Username")) {
                 System.out.println(forkUrl + "is deleted on GitHub.");
             }
         }
+        return "success";
     }
 
     public String insertRepo_old(String repoUrl) {
@@ -1537,7 +1576,7 @@ public class IO_Process {
 
 
     public HashSet<String> getCommitsByPRlist(HashSet<String> sampled_PRs, int projectID) {
-
+        System.out.print("collecting all the commits .. ");
         HashSet<String> allcommits = new HashSet<>();
         String commitList_query = "SELECT\n" +
                 "  c.SHA,\n" +
@@ -1685,19 +1724,26 @@ public class IO_Process {
     }
 
     public boolean isForkAndUpstream(String forkUrl, String upstreamUrl) {
-
+        System.out.println("check if it is fork and upstream..");
         JsonUtility jsonUtility = new JsonUtility();
         ArrayList<String> fork_info_json = null;
         try {
-            fork_info_json = jsonUtility.readUrl(forkUrl);
+            fork_info_json = jsonUtility.readUrl(forkUrl + "?access_token=" + token);
         } catch (Exception e) {
             e.printStackTrace();
         }
         if (fork_info_json.size() > 0) {
             JSONObject fork_jsonObj = new JSONObject(fork_info_json.get(0));
-            String parent_url = (String) ((JSONObject) fork_jsonObj.get("parent")).get("url");
-            if(upstreamUrl.equals(parent_url)){
-                return true;
+
+            if (!fork_jsonObj.has("parent")) {
+                System.out.println("no parent");
+                return false;
+            } else {
+                JSONObject parentOBJ = (JSONObject) fork_jsonObj.get("parent");
+                String parent_url = (String) parentOBJ.get("url");
+                if (upstreamUrl.equals(parent_url)) {
+                    return true;
+                }
             }
         }
 

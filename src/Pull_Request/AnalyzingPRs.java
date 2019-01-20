@@ -73,7 +73,8 @@ public class AnalyzingPRs {
 
 //            analyzingPRs.insertFork(projectUrl, projectID, prList);
 //            analyzingPRs.getPRfiles(projectUrl, projectID, prList);
-            analyzingPRs.getPRTitle(projectUrl, projectID, prList);
+//            analyzingPRs.getPRTitle(projectUrl, projectID, prList);
+            analyzingPRs.calculateHotnessOfPR(projectUrl, projectID, prList);
 
         }
     }
@@ -279,5 +280,46 @@ public class AnalyzingPRs {
         }
     }
 
+
+    public void calculateHotnessOfPR(String projectUrl, int projectID, List<String> prList) {
+    }
+
+    public void getPR_withTimeWindow() {
+        int timeWindow = 90;
+
+        HashMap<Integer, HashSet<Integer>> project_pr_map = new HashMap<>();
+        String query = "SELECT\n" +
+                "  pr1.projectID,\n" +
+                "  pr1.pull_request_ID AS pr1,\n" +
+                "  pr2.pull_request_ID AS pr2\n" +
+                "FROM Pull_Request pr1\n" +
+                "  INNER JOIN Pull_Request AS pr2\n" +
+                "    ON " +
+                "pr1.projectID = 6 AND " +
+                "pr1.projectID = pr2.projectID AND pr1.closed = 'true' AND pr2.closed = 'true' AND\n" +
+                "       pr2.age_in_day BETWEEN pr1.age_in_day + 1 AND pr1.age_in_day + timeWindow;";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            int previous_pr = -1;
+            HashSet<Integer> old_prSet = new HashSet<>();
+            while (rs.next()) {
+                int projectID = rs.getInt(1);
+                int current_prid = rs.getInt(2);
+                if (current_prid == previous_pr) {
+                    int old_prid = rs.getInt(3);
+                    old_prSet.add(old_prid);
+
+                }else{
+
+                }
+
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
 
 }

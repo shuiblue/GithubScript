@@ -51,11 +51,10 @@ public class AnalyzeCommitChangedFile {
         HashSet<String> analyzedCommits = io.commitChangedFileExists(projectID);
         System.out.println(analyzedCommits.size() + " commmit has been analyzed for changed File...");
 
-        HashSet<String> project_forks = new HashSet<>();
-        HashSet<String> forkLoginIDSet = new HashSet<>();
-
         System.out.println("get sampled fork url");
         HashSet<String> commitCandidates = new HashSet<>();
+
+        Set<String> forkLoginIDSet = new HashSet<>();
         for (String line : commitSet) {
             String[] arr = line.split(",");
             //  commitSHA,   ,loginID
@@ -63,20 +62,14 @@ public class AnalyzeCommitChangedFile {
                 String sha = arr[0];
                 if (!analyzedCommits.contains(sha)) {
                     String fork_loginID = arr[1];
-                    if (forkLoginIDSet.contains(fork_loginID)) continue;
                     forkLoginIDSet.add(fork_loginID);
-                    String forkURL = io.getForkURL_by_loginID(fork_loginID, projectID);
-                    if (!forkURL.equals("")) {
-                        project_forks.add(forkURL);
-                    }
-                        commitCandidates.add(line);
-                        System.out.println(line);
-//                    } else {
-//                        System.out.println(projectID + "," + fork_loginID + "  no forkurl?!");
-//                    }
+                    commitCandidates.add(sha);
                 }
             }
         }
+
+        Set<String> project_forks = io.getForkIDSet_by_loginID(forkLoginIDSet, projectID);
+
         System.out.println("cloning " + project_forks.size() + " forks of" + projectURL);
 
         if (project_forks.size() > 0) {
@@ -87,12 +80,7 @@ public class AnalyzeCommitChangedFile {
                 conn.setAutoCommit(false);
                 System.out.println(commitCandidates.size() + " commits is in the queue...");
                 HashSet<String> miss_Clone_project = new HashSet<>();
-                for (String commit : commitCandidates) {
-                    //SELECT  commitSHA,  id ,loginID
-                    String[] commit_info = commit.split(",");
-//                    String commitshaID = commit_info[1];
-                    String sha = commit_info[0];
-                    //repo.repoURL, c.commitSHA, c.id
+                for (String sha : commitCandidates) {
                     if (!miss_Clone_project.contains(projectURL) && new File(clone_dir + projectURL).exists()) {
 
                         System.out.println(sha);
@@ -250,6 +238,7 @@ public class AnalyzeCommitChangedFile {
 
 
     static public void main(String[] args) {
+        boolean samplePR = false;
         new AnalyzeCommitChangedFile();
         List<String> repos = io.getList_byFilePath(current_dir + "/input/file_repoList.txt");
         System.out.println(repos.size() + " projects ");
@@ -264,16 +253,24 @@ public class AnalyzeCommitChangedFile {
             List<String> PRs_rejected = io.getPRList(projectID, false);
             System.out.println(PRs_rejected.size() + " reject PR for " + projectURL);
 
-            HashSet<String> sampled_PRs = new HashSet<>();
 
-            System.out.println("sampling prs for project " + projectURL);
-            sampled_PRs.addAll(samplePRs(PRs_merged));
-            sampled_PRs.addAll(samplePRs(PRs_rejected));
+            HashSet<String> sampledCommits;
+            if (samplePR) {
+                System.out.println("sampling prs for project " + projectURL);
+                HashSet<String> sampled_PRs = new HashSet<>();
+                sampled_PRs.addAll(samplePRs(PRs_merged));
+                sampled_PRs.addAll(samplePRs(PRs_rejected));
+                if (sampled_PRs.size() == 0) continue;
+                sampledCommits = io.getCommitsByPRlist(sampled_PRs, projectID);
+            } else {
 
+                HashSet<String> all_PRs = new HashSet<>();
+                all_PRs.addAll(PRs_merged);
+                all_PRs.addAll(PRs_rejected);
+                if (all_PRs.size() == 0) continue;
+                sampledCommits = io.getCommitsByPRlist(all_PRs, projectID);
+            }
 
-            if (sampled_PRs.size() == 0) continue;
-
-            HashSet<String> sampledCommits = io.getCommitsByPRlist(sampled_PRs, projectID);
 
             HashSet<String> commit_from_graph = getCommitFromGraphResult(projectID);
             System.out.println("sampled commits from pr :" + sampledCommits.size());

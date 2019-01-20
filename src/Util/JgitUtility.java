@@ -97,7 +97,7 @@ public class JgitUtility {
     }
 
 
-    public void cloneRepo_cmd(HashSet<String> forkList, String projectURL,boolean getActiveForksFromAPI) {
+    public void cloneRepo_cmd( Set<String> forkList, String projectURL,boolean getActiveForksFromAPI) {
         String projectName = projectURL.split("/")[0];
         IO_Process io = new IO_Process();
         String creadDirCMD = "mkdir -p " + clone_dir + projectURL;
