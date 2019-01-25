@@ -666,13 +666,12 @@ public class IO_Process {
     }
 
 
-
     public Set<String> getForkIDSet_by_loginID(Set<String> forkLoginIdSet, int projectID) {
         String forkList_str = "";
         for (String fork : forkLoginIdSet) {
-            forkList_str += "'"+fork+"',";
+            forkList_str += "'" + fork + "',";
         }
-        forkList_str = forkList_str.substring(0,forkList_str.length()-1);
+        forkList_str = forkList_str.substring(0, forkList_str.length() - 1);
 
 
         Set<String> forkSet = new HashSet<>();
@@ -780,19 +779,19 @@ public class IO_Process {
     }
 
 
-    public HashSet<String> getPRinDataBase(int projectID) {
+    public HashSet<Integer> getPRinDataBase(int projectID) {
         String query = "\n" +
                 "SELECT pull_request_ID\n" +
                 "FROM  Pull_Request\n" +
                 "WHERE  projectID = " + projectID;
 
-        HashSet<String> analyzedPR = new HashSet<>();
+        HashSet<Integer> analyzedPR = new HashSet<>();
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(query)
         ) {
             ResultSet rs = preparedStmt.executeQuery();
             while (rs.next()) {
-                analyzedPR.add(String.valueOf(rs.getInt(1)));
+                analyzedPR.add(rs.getInt(1));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1552,21 +1551,19 @@ public class IO_Process {
     }
 
 
-    public List<String> getPRList(int projectID, boolean merged) {
-        List<String> allPRS = new ArrayList<>();
+    public List<Integer> getClosedPRList(int projectID) {
+        List<Integer> allPRS = new ArrayList<>();
         String mergedCommitID_query = "SELECT  pull_request_id\n" +
                 "FROM Pull_Request\n" +
                 "WHERE  projectID = " + projectID +
-                "       AND  merge_allType =" + merged +
-                "       and fromCoreTeam = false " +
-                "       and bot_account = false ;";
+                "       AND  closed = 'true' ";
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(mergedCommitID_query);
         ) {
             ResultSet rs = preparedStmt.executeQuery();
             while (rs.next()) {
-                allPRS.add(rs.getString(1));
+                allPRS.add(rs.getInt(1));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1574,6 +1571,47 @@ public class IO_Process {
         return allPRS;
     }
 
+    public List<String> getPRList_String(int projectID, boolean merged) {
+        String mergedCommitID_query = "SELECT  pull_request_id\n" +
+                "FROM Pull_Request\n" +
+                "WHERE  projectID = " + projectID +
+                "       AND  merge_allType =" + merged +
+                "       and fromCoreTeam = false " +
+                "       and bot_account = false ;";
+
+        return getFirstStringValueBySQL(mergedCommitID_query);
+
+    }
+
+
+    public List<Integer> getFirstValueBySQL(String sql) {
+        List<Integer> integer_List = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(sql);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                integer_List.add(rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return integer_List;
+    }
+    public List<String> getFirstStringValueBySQL(String sql) {
+        List<String> integer_List = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(sql);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                integer_List.add(rs.getString(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return integer_List;
+    }
 
     public HashSet<String> getCommitsByPRlist(HashSet<String> sampled_PRs, int projectID) {
         System.out.print("collecting all the commits .. ");

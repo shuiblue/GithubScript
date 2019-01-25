@@ -68,7 +68,12 @@ public class AnalyzeCommitChangedFile {
             }
         }
 
-        Set<String> project_forks = io.getForkIDSet_by_loginID(forkLoginIDSet, projectID);
+        if (forkLoginIDSet.size() == 0) {
+            System.out.print("no commit to analyze");
+            return;
+        }
+            Set<String> project_forks = io.getForkIDSet_by_loginID(forkLoginIDSet, projectID);
+
 
         System.out.println("cloning " + project_forks.size() + " forks of" + projectURL);
 
@@ -247,10 +252,10 @@ public class AnalyzeCommitChangedFile {
             int projectID = io.getRepoId(projectURL);
             System.out.println("get all PR for " + projectURL);
 
-            List<String> PRs_merged = io.getPRList(projectID, true);
+            List<String> PRs_merged = io.getPRList_String(projectID, true);
             System.out.println(PRs_merged.size() + " merged PR for " + projectURL);
 
-            List<String> PRs_rejected = io.getPRList(projectID, false);
+            List<String> PRs_rejected = io.getPRList_String(projectID, false);
             System.out.println(PRs_rejected.size() + " reject PR for " + projectURL);
 
 
@@ -272,10 +277,10 @@ public class AnalyzeCommitChangedFile {
             }
 
 
-            HashSet<String> commit_from_graph = getCommitFromGraphResult(projectID);
-            System.out.println("sampled commits from pr :" + sampledCommits.size());
-            sampledCommits.addAll(commit_from_graph);
-            System.out.println("added commits from graph :" + sampledCommits.size());
+//            HashSet<String> commit_from_graph = getCommitFromGraphResult(projectID);
+//            System.out.println("sampled commits from pr :" + sampledCommits.size());
+//            sampledCommits.addAll(commit_from_graph);
+//            System.out.println("added commits from graph :" + sampledCommits.size());
 
             System.out.println("start to analyze " + sampledCommits.size() + " commits...");
             new AnalyzeCommitChangedFile().analyzeChangedFile(sampledCommits, projectURL);

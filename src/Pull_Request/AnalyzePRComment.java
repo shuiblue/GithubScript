@@ -8,14 +8,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 public class AnalyzePRComment {
 
-    static String working_dir, output_dir,clone_dir,timeline_dir;
+    static String working_dir, output_dir, clone_dir, timeline_dir;
     static String myUrl, user, pwd;
 
     AnalyzePRComment() {
@@ -37,6 +34,7 @@ public class AnalyzePRComment {
     }
 
     public static void main(String[] args) {
+        System.out.print("testing");
         IO_Process io = new IO_Process();
         new AnalyzePRComment();
         String current_dir = System.getProperty("user.dir");
@@ -52,10 +50,67 @@ public class AnalyzePRComment {
 
 //        calculatePRCommentLength(repos);
 //        calculatePRCommentLength_fromTimeline(repos);
-        calculatePRCommentLength_fromTimeline_new(repos);
+//        calculatePRCommentLength_fromTimeline_new( );
+        getPRclosedActor(repos);
     }
 
-    private static void calculatePRCommentLength_fromTimeline_new(String[] repos) {
+    private static void getPRclosedActor(String[] repos) {
+        for (String repo : repos) {
+            IO_Process io = new IO_Process();
+            final int[] count = {0};
+            for (String projectUrl : repos) {
+                int projectID = io.getRepoId(projectUrl);
+                List<Integer> pr_set = io.getClosedPRList(projectID);
+                String insert_query_1 = " UPDATE fork.Pull_Request" +
+                        " SET closedBy_loginID = ?  " +
+                        "WHERE projectID = ? AND pull_request_ID=? ";
+                try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                     PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
+                    conn.setAutoCommit(false);
+                    for (int pr_id : pr_set) {
+                        String file_name = timeline_dir + "get_pr_timeline." + repo.replace("/", ".") + "_" + pr_id + ".csv";
+                        File file = new File(file_name);
+                        if (file.exists()) {
+                            System.out.println(file_name);
+                            String[] arr = file_name.split("_");
+                            List<List<String>> rows = io.readCSV(file);
+                            for (int i = 1; i < rows.size() - 1; i++) {
+                                List<String> line = rows.get(i);
+                                if (line.size() > 9) {
+                                    String event = line.get(9);
+                                    String loginID = line.get(2);
+
+                                    if (event.equals("closed")) {
+                                        System.out.print("");
+                                        try {
+                                            preparedStmt.setString(1, loginID);
+                                            preparedStmt.setInt(2, projectID);
+                                            preparedStmt.setInt(3, pr_id);
+                                            preparedStmt.addBatch();
+                                            int batchSize = 100;
+                                            if (++count[0] % batchSize == 0) {
+                                                System.out.println("update  " + count[0] + "closed pr from repo" + projectUrl);
+                                                io.executeQuery(preparedStmt);
+                                                conn.commit();
+                                            }
+                                        } catch (SQLException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    io.executeQuery(preparedStmt);
+                    conn.commit();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private static void calculatePRCommentLength_fromTimeline_new() {
         AnalyzePRComment analyzePRComment = new AnalyzePRComment();
         HashMap<Integer, HashSet<Integer>> PR_set = analyzePRComment.getPR_noCommentParticipantsAnalysis();
         PR_set.forEach((projectID, prSet) -> {
@@ -75,7 +130,7 @@ public class AnalyzePRComment {
              PreparedStatement preparedStmt = conn.prepareStatement(insert_query_1)) {
             conn.setAutoCommit(false);
             final int[] count = {0};
-            for (int pr_id: prSet) {
+            for (int pr_id : prSet) {
                 System.out.println(projectURL + " , pr " + pr_id);
 
                 String timeline_file = timeline_dir + "get_pr_timeline." + projectURL.replace("/", ".") + "_" + pr_id + ".csv";
@@ -137,7 +192,7 @@ public class AnalyzePRComment {
                     } catch (SQLException e) {
                         e.printStackTrace();
                     }
-                }else {
+                } else {
                     io.writeTofile(projectURL + "," + pr_id + "\n", output_dir + "miss_timeline.txt");
                 }
             }
@@ -150,7 +205,6 @@ public class AnalyzePRComment {
             e.printStackTrace();
         }
     }
-
 
 
     private static void calculatePRCommentLength_fromTimeline(String[] repos) {
@@ -174,7 +228,8 @@ public class AnalyzePRComment {
                                             && file_name.contains(projectUrl.replace("/", ".") + "_")) {
                                         System.out.println(file_name);
                                         String[] arr = file_name.split("_");
-                                        String prID_str = arr[arr.length - 1].replace(".csv", "").replace(".0", "").replaceAll("\\D+","");;
+                                        String prID_str = arr[arr.length - 1].replace(".csv", "").replace(".0", "").replaceAll("\\D+", "");
+                                        ;
                                         if (prID_str.equals("")) {
                                             return;
                                         }
@@ -414,12 +469,13 @@ public class AnalyzePRComment {
 
     }
 
-    public HashMap<Integer,HashSet<Integer>> getPR_noCommentParticipantsAnalysis() {
 
-        HashMap<Integer, HashSet<Integer>>  PR_set = new HashMap<>();
+    public HashMap<Integer, HashSet<Integer>> getPR_noCommentParticipantsAnalysis() {
+
+        HashMap<Integer, HashSet<Integer>> PR_set = new HashMap<>();
         String query = "SELECT projectID,pull_request_ID\n" +
-                "FROM Pull_Request\n"+
-                "WHERE num_comments_before_close is null; ";
+                "FROM Pull_Request\n" +
+                "WHERE num_comments_before_close IS NULL; ";
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(query)) {
             ResultSet rs = preparedStmt.executeQuery();

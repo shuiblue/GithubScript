@@ -152,21 +152,17 @@ public class AnalyzeGovernance {
                                                     preparedStmt_1.setInt(5, prID);
                                                     preparedStmt_1.setInt(6, projectID);
                                                     preparedStmt_1.addBatch();
+
+
+                                                    if (++count[0] % 100 == 0) {
+                                                        io.executeQuery(preparedStmt_1);
+                                                        conn1.commit();
+                                                        System.out.println(count + " count ");
+                                                        io.writeTofile(sb.toString(), output_dir + "pre_comm.txt");
+                                                        sb = new StringBuilder();
+                                                    }
                                                 } catch (SQLException e) {
                                                     e.printStackTrace();
-                                                }
-
-
-                                                if (++count[0] % 100 == 0) {
-                                                    io.executeQuery(preparedStmt_1);
-                                                    try {
-                                                        conn1.commit();
-                                                    } catch (SQLException e) {
-                                                        e.printStackTrace();
-                                                    }
-                                                    System.out.println(count + " count ");
-                                                    io.writeTofile(sb.toString(), output_dir + "pre_comm.txt");
-                                                    sb = new StringBuilder();
                                                 }
 
                                                 PR_participant.put(prID, true);

@@ -1,1 +1,1 @@
-twbs/bootstrap
+heroku/node-js-sample
