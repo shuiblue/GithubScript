@@ -1571,6 +1571,81 @@ public class IO_Process {
         return allPRS;
     }
 
+
+    public Set<String> getFollower(String maintainer) {
+        String mergedCommitID_query = "select  follower.login\n" +
+                "from `ghtorrent-2018-03`.followers f\n" +
+                "  LEFT JOIN `ghtorrent-2018-03`.users  user on  f.user_id =user.id\n" +
+                "  LEFT JOIN `ghtorrent-2018-03`.users follower on f.follower_id =follower.id\n" +
+                "WHERE user.login = \'"+maintainer+"\'";
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(mergedCommitID_query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                int prID = rs.getInt(1);
+                String owner = rs.getString(2);
+                String maintainer = rs.getString(3);
+
+                HashMap<String, Set<Integer>> owner_prSet = new HashMap<>();
+                if (maintainer_owners.get(maintainer) != null) {
+                    owner_prSet = maintainer_owners.get(maintainer);
+                }
+
+                Set<Integer> prSet = new HashSet<>();
+                if(owner_prSet.get(owner)!=null){
+                    prSet = owner_prSet.get(owner);
+                }
+                prSet.add(prID);
+                owner_prSet.put(owner,prSet);
+                maintainer_owners.put(maintainer,owner_prSet);
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public HashMap<String, HashMap<String, Set<Integer>>> getClosedPROwnerMaintainer(int projectID) {
+
+        HashMap<String, HashMap<String, Set<Integer>>> maintainer_owners = new HashMap<>();
+
+        String mergedCommitID_query = "SELECT  pull_request_id, authorName,closedBy_loginID\n" +
+                "FROM Pull_Request\n" +
+                "WHERE  projectID = " + projectID +
+                "       AND  closed = 'true' and authorName!= closedBy_loginID";
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(mergedCommitID_query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                int prID = rs.getInt(1);
+                String owner = rs.getString(2);
+                String maintainer = rs.getString(3);
+
+                HashMap<String, Set<Integer>> owner_prSet = new HashMap<>();
+                if (maintainer_owners.get(maintainer) != null) {
+                    owner_prSet = maintainer_owners.get(maintainer);
+                }
+
+                Set<Integer> prSet = new HashSet<>();
+                if(owner_prSet.get(owner)!=null){
+                    prSet = owner_prSet.get(owner);
+                }
+                prSet.add(prID);
+                owner_prSet.put(owner,prSet);
+                maintainer_owners.put(maintainer,owner_prSet);
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return maintainer_owners;
+    }
+
     public List<String> getPRList_String(int projectID, boolean merged) {
         String mergedCommitID_query = "SELECT  pull_request_id\n" +
                 "FROM Pull_Request\n" +
@@ -1598,6 +1673,7 @@ public class IO_Process {
         }
         return integer_List;
     }
+
     public List<String> getFirstStringValueBySQL(String sql) {
         List<String> integer_List = new ArrayList<>();
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
@@ -1789,6 +1865,8 @@ public class IO_Process {
 
 
     }
+
+
 }
 
 

@@ -1,4 +1,0 @@
-/usr0/home/shuruiz/ForkData/
-jdbc:mysql://localhost:3306/fork
-shuruiz
-shuruiz

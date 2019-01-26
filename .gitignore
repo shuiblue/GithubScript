@@ -41,7 +41,7 @@ out/
 
 .idea/
 .gradle/
-input/
+*/input/
 result/
 .gitignore
 build.gradle

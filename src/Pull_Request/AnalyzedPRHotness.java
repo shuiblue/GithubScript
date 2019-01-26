@@ -40,15 +40,13 @@ public class AnalyzedPRHotness {
         System.out.println(repos.size() + " projects ");
 
         for (String projectURL : repos) {
-//            int projectID = io.getRepoId(projectURL);
-            int projectID = 6;
-            System.out.println("projectID: " + projectID);
+            int projectID = io.getRepoId(projectURL);
+            System.out.println("projectID: " + projectID + ", "+projectURL);
             System.out.println("get all PR for " + projectURL);
             List<Integer> prSet = io.getClosedPRList(projectID);
 
             for (int prID : prSet) {
-//                prID = 13;
-                System.out.println("\npr: " + prID);
+                System.out.println("pr: " + prID);
                 HashMap<String, Set<String>> commit_file_map = analyzedPRHotness.getChangedFileForEachCommits(projectID, prID);
                 System.out.println(commit_file_map.keySet().size()+" commits in pr");
 
@@ -135,14 +133,14 @@ public class AnalyzedPRHotness {
                 String sha = rs.getString(1);
                 String file = rs.getString(2);
 
-                Set<String> fileSet = new HashSet<>();
-                if (commitFileMap.get(sha) != null) {
-                    fileSet = commitFileMap.get(sha);
+                if(sha!=null) {
+                    Set<String> fileSet = new HashSet<>();
+                    if (commitFileMap.get(sha) != null) {
+                        fileSet = commitFileMap.get(sha);
+                    }
+                    fileSet.add(file);
+                    commitFileMap.put(sha, fileSet);
                 }
-                fileSet.add(file);
-                commitFileMap.put(sha, fileSet);
-                System.out.print("");
-
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -152,21 +150,21 @@ public class AnalyzedPRHotness {
 
     }
 
-    private Set<String> getHotFiles(int projectID, int prID, int timeWwindowInDays) {
-        String query = "SELECT DISTINCT concat(cc.added_file, cc.modified_file, cc.renamed_file, cc.copied_file) AS cur_files\n" +
-                "         FROM Commit c\n" +
-                "   LEFT JOIN PR_Commit_map prc ON c.projectID = prc.projectID AND c.SHA = prc.sha\n" +
-                "  LEFT JOIN commit_changedFiles cc ON c.SHA = cc.commit_SHA\n" +
-                "   WHERE c.projectID =" +projectID+
-                "     AND prc.pull_request_ID IN (SELECT pr2.pull_request_ID\n" +
-                "                                 FROM Pull_Request pr1\n" +
-                "                                   INNER JOIN Pull_Request AS pr2\n" +
-                "                                     ON pr1.projectID = " + projectID+
-                "                                           AND pr1.pull_request_ID = " +projectID+
-                "                                           AND pr1.projectID = pr2.projectID AND pr2.closed = 'true'\n" +
-                "                                        AND pr2.age_in_day BETWEEN pr1.age_in_day + 1 AND pr1.age_in_day +" +timeWwindowInDays+
-                ")\n" +
-                "    AND concat(cc.added_file, cc.modified_file, cc.renamed_file, cc.copied_file) != ''";
+    private Set<String> getHotFiles(int projectID, int prID, int timeWindowInDays) {
+        String query = "SELECT DISTINCT cc.concat_AllChangedFile_ExceptDeleteFile\n" +
+                "FROM PR_Commit_map prc\n" +
+                "  RIGHT JOIN commit_changedFiles cc ON prc.SHA = cc.commit_SHA AND cc.concat_changedFile_exist_int = 1\n" +
+                "WHERE prc.projectID =" +projectID+
+                "      AND prc.pull_request_ID IN (SELECT pr2.pull_request_ID\n" +
+                "                                  FROM Pull_Request pr1\n" +
+                "                                    INNER JOIN Pull_Request AS pr2\n" +
+                "                                      ON pr1.projectID = " +projectID+
+                "                                         AND pr1.pull_request_ID =" +prID+
+                "                                         AND\n" +
+                "                                         pr1.projectID = pr2.projectID AND pr2.closed = 'true'\n" +
+                "                                         AND\n" +
+                "                                         pr2.age_in_day BETWEEN pr1.age_in_day + 1 AND pr1.age_in_day +" +     timeWindowInDays+");";
+
 
         HashSet<String> fileSet = new HashSet<>();
 
