@@ -31,11 +31,11 @@ import java.util.regex.Pattern;
  */
 public class IO_Process {
     String token;
-    String user, pwd, myUrl;
+    String user, pwd, myUrl, ghtpwd, ghtUrl;
     static String github_api_repo = "https://api.github.com/repos/";
     static String github_url = "https://github.com/";
     String current_dir = System.getProperty("user.dir");
-    static String working_dir, pr_dir, output_dir, clone_dir;
+    static String working_dir, pr_dir, output_dir, clone_dir,graph_dir;
     final int batchSize = 500;
     HashSet<String> stopFileSet = new HashSet<>();
     HashSet<String> sourceCodeSuffix = new HashSet<>();
@@ -47,13 +47,17 @@ public class IO_Process {
             working_dir = paramList[0];
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
+            graph_dir = output_dir + "ClassifyCommit_new/";
             clone_dir = output_dir + "clones/";
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];
+            ghtpwd = paramList[4];
+            ghtUrl = paramList[5];
             token = readResult(current_dir + "/input/token.txt").trim();
             stopFileSet.addAll(Arrays.asList(readResult(current_dir + "/input/StopFiles.txt").split("\n")));
             sourceCodeSuffix.addAll(Arrays.asList(readResult(current_dir + "/input/sourceCode.txt").split("\n")));
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -694,7 +698,7 @@ public class IO_Process {
 
     public int getRepoId(String repoURL) {
         int repoID = -1;
-        String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL_old = \"" + repoURL + "\"";
+        String selectRepoID = "SELECT id FROM fork.repository WHERE repoURL = \"" + repoURL + "\"";
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(selectRepoID)) {
@@ -1551,12 +1555,29 @@ public class IO_Process {
     }
 
 
-    public List<Integer> getClosedPRList(int projectID) {
+    public List<Integer> getClosedPRList_unfinishedHotness(int projectID) {
         List<Integer> allPRS = new ArrayList<>();
-        String mergedCommitID_query = "SELECT  pull_request_id\n" +
-                "FROM Pull_Request\n" +
-                "WHERE  projectID = " + projectID +
-                "       AND  closed = 'true' ";
+//        String mergedCommitID_query = "SELECT  pull_request_id\n" +
+////                "FROM Pull_Request\n" +
+////                "WHERE  projectID = " + projectID +
+////                "       AND  closed = 'true' ";
+
+//        String mergedCommitID_query = "SELECT  prc.pull_request_id\n" +
+//                "FROM Pull_Request pr LEFT JOIN PR_Commit_map prc\n" +
+//                "    ON pr.projectID = prc.projectID AND pr.pull_request_ID = prc.pull_request_id\n" +
+//                "  LEFT JOIN Commit c ON prc.sha = c.SHA\n" +
+//                "WHERE pr.closed = 'true' AND c.num_hotFiles_touched_fromAPI IS NULL and prc.projectID = " + projectID;
+
+        String mergedCommitID_query = "SELECT DISTINCT prc.pull_request_ID\n" +
+                "FROM fork.PR_Commit_map prc\n" +
+                "  right JOIN Pull_Request pr ON prc.pull_request_id = pr.pull_request_ID\n" +
+                "  right JOIN commit_files_GHAPI cf on prc.sha = cf.sha\n" +
+                "WHERE  pr.projectID =" + projectID + " and pr.isClosed and prc.projectID = pr.projectID ";
+//                "WHERE  pr.projectID ="+projectID+" and pr.isClosed and prc.projectID = pr.projectID  and pr.num_commits_on_files_touched IS NULL\n ";
+
+//        String mergedCommitID_query = "SELECT pr.pull_request_ID\n" +
+//                "FROM fork.Pull_Request pr\n" +
+//                " WHERE pr.num_commits_on_files_touched is null and pr.projectID =  "+projectID;
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(mergedCommitID_query);
@@ -1571,48 +1592,81 @@ public class IO_Process {
         return allPRS;
     }
 
+    public List<Integer> getClosedPRList_partial(int projectID) {
+        List<Integer> allPRS = new ArrayList<>();
 
-    public Set<String> getFollower(String maintainer) {
-        String mergedCommitID_query = "select  follower.login\n" +
-                "from `ghtorrent-2018-03`.followers f\n" +
-                "  LEFT JOIN `ghtorrent-2018-03`.users  user on  f.user_id =user.id\n" +
-                "  LEFT JOIN `ghtorrent-2018-03`.users follower on f.follower_id =follower.id\n" +
-                "WHERE user.login = \'"+maintainer+"\'";
+        String mergedCommitID_query = "SELECT DISTINCT pr.pull_request_ID\n" +
+                "FROM Pull_Request pr " +
+                "WHERE  pr.projectID =" + projectID + " and pr.isClosed";
 
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(mergedCommitID_query);
         ) {
             ResultSet rs = preparedStmt.executeQuery();
             while (rs.next()) {
-                int prID = rs.getInt(1);
-                String owner = rs.getString(2);
-                String maintainer = rs.getString(3);
+                allPRS.add(rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return allPRS;
+    }
 
-                HashMap<String, Set<Integer>> owner_prSet = new HashMap<>();
-                if (maintainer_owners.get(maintainer) != null) {
-                    owner_prSet = maintainer_owners.get(maintainer);
-                }
+    public List<Integer> getClosedPRList(int projectID) {
+        List<Integer> allPRS = new ArrayList<>();
+        String mergedCommitID_query = "SELECT  pull_request_id\n" +
+                "FROM Pull_Request\n" +
+                "WHERE  projectID = " + projectID +
+                "       AND  closed = 'true' ";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(mergedCommitID_query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                allPRS.add(rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return allPRS;
+    }
 
-                Set<Integer> prSet = new HashSet<>();
-                if(owner_prSet.get(owner)!=null){
-                    prSet = owner_prSet.get(owner);
-                }
-                prSet.add(prID);
-                owner_prSet.put(owner,prSet);
-                maintainer_owners.put(maintainer,owner_prSet);
+
+    //    public Set<String> getFollower(String maintainer) {
+    public HashMap<String, String> getFollower(String maintainer) {
+        HashMap<String, String> followerSet = new HashMap<>();
+//        Set<String> followerSet = new HashSet<>();
+        String mergedCommitID_query = "select  follower.login, f.created_at\n" +
+                "from `ghtorrent-2018-03`.followers f\n" +
+                "  LEFT JOIN `ghtorrent-2018-03`.users  user on  f.user_id =user.id\n" +
+                "  LEFT JOIN `ghtorrent-2018-03`.users follower on f.follower_id =follower.id\n" +
+                "WHERE user.login = \'" + maintainer + "\'";
+
+        try (Connection conn = DriverManager.getConnection(ghtUrl, user, ghtpwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(mergedCommitID_query);
+        ) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                String follower = rs.getString(1);
+                String date = rs.getString(2);
+                followerSet.put(follower, date);
+
 
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return followerSet;
     }
 
 
-    public HashMap<String, HashMap<String, Set<Integer>>> getClosedPROwnerMaintainer(int projectID) {
+    //    public HashMap<String, HashMap<String, ArrayList<Integer>>> getClosedPROwnerMaintainer(int projectID) {
+    public HashMap<String, HashMap<String, ArrayList<String>>> getClosedPROwnerMaintainer(int projectID) {
 
-        HashMap<String, HashMap<String, Set<Integer>>> maintainer_owners = new HashMap<>();
+//        HashMap<String, HashMap<String, ArrayList<Integer>>> maintainer_owners = new HashMap<>();
+        HashMap<String, HashMap<String, ArrayList<String>>> maintainer_owners = new HashMap<>();
 
-        String mergedCommitID_query = "SELECT  pull_request_id, authorName,closedBy_loginID\n" +
+        String mergedCommitID_query = "SELECT  pull_request_id, authorName,closedBy_loginID,created_at\n" +
                 "FROM Pull_Request\n" +
                 "WHERE  projectID = " + projectID +
                 "       AND  closed = 'true' and authorName!= closedBy_loginID";
@@ -1625,19 +1679,24 @@ public class IO_Process {
                 int prID = rs.getInt(1);
                 String owner = rs.getString(2);
                 String maintainer = rs.getString(3);
+                String created_at = rs.getString(4);
+                if (maintainer.equals("")) continue;
 
-                HashMap<String, Set<Integer>> owner_prSet = new HashMap<>();
+//                HashMap<String, ArrayList<Integer>> owner_prSet = new HashMap<>();
+                HashMap<String, ArrayList<String>> owner_prSet = new HashMap<>();
                 if (maintainer_owners.get(maintainer) != null) {
                     owner_prSet = maintainer_owners.get(maintainer);
                 }
 
-                Set<Integer> prSet = new HashSet<>();
-                if(owner_prSet.get(owner)!=null){
+//                ArrayList<Integer> prSet = new ArrayList<>();
+                ArrayList<String> prSet = new ArrayList<>();
+                if (owner_prSet.get(owner) != null) {
                     prSet = owner_prSet.get(owner);
                 }
-                prSet.add(prID);
-                owner_prSet.put(owner,prSet);
-                maintainer_owners.put(maintainer,owner_prSet);
+//                prSet.add(prID);
+                prSet.add(prID + "," + created_at);
+                owner_prSet.put(owner, prSet);
+                maintainer_owners.put(maintainer, owner_prSet);
 
             }
         } catch (SQLException e) {
@@ -1774,8 +1833,6 @@ public class IO_Process {
         }
         return false;
     }
-
-
     public boolean isDuplicateComment(String comment) {
         Pattern p1 = Pattern.compile("(dup(licate(d)?|e)?|super(c|s)(ee)?(ded)?(edes)?|obsoleted?|replaced?|redundant|better (implementation|solution)" +
                 "|solved|going|addressed|already)[ ]{1,}(by|in|with|as|of|in favor of|at|since|via)?");
@@ -1864,6 +1921,34 @@ public class IO_Process {
         return false;
 
 
+    }
+
+
+    public String getUpstream(String repoUrl) {
+        JsonUtility jsonUtility = new JsonUtility();
+        ArrayList<String> repo_info_json = null;
+
+        try {
+            repo_info_json = jsonUtility.readUrl(repoUrl + "?access_token=" + token);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if(repo_info_json.size()==0){
+            return "";
+        }
+        if (repo_info_json.size() > 0) {
+            JSONObject repo_jsonObj = new JSONObject(repo_info_json.get(0));
+
+            if (!repo_jsonObj.has("parent")) {
+                System.out.println("no parent");
+
+            } else {
+                JSONObject parentOBJ = (JSONObject) repo_jsonObj.get("parent");
+                String parent_url = (String) parentOBJ.get("url");
+                return parent_url;
+            }
+        }
+        return repoUrl;
     }
 
 

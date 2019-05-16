@@ -1,6 +1,5 @@
 package Pull_Request;
 
-import Pull_Request.Merge_PR_Status.GetMergedPR;
 import Util.IO_Process;
 
 import java.io.File;
@@ -60,7 +59,7 @@ public class AnalyzePRComment {
             final int[] count = {0};
             for (String projectUrl : repos) {
                 int projectID = io.getRepoId(projectUrl);
-                List<Integer> pr_set = io.getClosedPRList(projectID);
+                List<Integer> pr_set = io.getClosedPRList_unfinishedHotness(projectID);
                 String insert_query_1 = " UPDATE fork.Pull_Request" +
                         " SET closedBy_loginID = ?  " +
                         "WHERE projectID = ? AND pull_request_ID=? ";

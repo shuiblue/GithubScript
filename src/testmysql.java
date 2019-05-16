@@ -514,29 +514,95 @@ public class testmysql {
 
 
         /**  insert repo number of fork from GHT r**/
+////
+//        String[] repos = new String[0];
+//        try {
+//            repos = io.readResult("/Users/shuruiz/Work/ForkData/subjectProject.txt").split("\n");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 //
-        String[] repos = new String[0];
-        try {
-            repos = io.readResult("/Users/shuruiz/Work/ForkData/subjectProject.txt").split("\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        String insertQuery = "UPDATE fork.Final  SET num_fork_ght = ?   WHERE repoURL = ?";
+//        int count = 0;
+//        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+//             PreparedStatement preparedStmt = conn.prepareStatement(insertQuery)) {
+//            conn.setAutoCommit(false);
+//            for (int i = 1; i < repos.length; i++) {
+//                String repo = repos[i];
+//                String[] repoInfo = repo.split(",");
+//                int num_forks = Integer.parseInt(repoInfo[0]);
+//                String repoURL = repoInfo[1]  ;
+//
+//                preparedStmt.setInt(1, num_forks);
+//                preparedStmt.setString(2, repoURL);
+//                preparedStmt.addBatch();
+//                System.out.print(count + " count ");
+//                if (++count % 100 == 0) {
+//                    io.executeQuery(preparedStmt);
+//                    conn.commit();
+//                }
+//            }
+//            io.executeQuery(preparedStmt);
+//            conn.commit();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
 
-        String insertQuery = "UPDATE fork.Final  SET num_fork_ght = ?   WHERE repoURL = ?";
+
+        /**  insert social connection for each repo from GHT r**/
+//        List<List<String>> repos = io.readCSV("/Users/shuruiz/Work/ForkData/stat/socialConn_external.csv");
+//
+//        String insertQuery = "UPDATE fork.Final_PR  SET ratio_social_connection_external = ?   WHERE fork.Final_PR.projectID = ?";
+//        int count = 0;
+//        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+//             PreparedStatement preparedStmt = conn.prepareStatement(insertQuery)) {
+//            conn.setAutoCommit(false);
+//            for (int i = 1; i < repos.size(); i++) {
+//                List<String> repoInfo = repos.get(i);
+//                int repoID = Integer.parseInt(repoInfo.get(1));
+//                double ratio = Double.parseDouble(repoInfo.get(2));
+//                System.out.println(repoID+" "+ratio);
+//                preparedStmt.setDouble(1, ratio);
+//                preparedStmt.setInt(2, repoID);
+//                preparedStmt.addBatch();
+//                System.out.println(count + " count ");
+//                if (++count % 100 == 0) {
+//                    io.executeQuery(preparedStmt);
+//                    conn.commit();
+//                }
+//            }
+//            io.executeQuery(preparedStmt);
+//            conn.commit();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+
+
+        /**  insert hotness for each repo from GHT r**/
+//        List<List<String>> repos = io.readCSV("/Users/shuruiz/Work/ForkData/stat/gousios_hotness_median_external.csv");
+        List<List<String>> repos = io.readCSV("/Users/shuruiz/Work/ForkData/stat/gousios_hotness_mean_external.csv");
+//        List<List<String>> repos = io.readCSV("/Users/shuruiz/Work/ForkData/stat/hotness_mean_external.csv");
+
+//        String insertQuery = "UPDATE fork.Final_PR  SET hotness_median_external = ?   WHERE fork.Final_PR.projectID = ?";
+//        String insertQuery = "UPDATE fork.Final_PR  SET hotness_median_external_correct = ?   WHERE fork.Final_PR.projectID = ?";
+//        String insertQuery = "UPDATE fork.Final_PR  SET hotness_mean_external = ?   WHERE fork.Final_PR.projectID = ?";
+        String insertQuery = "UPDATE fork.Final_PR  SET hotness_mean_external_correct = ?   WHERE fork.Final_PR.projectID = ?";
         int count = 0;
         try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
              PreparedStatement preparedStmt = conn.prepareStatement(insertQuery)) {
             conn.setAutoCommit(false);
-            for (int i = 1; i < repos.length; i++) {
-                String repo = repos[i];
-                String[] repoInfo = repo.split(",");
-                int num_forks = Integer.parseInt(repoInfo[0]);
-                String repoURL = repoInfo[1]  ;
-
-                preparedStmt.setInt(1, num_forks);
-                preparedStmt.setString(2, repoURL);
+            for (int i = 1; i < repos.size(); i++) {
+                List<String> repoInfo = repos.get(i);
+                int repoID = Integer.parseInt(repoInfo.get(1));
+//                double median = Double.parseDouble(repoInfo.get(2));
+                double mean = Double.parseDouble(repoInfo.get(3));
+//                System.out.println(repoID+" "+median);
+                System.out.println(repoID+" "+mean);
+//                preparedStmt.setDouble(1, median);
+                preparedStmt.setDouble(1, mean);
+                preparedStmt.setInt(2, repoID);
                 preparedStmt.addBatch();
-                System.out.print(count + " count ");
+                System.out.println(count + " count ");
                 if (++count % 100 == 0) {
                     io.executeQuery(preparedStmt);
                     conn.commit();

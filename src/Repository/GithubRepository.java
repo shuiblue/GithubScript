@@ -26,6 +26,13 @@ public class GithubRepository {
     String type;
     String repoUrl;
 
+    static boolean isFork = false;
+    static String token;
+    static String github_api_repo = "https://api.github.com/repos/";
+    static String github_api_user = "https://api.github.com/users/";
+    static String github_api_search = "https://api.github.com/search/";
+    static String result_dir;
+
     public boolean isFork() {
         return isFork;
     }
@@ -33,13 +40,6 @@ public class GithubRepository {
     public void setFork(boolean isfork) {
         isFork = isfork;
     }
-
-    boolean isFork =false;
-    static String token;
-    static String github_api_repo = "https://api.github.com/repos/";
-    static String github_api_user = "https://api.github.com/users/";
-    static String github_api_search = "https://api.github.com/search/";
-    static String result_dir;
 
     public GithubRepository getRepoInfo(String repoURL, String projectURL) {
         GithubRepository repo = new GithubRepository();
@@ -70,11 +70,11 @@ public class GithubRepository {
             repo.setSize((int) fork_jsonObj.get("size"));
             repo.setLanguage(String.valueOf(fork_jsonObj.get("language")));
 
-            if(fork_jsonObj.has("parent")){
+            if (fork_jsonObj.has("parent")) {
                 String parentUrl = String.valueOf(fork_jsonObj.getJSONObject("parent").get("full_name"));
                 repo.setUpstreamID(io_process.getRepoId(parentUrl));
                 isFork = true;
-            }else{
+            } else {
                 repo.setUpstreamID(0);
 
             }
@@ -264,6 +264,7 @@ public class GithubRepository {
     public void setRepoUrl(String repoUrl) {
         this.repoUrl = repoUrl;
     }
+
     public int getUpstreamID() {
         return upstreamID;
     }

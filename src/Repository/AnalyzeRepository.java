@@ -3,11 +3,11 @@ package Repository;
 import Util.IO_Process;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AnalyzeRepository {
 
@@ -15,7 +15,7 @@ public class AnalyzeRepository {
     static String myUrl, user, pwd, token;
     static String myDriver = "com.mysql.jdbc.Driver";
     final int batchSize = 100;
-
+    static boolean isAnalyzingHardfork = true;
 
     AnalyzeRepository() {
         IO_Process io = new IO_Process();
@@ -45,26 +45,86 @@ public class AnalyzeRepository {
         AnalyzeRepository analyzeRepository = new AnalyzeRepository();
         /**   insert project_url to database ***/
 //        analyzeRepository.insertProject();
-
-
         IO_Process io = new IO_Process();
-        String[] projectList = null;
 
-        try {
-            projectList = io.readResult(current_dir + "/input/repoList.txt").split("\n");
-        } catch (IOException e) {
-            e.printStackTrace();
+        Set<String> repoSet = new HashSet<>();
+        if (isAnalyzingHardfork) {
+            repoSet = getHardforkRelatedRepos();
+        } else {
+            String[] projectList = null;
+
+            try {
+                projectList = io.readResult(current_dir + "/input/repoList.txt").split("\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            repoSet = new HashSet(Arrays.asList(projectList));
+
         }
 
-        for (String projectUrl : projectList) {
-            System.out.println(projectUrl);
-            /**     get repo info from api*/
-            GithubRepository repo = new GithubRepository().getRepoInfo(projectUrl, "");
-            analyzeRepository.updateRepoInfo(repo);
+
+        for (String projectUrl : repoSet) {
+            if (!isChecked(projectUrl)) {
+
+                System.out.println(projectUrl);
+                /**     get repo info from api*/
+                GithubRepository repo = new GithubRepository().getRepoInfo(projectUrl, "");
+                analyzeRepository.updateRepoInfo(repo);
+            }
         }
 
 
     }
+
+    public static Set<String> getHardforkRelatedRepos() {
+        //list all the hard fork url
+        String query = "SELECT hardfork_url,upstream_url FROM fork.HardFork";
+        Set<String> urlSet = new HashSet<>();
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)) {
+
+            ResultSet rs = preparedStmt.executeQuery();
+            System.out.println(query);
+            while (rs.next()) {
+                urlSet.add(rs.getString("hardfork_url"));
+                urlSet.add(rs.getString("upstream_url"));
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return urlSet;
+    }
+
+    private static boolean isChecked(String projectUrl) {
+//        String query = "\n" +
+//                "select TIMESTAMPDIFF(DAY, STR_TO_DATE(data_update_at, '%Y-%m-%dT%H:%i:%s'), CURDATE()) as diff\n" +
+//                "from repository\n" +
+//                "where repoURL = '" + projectUrl + "'";
+
+        String query = "\n" +
+                "select pushed_at\n" +
+                "from repository\n" +
+                "where repoURL = '" + projectUrl + "'";
+
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)) {
+
+            ResultSet rs = preparedStmt.executeQuery();
+            System.out.println(query);
+            if (rs.next()) {
+                String result = (String) rs.getObject("pushed_at");
+                if (result == null ||result.equals("") ) {
+                    return false;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
 
     public void updateRepoInfo(GithubRepository repoObj) {
         IO_Process io = new IO_Process();

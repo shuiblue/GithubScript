@@ -13,7 +13,7 @@ import java.util.*;
 
 
 public class GraphBasedAnalyzer {
-    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir,result_dir;
+    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir, result_dir;
     static String myUrl, user, pwd;
     static String myDriver = "com.mysql.jdbc.Driver";
     final int batchSize = 100;
@@ -49,8 +49,6 @@ public class GraphBasedAnalyzer {
 
     public static void main(String[] args) {
         GraphBasedAnalyzer graphBasedAnalyzer = new GraphBasedAnalyzer();
-//new Util.IO_Process() .cloneRepo("cmars/mailinabox","mail-in-a-box/mailinabox");
-//        graphBasedAnalyzer.analyzeCommitHistory("cmars/mailinabox","mail-in-a-box/mailinabox", false);
 
         QueryDataFromGithubAPI queryDataFromGithubAPI = new QueryDataFromGithubAPI();
         IO_Process io = new IO_Process();
@@ -68,7 +66,7 @@ public class GraphBasedAnalyzer {
 
         for (String projectUrl : repoList) {
             HashSet<String> select_activeForkList = new HashSet<>();
-            String classifyCommit_file ;
+            String classifyCommit_file;
             if (getActiveForksFromAPI) {
                 classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result_allFork.csv";
             } else {
@@ -88,7 +86,7 @@ public class GraphBasedAnalyzer {
                 try {
                     if (!all_activeFork.exists() || (all_activeFork.exists() && !io.readResult(allActiveList).trim().equals(""))) {
                         /**  get active forks using github api **/
-                          queryDataFromGithubAPI.getActiveForkList(projectUrl, hasTimeConstraint,projectUrl);
+                        queryDataFromGithubAPI.getActiveForkList(projectUrl, hasTimeConstraint, projectUrl);
 
                     }
                 } catch (IOException e) {
@@ -190,7 +188,8 @@ public class GraphBasedAnalyzer {
         if (getActiveForksFromAPI) {
             classifyCommit_file = graph_dir + projectURL.replace("/", ".") + "_graph_result_allFork.csv";
         } else {
-            classifyCommit_file = graph_dir + projectURL.replace("/", ".") + "_graph_result.csv";
+//            classifyCommit_file = graph_dir + projectURL.replace("/", ".") + "_graph_result.csv";
+            classifyCommit_file = graph_dir + projectURL.replace("/", ".") + "_graph_result_2019.csv";
         }
 
         /** result**/
@@ -200,7 +199,7 @@ public class GraphBasedAnalyzer {
         HashSet<String> upstream2Fork = new HashSet<>();
 
 
-        /** get commit in branch and get commit history */
+        /** get commit in branch and get commit history 3*/
 //        upstream_firstCommit_set = getCommitInBranch(projectURL, projectURL);
 //        fork_firstCommit_set = getCommitInBranch(forkUrl, projectURL);
         upstream_firstCommit_set = getCommitInBranch(upstream, upstream, projectURL);
@@ -245,12 +244,16 @@ public class GraphBasedAnalyzer {
 
 
         io.writeTofile(fork + "," + upstream + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
-                        fork2Upstream.size() + "," + upstream2Fork.size() + "," +
+                        fork2Upstream.size() + "," + upstream2Fork.size()
+//
+//                do not print commit sha
+                           + "," +
                         onlyFork.toString().replace(",", "/") + "," +
 //                        onlyUpstream.toString().replace(",", "/") +
                         "," +
                         fork2Upstream.toString().replace(",", "/") + "," +
-                        upstream2Fork.toString().replace(",", "/") + "\n"
+                        upstream2Fork.toString().replace(",", "/")
+                        + "\n"
                 , classifyCommit_file);
 
 
