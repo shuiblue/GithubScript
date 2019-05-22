@@ -1,1 +1,0 @@
-docker-library/kibana,10.989011,143,14

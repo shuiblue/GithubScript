@@ -1,6 +1,0 @@
-/Users/shuruiz/Work/
-jdbc:mysql://localhost:3307/fork?useServerPrepStmts=false&rewriteBatchedStatements=true
-shuruiz
-shuruiz
-2ug1b8RT66SV2BH
-jdbc:mysql://localhost:3308/ghtorrent-2018-03?useServerPrepStmts=false&rewriteBatchedStatements=true

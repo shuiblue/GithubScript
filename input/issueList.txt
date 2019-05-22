@@ -1,7 +1,0 @@
-twitter/ambrose
-PowerShellEmpire/PowerTools
-h2oai/h2o-tutorials
-thoughtbot/trail-map
-philsturgeon/codeigniter-oauth2
-jonathantneal/svg4everybody
-ga-wdi-boston/fundamentals-diagnostic
