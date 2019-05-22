@@ -20,23 +20,23 @@ public class Main_analyzeCommitFlow {
             for (String str : fork_upstream_pairs) {
                 String forkUrl = str.split(",")[0];
                 String projectUrl = str.split(",")[1];
-                String classifyCommit_file = graphBasedAnalyzer.graph_dir + projectUrl.replace("/", ".") + "_graph_result_allFork.csv";
+                String classifyCommit_file = graphBasedAnalyzer.graph_dir + projectUrl.replace("/", ".") + "_graph_result_2019.csv";
 
                 /**  by graph  **/
                 System.out.println("graph-based...");
                 StringBuilder sb_result = new StringBuilder();
-                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
+                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,commitsBeforeForking\n");
                 io.rewriteFile(sb_result.toString(), classifyCommit_file);
 
                 /** clone project **/
                 new JgitUtility().clondForkAndUpstream(forkUrl, projectUrl);
                 graphBasedAnalyzer.analyzeCommitHistory(forkUrl, projectUrl, false);
 
-                try {
-                    io.deleteDir(new File(graphBasedAnalyzer.clone_dir + projectUrl));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+//                try {
+//                    io.deleteDir(new File(graphBasedAnalyzer.clone_dir + projectUrl));
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -1,0 +1,4 @@
+/home/feature/shuruiz/
+jdbc:mysql://localhost:3306/fork?useServerPrepStmts=false&rewriteBatchedStatements=true
+shuruiz
+shuruiz

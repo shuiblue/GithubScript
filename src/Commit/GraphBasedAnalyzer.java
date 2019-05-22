@@ -22,7 +22,7 @@ public class GraphBasedAnalyzer {
     HashMap<String, ArrayList<String>> all_HistoryMap = new HashMap<>();
     HashSet<String> upstream_firstCommit_set = new HashSet<>();
     HashSet<String> fork_firstCommit_set = new HashSet<>();
-    static boolean getActiveForksFromAPI = true;
+    static boolean getActiveForksFromAPI = false;
     static boolean hasTimeConstraint = true;
 
 
@@ -70,7 +70,7 @@ public class GraphBasedAnalyzer {
             if (getActiveForksFromAPI) {
                 classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result_allFork.csv";
             } else {
-                classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result.csv";
+                classifyCommit_file = graph_dir + projectUrl.replace("/", ".") + "_graph_result_2019.csv";
 
             }
 
@@ -142,7 +142,7 @@ public class GraphBasedAnalyzer {
                 /**  by graph  **/
                 System.out.println("graph-based...");
                 StringBuilder sb_result = new StringBuilder();
-                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F\n");
+                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,commitsBeforeForking\n");
                 io.rewriteFile(sb_result.toString(), classifyCommit_file);
 
                 /** clone project **/
@@ -197,6 +197,7 @@ public class GraphBasedAnalyzer {
         HashSet<String> onlyUpstream = new HashSet<>();
         HashSet<String> fork2Upstream = new HashSet<>();
         HashSet<String> upstream2Fork = new HashSet<>();
+        HashSet<String> commitsBeforeForkingpoint = new HashSet<>();
 
 
         /** get commit in branch and get commit history 3*/
@@ -237,25 +238,55 @@ public class GraphBasedAnalyzer {
                     fork2Upstream.add(fork_origin_commit);
                 } else if (d > distance2Upstream) {
                     upstream2Fork.add(fork_origin_commit);
+                } else{  // before forking point
+                    commitsBeforeForkingpoint.add(fork_origin_commit);
                 }
             }
         });
-        System.out.println(onlyFork.size() + " , " + onlyUpstream.size() + " , " + fork2Upstream.size() + " , " + upstream2Fork.size());
-
+        System.out.println(onlyFork.size() + " , " + onlyUpstream.size() + " , " + fork2Upstream.size() + " , " + upstream2Fork.size()+" , "+commitsBeforeForkingpoint.size());
 
         io.writeTofile(fork + "," + upstream + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
-                        fork2Upstream.size() + "," + upstream2Fork.size()
+                        fork2Upstream.size() + "," + upstream2Fork.size() +"," + commitsBeforeForkingpoint.size()
 //
 //                do not print commit sha
-                           + "," +
-                        onlyFork.toString().replace(",", "/") + "," +
-//                        onlyUpstream.toString().replace(",", "/") +
-                        "," +
-                        fork2Upstream.toString().replace(",", "/") + "," +
-                        upstream2Fork.toString().replace(",", "/")
+//                           + "," +
+//                        onlyFork.toString().replace(",", "/") + "," +
+////                        onlyUpstream.toString().replace(",", "/") +
+//                        "," +
+//                        fork2Upstream.toString().replace(",", "/") + "," +
+//                        upstream2Fork.toString().replace(",", "/")+ "," +
+//                        commitsBeforeForkingpoint.toString().replace(",", "/")
                         + "\n"
                 , classifyCommit_file);
 
+
+
+        /**  PRINT commits: sha, date, category **/
+
+        distance2Fork_map.forEach((sha, d) -> {
+            if (!mergeCommits.contains(sha)) {
+
+                String cmd = "git show -s --format=\'%cr~%cI\' "+ sha;
+                String commitInfo = io.exeCmd(cmd.split(" "),clone_dir + projectURL).replace("\'","").replace(","," ").replace("~",",");
+                String category = "";
+                if(onlyFork.contains(sha)){
+                    category="OnlyF";
+                }else if(onlyUpstream.contains(sha)){
+                    category="OnlyU";
+                }else if(fork2Upstream.contains(sha)){
+                    category="F2U";
+                }else if(upstream2Fork.contains(sha)){
+                    category="U2F";
+                }else if(commitsBeforeForkingpoint.contains(sha)){
+                    category="beforeForking";
+                }
+
+
+                System.out.println(sha+","+category+","+commitInfo);
+                io.writeTofile(sha+","+category+","+commitInfo, graph_dir+ projectURL.replace("/", ".")+"_commit_date_category.csv");
+
+            }
+        });
 
     }
 

@@ -2,10 +2,12 @@ package Hardfork;
 
 import Util.IO_Process;
 import Util.JsonUtility;
+import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.SilentCssErrorHandler;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.apache.commons.logging.LogFactory;
+import org.apache.solr.common.util.Hash;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -17,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -81,7 +85,7 @@ public class ParseGhSearchHtml {
     }
 
     public List<String> getSearchPage(String searchPageUrl, String localSourceCodeDirPath) {
-
+        System.setProperty("http.agent", "");
         this.analysisDir = localSourceCodeDirPath + "INFOX_output/";
 //        WebClient webClient = new WebClient(BrowserVersion.CHROME);
         WebClient webClient = new WebClient();
@@ -89,26 +93,42 @@ public class ParseGhSearchHtml {
         LogFactory.getFactory().setAttribute("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
         java.util.logging.Logger.getLogger("com.gargoylesoftware.htmlunit").setLevel(Level.OFF);
         java.util.logging.Logger.getLogger("org.apache.commons.httpclient").setLevel(Level.OFF);
-        webClient.getOptions().setUseInsecureSSL(true); //ignore ssl certificate
+        webClient.getOptions().setUseInsecureSSL(false); //ignore ssl certificate
         webClient.getOptions().setThrowExceptionOnScriptError(false);
         webClient.getOptions().setJavaScriptEnabled(true);
         webClient.getOptions().setThrowExceptionOnFailingStatusCode(false);
         webClient.setCssErrorHandler(new SilentCssErrorHandler());
-
         HtmlPage page = null;
-        Document currentPage = null;
+        Document currentPage;
 
-        try {
-            page = webClient.getPage(searchPageUrl);
-        } catch (Exception e) {
-            System.out.println("Get page error");
+        page = requestPage(searchPageUrl, webClient);
+        if (page == null) {
+            return new ArrayList<>();
         }
+
         webClient.waitForBackgroundJavaScriptStartingBefore(200);
         webClient.waitForBackgroundJavaScript(5000);
 
         currentPage = Jsoup.parse(page.asXml());
         return getHardForkInfo(webClient, currentPage);
 
+    }
+
+    private HtmlPage requestPage(String searchPageUrl, WebClient webClient) {
+        HtmlPage page = null;
+        try {
+            page = webClient.getPage(searchPageUrl);
+
+            //abuse detection
+            while (page.getWebResponse().getStatusCode() == 429) {
+                System.out.println("github abuse detection, sleep 50 seconds");
+                Thread.sleep(50000);
+                page = requestPage(searchPageUrl, webClient);
+            }
+        } catch (Exception e) {
+            System.out.println("Get page error");
+        }
+        return page;
     }
 
     private List<String> getHardForkInfo(WebClient webClient, Document currentPage) {
@@ -120,7 +140,7 @@ public class ParseGhSearchHtml {
             String hardfork = ele.getElementsByAttribute("href").get(0).childNode(0).toString().trim();
             String upstream = ele.getElementsByAttribute("href").get(1).childNode(0).toString().trim();
             result.add(hardfork + " " + upstream);
-            io.writeTofile(hardfork + " " + upstream + "\n", "/Users/shuruiz/Work/ForkData/hardfork-exploration/hardfork_upstream_pairs.txt");
+            io.writeTofile(hardfork + "," + upstream + "\n", "/Users/shuruiz/Work/ForkData/hardfork-exploration/hardfork_upstream_pairs_0521.txt");
 
         }
         System.out.println(result.size());
@@ -134,16 +154,52 @@ public class ParseGhSearchHtml {
 
         ParseGhSearchHtml pgs = new ParseGhSearchHtml();
         List<String> hardfork_upstream_pairs = new ArrayList<>();
-        for (int page = 1; page <= 100; page++) {
-            String url = "https://github.com/search?l=&p=" + page + "&q=%22a+fork+of%22+extension%3Amd+fork%3Aonly&ref=advsearch&type=Repositories&utf8=%E2%9C%93";
-//            try {
-////                Thread.sleep(50000);
-//                System.out.println(page);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-            hardfork_upstream_pairs.addAll(pgs.getSearchPage(url, ""));
+
+//        https://github.com/search?q=%22a+fork+of%22+fork%3Aonly+created%3A2008-03-01..2008-04-01&type=Repositories
+//        appears the very first repo
+        String date_string = "2008-01-01";
+
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+        Date date = null;
+        try {
+            date = sdf.parse(date_string);
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
+        Calendar c1 = Calendar.getInstance();
+        c1.setTime(date);
+        for (int year = 2008; year <= 2020; year++) {
+            for (int i = 1; i < 12; i++) {
+                String currentMonth = c1.getTime().toInstant().toString().split("T")[0];
+                c1.add(Calendar.MONTH, 1);
+                String nextMonth = c1.getTime().toInstant().toString().split("T")[0];
+
+                System.out.println(currentMonth + "..." + nextMonth);
+                String query = "q=%22a+fork+of%22+fork%3Aonly+created%3A" + currentMonth + ".." + nextMonth + "&type=Repositories";
+                for (int page = 1; page <= 100; page++) {
+                    String url = "https://github.com/search?l=&p=" + page + "&" + query;
+                    try {
+                        Thread.sleep(5);
+                        System.out.println(url);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    List<String> result = pgs.getSearchPage(url, "");
+                    if (result.size() > 0) {
+                        hardfork_upstream_pairs.addAll(result);
+                    } else {
+                        System.out.println("0 result between:" + currentMonth + "..." + nextMonth);
+                        break;
+                    }
+                }
+
+
+            }
+
+        }
+
 
     }
 
