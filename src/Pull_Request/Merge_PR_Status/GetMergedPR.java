@@ -60,10 +60,40 @@ public class GetMergedPR {
         return rejectedPR;
     }
 
+
+    public HashMap<Integer, HashSet<Integer>> getRejectPR() {
+        HashMap<Integer, HashSet<Integer>> rejectedPR = new HashMap<>();
+        String query = "SELECT projectID,pull_request_ID\n" +
+                "FROM Pull_Request\n " +
+                "where not new_merge_allType";
+//                "WHERE merge_allType = FALSE AND Pull_Request.merge_2Ref IS NULL AND closed = 'true'; ";
+//                "AND " +
+//                "(Pull_Request.merge_2 IS NULL OR Pull_Request.merge_3 IS NULL OR Pull_Request.merge_4 IS NULL);";
+        try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+             PreparedStatement preparedStmt = conn.prepareStatement(query)) {
+            ResultSet rs = preparedStmt.executeQuery();
+            while (rs.next()) {
+                int projectID = rs.getInt(1);
+                int pr_ID = rs.getInt(2);
+                HashSet<Integer> prSet = new HashSet<>();
+                if (rejectedPR.get(projectID) != null) {
+                    prSet = rejectedPR.get(projectID);
+                }
+                prSet.add(pr_ID);
+                rejectedPR.put(projectID, prSet);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return rejectedPR;
+    }
+
     public static void main(String[] args) {
         GetMergedPR getMergedPR = new GetMergedPR();
-        HashMap<Integer, HashSet<Integer>> rejectedPR = getMergedPR.getClosedPR();
+//        HashMap<Integer, HashSet<Integer>> rejectedPR = getMergedPR.getClosedPR();
+        HashMap<Integer, HashSet<Integer>> rejectedPR = getMergedPR.getRejectPR();
         rejectedPR.forEach((projectID, prSet) -> {
+            System.out.println(projectID+" with "+prSet.size() + " prs");
             getMergedPR.checkPRstatus(projectID, prSet);
         });
 
@@ -213,8 +243,8 @@ public class GetMergedPR {
 
 
     public void getEachPR(String projectURL, int pr) {
-        System.out.println(projectURL + " , pr " + pr);
-
+//        System.out.println(projectURL + " , pr " + pr);
+//
         IO_Process io = new IO_Process();
         String timeline_file = timeline_dir + "get_pr_timeline." + projectURL.replace("/", ".") + "_" + pr + ".csv";
 //        String timeline_file = "/Users/shuruiz/Work/get_pr_timeline.twbs.bootstrap_3072.csv";
@@ -232,136 +262,156 @@ public class GetMergedPR {
 
                     /**  type 2:  check pr is closed by a commit*/
                     // https://blog.github.com/2013-01-22-closing-issues-via-commit-messages/
-                    if (event.equals("closed")) {
-                        close_event_index = i;
+                    if (event.equals("committed")) {
                         if (!sha.equals("")) {
-                            io.writeTofile(projectURL + "," + pr + ",merged-2" + "\n", output_dir + "update_mergedPR.txt");
-                            System.out.println(projectURL + "," + pr + ",merged-2");
-                            return;
-                        }
-                    }
-                    if (event.equals("merged")) {
-                        io.writeTofile(projectURL + "," + pr + ",merged-1" + "\n", output_dir + "update_mergedPR.txt");
-                        System.out.println(projectURL + "," + pr + ",merged-1");
-                        return;
-
-                    }
-
-                    if (event.equals("referenced") && !sha.equals("")) { // // https://github.com/moby/moby/pull/34248
-                        // todo: close PR and merge through other commit, only by refering to it?
-                        // https://stackoverflow.com/questions/17818167/find-a-pull-request-on-github-where-a-commit-was-originally-created
-                        // https://blog.github.com/2014-10-13-linking-merged-pull-requests-from-commits/
-                        // https://blog.github.com/2013-04-01-branch-and-tag-labels-for-commit-pages/
-                        referencedSHA.add(sha);
-                    }
-                }
-            }
-
-
-            if (close_event_index == 0) {
-                close_event_index = timeline.size();
-            }
-
-            /**   type 3: check the last 3 comment before closing the pr contains keywords and sha*/
-            ArrayList<String> last3Comments = new ArrayList<>();
-            boolean checkLastComment = false;
-            for (int s = close_event_index - 1; s > 0; s--) {
-                List<String> comment_candidate = timeline.get(s);
-                if (comment_candidate.size() > 9) {
-                    String event = comment_candidate.get(9);
-                    if (event.equals("commented")) {
-                        String comment = comment_candidate.get(5);
-                        if (!comment.equals("")) {
-                            last3Comments.add(comment);
-                        }
-                        if (last3Comments.size() == 3) {
-                            break;
-                        }
-                    }
-
-                    /**   type 5, 4: check the comment before closing the pr */
-                    if (!checkLastComment && last3Comments.size() == 1) {
-                        checkLastComment = true;
-                        String lastComment = last3Comments.get(0);
-
-                        /**   type 5: check the comment before closing the pr contains Merged SHA*/
-                        String potentialSHA = containsPotentialSHA(lastComment);
-                        if (!potentialSHA.equals("")
-                                && !lastComment.contains("codecov")) {
-                            boolean shaMerged = containsMergedSHA(potentialSHA, projectURL);
-
-                            //hardcode for moby or docker
-                            if (!io.isDuplicateComment(lastComment)) {
-                                if (shaMerged) {
-                                    io.writeTofile(projectURL + "," + pr + ",merged-5" + "\n", output_dir + "update_mergedPR.txt");
-                                    System.out.println(projectURL + "," + pr + ",merged-5");
-                                    return;
-                                }
-                            } else {
-
-                                if (containsPRid(lastComment) || shaMerged) { //todo sha should be merged?
-                                    io.writeTofile(projectURL + "," + pr + "," + lastComment.replaceAll("[,]", "    ").replaceAll("[\\s]+", " ") + "\n", output_dir + "duplicateComment.txt");
-                                    return;
-                                }
-                            }
-                        }
-
-
-                        /**   type 4: check the comment before closing the pr contains keywords*/
-                        if (!containsPRid(lastComment)) {
-                            if (hasType_4_MergeKeywords(lastComment)) {
-                                io.writeTofile(projectURL + "," + pr + ",merged-4" + "\n", output_dir + "update_mergedPR.txt");
-                                System.out.println(projectURL + "," + pr + ",merged-4");
+                            if (commitIsMerged(sha, projectURL)) {
+                                io.writeTofile(projectURL + "," + pr + ",merged-6" + "\n", output_dir + "merge_6.txt");
+                                System.out.println(projectURL + "," + pr + ",merged-6");
                                 return;
                             }
-                        } else {
-                            io.writeTofile(projectURL + "," + pr + " " + "\n", output_dir + "rejectedPR.txt");
-                            return;
                         }
                     }
+
                 }
             }
-
-
-            /**   type 3: check the last 3 comment before closing the pr contains keywords and sha*/
-
-            for (String comment : last3Comments) {
-                boolean shaMerged = false;
-                if (hasMergeKeywords(comment)) {
-                    System.out.println(" comment has keywords");
-                    String potentialSHA = containsPotentialSHA(comment);
-                    if (!potentialSHA.equals("")) {
-                        shaMerged = containsMergedSHA(potentialSHA, projectURL);
-                    }
-                    if (shaMerged) {
-                        System.out.println(" commit merged");
-                    } else {
-                        System.out.println(" SHA is not found/merged");
-                    }
-                }
-                if (!comment.equals("") && shaMerged) {
-                    System.out.println(projectURL + ", pr# " + pr + " is merged-3");
-                    io.writeTofile(projectURL + "," + pr + ",merged-3" + "\n", output_dir + "update_mergedPR.txt");
-                    return;
-                }
-            }
-
-            if (referencedSHA.size() > 0) {
-                io.writeTofile(projectURL + "," + pr + "," + referencedSHA.toString() + "\n", output_dir + "referenceCommit.txt");
-            }
-
-            boolean merge2Ref = false;
-            for (String refSHA : referencedSHA) {
-                if (commitIsMerged(refSHA, projectURL)) {
-                    System.out.println(projectURL + ", pr# " + pr + " is merged-2r");
-                    io.writeTofile(projectURL + "," + pr + ",merged-2ref，"+refSHA + "\n", output_dir + "update_mergedPR.txt");
-                    merge2Ref = true;
-                }
-            }
-
-            if(merge2Ref==true) return;
-
-            io.writeTofile(projectURL + "," + pr + " " + "\n", output_dir + "rejectedPR.txt");
+//            for (int i = timeline.size() - 1; i > 0; i--){
+//                List<String> line = timeline.get(i);
+//                if (line.size() > 9) {
+//                    String event = line.get(9);
+//                    String sha = line.get(6);
+//
+//                    /**  type 2:  check pr is closed by a commit*/
+//                    // https://blog.github.com/2013-01-22-closing-issues-via-commit-messages/
+//                    if (event.equals("closed")) {
+//                        close_event_index = i;
+//                        if (!sha.equals("")) {
+//                            io.writeTofile(projectURL + "," + pr + ",merged-2" + "\n", output_dir + "update_mergedPR.txt");
+//                            System.out.println(projectURL + "," + pr + ",merged-2");
+//                            return;
+//                        }
+//                    }
+//                    if (event.equals("merged")) {
+//                        io.writeTofile(projectURL + "," + pr + ",merged-1" + "\n", output_dir + "update_mergedPR.txt");
+//                        System.out.println(projectURL + "," + pr + ",merged-1");
+//                        return;
+//
+//                    }
+//
+//                    if (event.equals("referenced") && !sha.equals("")) { // // https://github.com/moby/moby/pull/34248
+//                        // todo: close PR and merge through other commit, only by refering to it?
+//                        // https://stackoverflow.com/questions/17818167/find-a-pull-request-on-github-where-a-commit-was-originally-created
+//                        // https://blog.github.com/2014-10-13-linking-merged-pull-requests-from-commits/
+//                        // https://blog.github.com/2013-04-01-branch-and-tag-labels-for-commit-pages/
+//                        referencedSHA.add(sha);
+//                    }
+//                }
+//            }
+//
+//
+//            if (close_event_index == 0) {
+//                close_event_index = timeline.size();
+//            }
+//
+//            /**   type 3: check the last 3 comment before closing the pr contains keywords and sha*/
+//            ArrayList<String> last3Comments = new ArrayList<>();
+//            boolean checkLastComment = false;
+//            for (int s = close_event_index - 1; s > 0; s--) {
+//                List<String> comment_candidate = timeline.get(s);
+//                if (comment_candidate.size() > 9) {
+//                    String event = comment_candidate.get(9);
+//                    if (event.equals("commented")) {
+//                        String comment = comment_candidate.get(5);
+//                        if (!comment.equals("")) {
+//                            last3Comments.add(comment);
+//                        }
+//                        if (last3Comments.size() == 3) {
+//                            break;
+//                        }
+//                    }
+//
+//                    /**   type 5, 4: check the comment before closing the pr */
+//                    if (!checkLastComment && last3Comments.size() == 1) {
+//                        checkLastComment = true;
+//                        String lastComment = last3Comments.get(0);
+//
+//                        /**   type 5: check the comment before closing the pr contains Merged SHA*/
+//                        String potentialSHA = containsPotentialSHA(lastComment);
+//                        if (!potentialSHA.equals("")
+//                                && !lastComment.contains("codecov")) {
+//                            boolean shaMerged = containsMergedSHA(potentialSHA, projectURL);
+//
+//                            //hardcode for moby or docker
+//                            if (!io.isDuplicateComment(lastComment)) {
+//                                if (shaMerged) {
+//                                    io.writeTofile(projectURL + "," + pr + ",merged-5" + "\n", output_dir + "update_mergedPR.txt");
+//                                    System.out.println(projectURL + "," + pr + ",merged-5");
+//                                    return;
+//                                }
+//                            } else {
+//
+//                                if (containsPRid(lastComment) || shaMerged) { //todo sha should be merged?
+//                                    io.writeTofile(projectURL + "," + pr + "," + lastComment.replaceAll("[,]", "    ").replaceAll("[\\s]+", " ") + "\n", output_dir + "duplicateComment.txt");
+//                                    return;
+//                                }
+//                            }
+//                        }
+//
+//
+//                        /**   type 4: check the comment before closing the pr contains keywords*/
+//                        if (!containsPRid(lastComment)) {
+//                            if (hasType_4_MergeKeywords(lastComment)) {
+//                                io.writeTofile(projectURL + "," + pr + ",merged-4" + "\n", output_dir + "update_mergedPR.txt");
+//                                System.out.println(projectURL + "," + pr + ",merged-4");
+//                                return;
+//                            }
+//                        } else {
+//                            io.writeTofile(projectURL + "," + pr + " " + "\n", output_dir + "rejectedPR.txt");
+//                            return;
+//                        }
+//                    }
+//                }
+//            }
+//
+//
+//            /**   type 3: check the last 3 comment before closing the pr contains keywords and sha*/
+//
+//            for (String comment : last3Comments) {
+//                boolean shaMerged = false;
+//                if (hasMergeKeywords(comment)) {
+//                    System.out.println(" comment has keywords");
+//                    String potentialSHA = containsPotentialSHA(comment);
+//                    if (!potentialSHA.equals("")) {
+//                        shaMerged = containsMergedSHA(potentialSHA, projectURL);
+//                    }
+//                    if (shaMerged) {
+//                        System.out.println(" commit merged");
+//                    } else {
+//                        System.out.println(" SHA is not found/merged");
+//                    }
+//                }
+//                if (!comment.equals("") && shaMerged) {
+//                    System.out.println(projectURL + ", pr# " + pr + " is merged-3");
+//                    io.writeTofile(projectURL + "," + pr + ",merged-3" + "\n", output_dir + "update_mergedPR.txt");
+//                    return;
+//                }
+//            }
+//
+//            if (referencedSHA.size() > 0) {
+//                io.writeTofile(projectURL + "," + pr + "," + referencedSHA.toString() + "\n", output_dir + "referenceCommit.txt");
+//            }
+//
+//            boolean merge2Ref = false;
+//            for (String refSHA : referencedSHA) {
+//                if (commitIsMerged(refSHA, projectURL)) {
+//                    System.out.println(projectURL + ", pr# " + pr + " is merged-2r");
+//                    io.writeTofile(projectURL + "," + pr + ",merged-2ref，"+refSHA + "\n", output_dir + "update_mergedPR.txt");
+//                    merge2Ref = true;
+//                }
+//            }
+//
+//            if(merge2Ref==true) return;
+//
+//            io.writeTofile(projectURL + "," + pr + " " + "\n", output_dir + "rejectedPR.txt");
         } else {
             io.writeTofile(projectURL + "," + pr + "\n", output_dir + "miss_timeline.txt");
         }

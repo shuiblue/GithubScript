@@ -96,7 +96,7 @@ public class JgitUtility {
         return branchList;
     }
 
-    public void clondForkAndUpstream(String forkUrl, String projectURL) {
+    public String clondForkAndUpstream(String forkUrl, String projectURL) {
         String projectName = projectURL.split("/")[0];
         IO_Process io = new IO_Process();
         String creadDirCMD = "mkdir -p " + clone_dir + projectURL;
@@ -113,16 +113,24 @@ public class JgitUtility {
                 clonedFork.add(forkUrl);
                 String forkName = io.getForkURL(forkUrl.split("/")[0]);
                 String cloneForkCmd = "git remote add " + forkName + " " + github_url + forkUrl + ".git";
-                io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
+               String cloneResult =  io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
+               if(cloneResult.equals("")){
+                   System.out.println();
+               }
             }
 
 
             String fetchAll = "git fetch --all";
-            System.out.println(io.exeCmd(fetchAll.split(" "), clone_dir + projectURL + "/"));
+            String fetchResult = io.exeCmd(fetchAll.split(" "), clone_dir + projectURL + "/");
+            if(fetchResult.contains("error: Could not fetch")){
+                System.out.println("could not fetch fork, return");
+                return "clone error";
+            }
         } else {
             io.writeTofile(projectURL + "\n", output_dir + "404_pro.txt");
 
         }
+        return "";
     }
 
     public void cloneRepo_cmd(Set<String> forkList, String projectURL, boolean getActiveForksFromAPI) {

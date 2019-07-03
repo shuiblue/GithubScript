@@ -13,30 +13,33 @@ public class Main_analyzeCommitFlow {
         GraphBasedAnalyzer graphBasedAnalyzer = new GraphBasedAnalyzer();
 
         IO_Process io = new IO_Process();
-        String inputPath = graphBasedAnalyzer.current_dir + "/input/hardfork_upstream_pairs.txt";
+//        String inputPath = graphBasedAnalyzer.current_dir + "/input/filtered_LevenBigThan3.txt";
+        String inputPath = graphBasedAnalyzer.current_dir + "/input/text.txt";
         try {
             String[] fork_upstream_pairs = io.readResult(inputPath).split("\n");
 
             for (String str : fork_upstream_pairs) {
-                String forkUrl = str.split(",")[0];
-                String projectUrl = str.split(",")[1];
-                String classifyCommit_file = graphBasedAnalyzer.graph_dir + projectUrl.replace("/", ".") + "_graph_result_2019.csv";
+                String forkUrl = str.split(",")[1];
+                String projectUrl = str.split(",")[0];
 
                 /**  by graph  **/
                 System.out.println("graph-based...");
-                StringBuilder sb_result = new StringBuilder();
-                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,commitsBeforeForking\n");
-                io.rewriteFile(sb_result.toString(), classifyCommit_file);
 
                 /** clone project **/
-                new JgitUtility().clondForkAndUpstream(forkUrl, projectUrl);
-                graphBasedAnalyzer.analyzeCommitHistory(forkUrl, projectUrl, false);
+                String clondResult = new JgitUtility().clondForkAndUpstream(forkUrl, projectUrl);
+                if (clondResult.equals("clone error")) continue;
+                String result = graphBasedAnalyzer.analyzeCommitHistory(forkUrl, projectUrl, false);
 
-//                try {
-//                    io.deleteDir(new File(graphBasedAnalyzer.clone_dir + projectUrl));
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
+
+                try {
+                    io.deleteDir(new File(graphBasedAnalyzer.clone_dir + projectUrl));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (result.equals("403")) {
+                    System.out.println("403 " + forkUrl);
+                    continue;
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -38,6 +38,7 @@ public class IO_Process {
     static String working_dir, pr_dir, output_dir, clone_dir,graph_dir;
     final int batchSize = 500;
     HashSet<String> stopFileSet = new HashSet<>();
+    HashSet<String> nonDevRepoSet = new HashSet<>();
     HashSet<String> sourceCodeSuffix = new HashSet<>();
 
     public IO_Process() {
@@ -57,6 +58,7 @@ public class IO_Process {
             token = readResult(current_dir + "/input/token.txt").trim();
             stopFileSet.addAll(Arrays.asList(readResult(current_dir + "/input/StopFiles.txt").split("\n")));
             sourceCodeSuffix.addAll(Arrays.asList(readResult(current_dir + "/input/sourceCode.txt").split("\n")));
+            nonDevRepoSet.addAll(Arrays.asList(readResult(current_dir + "/input/NonDevelopmentRepo.txt").split("\n")));
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -1779,6 +1781,15 @@ public class IO_Process {
     public boolean isStopFile(String fileName) {
         for (String file : stopFileSet) {
             if (fileName.toLowerCase().contains(file)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isNonDevRepo(String repoURL) {
+        for (String word : nonDevRepoSet) {
+            if (repoURL.toLowerCase().contains(word.toLowerCase())) {
                 return true;
             }
         }

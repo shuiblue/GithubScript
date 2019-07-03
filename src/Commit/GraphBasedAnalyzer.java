@@ -3,12 +3,15 @@ package Commit;
 import Djikstra.DijkstraAlgorithm;
 import Djikstra.Graph;
 import Djikstra.Vertex;
+import Repository.GithubRepository;
 import Util.IO_Process;
 import Util.JgitUtility;
 import Util.QueryDataFromGithubAPI;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 
@@ -141,9 +144,9 @@ public class GraphBasedAnalyzer {
                 /**   classify commits **/
                 /**  by graph  **/
                 System.out.println("graph-based...");
-                StringBuilder sb_result = new StringBuilder();
-                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,commitsBeforeForking\n");
-                io.rewriteFile(sb_result.toString(), classifyCommit_file);
+//                StringBuilder sb_result = new StringBuilder();
+//                sb_result.append("fork,upstream,only_F,only_U,F->U,U->F,commitsBeforeForking\n");
+//                io.rewriteFile(sb_result.toString(), classifyCommit_file);
 
                 /** clone project **/
                 new JgitUtility().cloneRepo_cmd(select_activeForkList, projectUrl, getActiveForksFromAPI);
@@ -170,7 +173,14 @@ public class GraphBasedAnalyzer {
     }
 
 
-    public void analyzeCommitHistory(String forkUrl, String projectURL, boolean getActiveForksFromAPI) {
+    public String analyzeCommitHistory(String forkUrl, String projectURL, boolean getActiveForksFromAPI) {
+
+        Date forkingPoint = new GithubRepository().getRepoCreatedDate(forkUrl);
+        if (forkingPoint == null) {
+            new IO_Process().writeTofile(forkUrl, "/DATA/shurui/ForkData/hardfork/token-broken-commitEvolExp.txt");
+            return "403";
+
+        }
         String fork = "", upstream = "";
         if (getActiveForksFromAPI) {
             fork = forkUrl.split(",")[0];
@@ -229,6 +239,7 @@ public class GraphBasedAnalyzer {
 
         distance2Fork_map.forEach((fork_origin_commit, d) -> {
             if (!mergeCommits.contains(fork_origin_commit)) {
+
                 int distance2Upstream = distance2Upstream_map.get(fork_origin_commit) != null ? distance2Upstream_map.get(fork_origin_commit) : 0;
                 if (distance2Upstream == 999) {
                     onlyFork.add(fork_origin_commit);
@@ -238,15 +249,15 @@ public class GraphBasedAnalyzer {
                     fork2Upstream.add(fork_origin_commit);
                 } else if (d > distance2Upstream) {
                     upstream2Fork.add(fork_origin_commit);
-                } else{  // before forking point
+                } else {  // before forking point
                     commitsBeforeForkingpoint.add(fork_origin_commit);
                 }
             }
         });
-        System.out.println(onlyFork.size() + " , " + onlyUpstream.size() + " , " + fork2Upstream.size() + " , " + upstream2Fork.size()+" , "+commitsBeforeForkingpoint.size());
+        System.out.println(onlyFork.size() + " , " + onlyUpstream.size() + " , " + fork2Upstream.size() + " , " + upstream2Fork.size() + " , " + commitsBeforeForkingpoint.size());
 
         io.writeTofile(fork + "," + upstream + "," + onlyFork.size() + "," + onlyUpstream.size() + "," +
-                        fork2Upstream.size() + "," + upstream2Fork.size() +"," + commitsBeforeForkingpoint.size()
+                        fork2Upstream.size() + "," + upstream2Fork.size() + "," + commitsBeforeForkingpoint.size()
 //
 //                do not print commit sha
 //                           + "," +
@@ -260,34 +271,52 @@ public class GraphBasedAnalyzer {
                 , classifyCommit_file);
 
 
-
         /**  PRINT commits: sha, date, category **/
 
         distance2Fork_map.forEach((sha, d) -> {
             if (!mergeCommits.contains(sha)) {
 
-                String cmd = "git show -s --format=\'%cr~%cI\' "+ sha;
-                String commitInfo = io.exeCmd(cmd.split(" "),clone_dir + projectURL).replace("\'","").replace(","," ").replace("~",",");
-                String category = "";
-                if(onlyFork.contains(sha)){
-                    category="OnlyF";
-                }else if(onlyUpstream.contains(sha)){
-                    category="OnlyU";
-                }else if(fork2Upstream.contains(sha)){
-                    category="F2U";
-                }else if(upstream2Fork.contains(sha)){
-                    category="U2F";
-                }else if(commitsBeforeForkingpoint.contains(sha)){
-                    category="beforeForking";
+                String cmd = "git show -s --format=\'%cr~%cI\' " + sha;
+                String commitInfo = io.exeCmd(cmd.split(" "), clone_dir + projectURL).replace("\'", "").replace(",", " ").replace("~", ",");
+                if (commitInfo.equals("noRepo")) {
+                    System.out.println("noRepo");
+                    return;
+                }
+                String commitDate = commitInfo.split(",")[1].split("T")[0];
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+
+                Date commit_date_format = null;
+                try {
+                    commit_date_format = sdf.parse(commitDate);
+                } catch (ParseException e) {
+                    e.printStackTrace();
                 }
 
 
-                System.out.println(sha+","+category+","+commitInfo);
-                io.writeTofile(sha+","+category+","+commitInfo, graph_dir+ projectURL.replace("/", ".")+"_commit_date_category.csv");
+                String category = "";
+                if (onlyFork.contains(sha)) {
+                    category = "OnlyF";
+                } else if (onlyUpstream.contains(sha)) {
+                    category = "OnlyU";
+                } else if (fork2Upstream.contains(sha)) {
+                    category = "F2U";
+                } else if (upstream2Fork.contains(sha)) {
+                    category = "U2F";
+                } else if (commitsBeforeForkingpoint.contains(sha)) {
+                    category = "beforeForking";
+                }
+
+                if (!category.equals("beforeForking") && commit_date_format.before(forkingPoint)) {
+                    System.out.println(category + " is wrong, early than forking point");
+                    category = "beforeForking";
+                }
+
+                System.out.println(sha + "," + category + "," + commitInfo);
+                io.writeTofile(sha + "," + category + "," + commitInfo, graph_dir + forkUrl.replace("/", ".") + "_commit_date_category.csv");
 
             }
         });
-
+        return "success";
     }
 
 
@@ -320,6 +349,11 @@ public class GraphBasedAnalyzer {
                             parents.add(p);
                         }
                         all_HistoryMap.put(arr[0], parents);
+                    }
+
+                    if (arr.length == 1) {
+                        // 1st commit
+                        all_HistoryMap.put(arr[0], new ArrayList<>());
                     }
                 }
             }

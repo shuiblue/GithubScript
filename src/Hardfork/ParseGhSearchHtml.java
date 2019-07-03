@@ -36,6 +36,8 @@ public class ParseGhSearchHtml {
     static String analysisDir = "";
     static String isJoined_str, isJoined_str_opposite, activity_str = "";
     boolean isJoined;
+    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir, result_dir,hardfork_dir;
+    static String myUrl, user, pwd;
 
     HashMap<String, HashSet<Integer>> originalClusterMap = new HashMap<>();
     String originalPage = "original.html";
@@ -56,7 +58,26 @@ public class ParseGhSearchHtml {
 
 
     public ParseGhSearchHtml() {
+        IO_Process io = new IO_Process();
+        current_dir = System.getProperty("user.dir");
+        try {
+            String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
+            working_dir = paramList[0];
+            pr_dir = working_dir + "queryGithub/";
+            output_dir = working_dir + "ForkData/";
+            hardfork_dir  = output_dir + "hardfork-exploration/";
+            result_dir = output_dir + "result0821/";
 
+            clone_dir = output_dir + "clones/";
+            graph_dir = output_dir + "ClassifyCommit_new/";
+
+            myUrl = paramList[1];
+            user = paramList[2];
+            pwd = paramList[3];
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public String appendTableTitle(int colspan, String splitStep) {
@@ -121,8 +142,9 @@ public class ParseGhSearchHtml {
 
             //abuse detection
             while (page.getWebResponse().getStatusCode() == 429) {
-                System.out.println("github abuse detection, sleep 50 seconds");
-                Thread.sleep(50000);
+                System.out.println("github abuse detection, sleep 500 seconds");
+                System.out.println(searchPageUrl);
+                Thread.sleep(500000);
                 page = requestPage(searchPageUrl, webClient);
             }
         } catch (Exception e) {
@@ -133,14 +155,14 @@ public class ParseGhSearchHtml {
 
     private List<String> getHardForkInfo(WebClient webClient, Document currentPage) {
         IO_Process io = new IO_Process();
-        io.writeTofile("", "/Users/shuruiz/Work/ForkData/hardfork-exploration/hardfork_upstream_pairs.txt");
+        io.writeTofile("", hardfork_dir+"hardfork_upstream_pairs_0522.txt");
         List<String> result = new ArrayList<>();
         Elements repoElements = currentPage.getElementsByClass("repo-list-item");
         for (Element ele : repoElements) {
             String hardfork = ele.getElementsByAttribute("href").get(0).childNode(0).toString().trim();
             String upstream = ele.getElementsByAttribute("href").get(1).childNode(0).toString().trim();
             result.add(hardfork + " " + upstream);
-            io.writeTofile(hardfork + "," + upstream + "\n", "/Users/shuruiz/Work/ForkData/hardfork-exploration/hardfork_upstream_pairs_0521.txt");
+            io.writeTofile(hardfork + "," + upstream + "\n", hardfork_dir+"hardfork_upstream_pairs_0522.txt");
 
         }
         System.out.println(result.size());
@@ -157,7 +179,8 @@ public class ParseGhSearchHtml {
 
 //        https://github.com/search?q=%22a+fork+of%22+fork%3Aonly+created%3A2008-03-01..2008-04-01&type=Repositories
 //        appears the very first repo
-        String date_string = "2008-01-01";
+//        String date_string = "2008-01-01";
+        String date_string = "2017-03-01";
 
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
@@ -169,7 +192,7 @@ public class ParseGhSearchHtml {
         }
         Calendar c1 = Calendar.getInstance();
         c1.setTime(date);
-        for (int year = 2008; year <= 2020; year++) {
+        for (int year = 2017; year <= 2020; year++) {
             for (int i = 1; i < 12; i++) {
                 String currentMonth = c1.getTime().toInstant().toString().split("T")[0];
                 c1.add(Calendar.MONTH, 1);
@@ -180,7 +203,7 @@ public class ParseGhSearchHtml {
                 for (int page = 1; page <= 100; page++) {
                     String url = "https://github.com/search?l=&p=" + page + "&" + query;
                     try {
-                        Thread.sleep(5);
+                        Thread.sleep(10000);
                         System.out.println(url);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
