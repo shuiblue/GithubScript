@@ -7,21 +7,45 @@ import java.io.File;
 import java.io.IOException;
 
 public class Main_analyzeCommitFlow {
+    static boolean A_FORK_OF = false;
+    static boolean UNMERGED_COMMITS = true;
+    static boolean EXTERNAL_PR = false;
+    static boolean CHANGENAME = false;
+    static boolean test_temp = false;
+
 
     public static void main(String[] args) {
 
         GraphBasedAnalyzer graphBasedAnalyzer = new GraphBasedAnalyzer();
 
         IO_Process io = new IO_Process();
-//        String inputPath = graphBasedAnalyzer.current_dir + "/input/filtered_LevenBigThan3.txt";
-        String inputPath = graphBasedAnalyzer.current_dir + "/input/text.txt";
+
+        String inputPath = null;
+        if (CHANGENAME) {
+            inputPath = graphBasedAnalyzer.current_dir + "/input/filtered_LevenBigThan3.txt";
+        } else if (test_temp) {
+            inputPath = graphBasedAnalyzer.current_dir + "/input/text.txt";
+        } else if (A_FORK_OF) {
+            inputPath = graphBasedAnalyzer.current_dir + "/input/text.txt";
+        } else if (UNMERGED_COMMITS) {
+            inputPath = graphBasedAnalyzer.current_dir + "/input/unmergeCommits100.csv";
+        } else if (EXTERNAL_PR) {
+            inputPath = graphBasedAnalyzer.current_dir + "/input/externalPR_new.csv";
+        }
         try {
             String[] fork_upstream_pairs = io.readResult(inputPath).split("\n");
 
             for (String str : fork_upstream_pairs) {
-                String forkUrl = str.split(",")[1];
-                String projectUrl = str.split(",")[0];
 
+                String forkUrl = "";
+                String projectUrl = "";
+                if (CHANGENAME || EXTERNAL_PR) {
+                    forkUrl = str.split(",")[1];
+                    projectUrl = str.split(",")[0];
+                } else if (UNMERGED_COMMITS) {
+                    forkUrl = str.split(",")[1];
+                    projectUrl = str.split(",")[2];
+                }
                 /**  by graph  **/
                 System.out.println("graph-based...");
 
@@ -37,6 +61,7 @@ public class Main_analyzeCommitFlow {
                     e.printStackTrace();
                 }
                 if (result.equals("403")) {
+                    io.writeTofile(forkUrl + "\n", graphBasedAnalyzer.current_dir + "/input/403fork-leven-commitEvol.txt");
                     System.out.println("403 " + forkUrl);
                     continue;
                 }

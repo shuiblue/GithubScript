@@ -307,11 +307,11 @@ public class GraphBasedAnalyzer {
                 }
 
                 if (!category.equals("beforeForking") && commit_date_format.before(forkingPoint)) {
-                    System.out.println(category + " is wrong, early than forking point");
+//                    System.out.println(category + " is wrong, early than forking point");
                     category = "beforeForking";
                 }
 
-                System.out.println(sha + "," + category + "," + commitInfo);
+//                System.out.println(sha + "," + category + "," + commitInfo);
                 io.writeTofile(sha + "," + category + "," + commitInfo, graph_dir + forkUrl.replace("/", ".") + "_commit_date_category.csv");
 
             }
@@ -365,7 +365,6 @@ public class GraphBasedAnalyzer {
 
     private HashMap<String, Integer> getShortestPath_Dij(HashSet<String> latestCommits, Graph graph, HashSet<String> allCommits) {
         HashMap<String, Integer> distance_map = new HashMap<>();
-        System.out.println("set all commits distance as 999");
         for (String commit : allCommits) {
             distance_map.put(commit, 999);
         }
@@ -374,7 +373,7 @@ public class GraphBasedAnalyzer {
 
         System.out.println(latestCommits.size() + " loops");
         for (String target : latestCommits) {
-            System.out.println("target: " + target);
+//            System.out.println("target: " + target);
             dijkstra.execute(new Vertex(target));
             HashMap<Vertex, Integer> tmp_distance_map = (HashMap<Vertex, Integer>) dijkstra.getDistance();
 //            System.out.println("get " + tmp_distance_map.keySet().size() + " reacheable vertex, get min distance");
