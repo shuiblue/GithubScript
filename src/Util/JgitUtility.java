@@ -128,7 +128,7 @@ public class JgitUtility {
             }
         } else {
             io.writeTofile(projectURL + "\n", output_dir + "404_pro.txt");
-
+            return "clone error";
         }
         return "";
     }

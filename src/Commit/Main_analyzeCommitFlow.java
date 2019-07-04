@@ -43,8 +43,12 @@ public class Main_analyzeCommitFlow {
                     forkUrl = str.split(",")[1];
                     projectUrl = str.split(",")[0];
                 } else if (UNMERGED_COMMITS) {
-                    forkUrl = str.split(",")[1];
-                    projectUrl = str.split(",")[2];
+                    if(str.contains("unmergedCommits")) continue;
+                    str = str.replaceAll("https://api.github.com/repos/","");
+                    System.out.println(str);
+                    forkUrl = str.split("\t")[1];
+                    projectUrl = str.split("\t")[2];
+
                 }
                 /**  by graph  **/
                 System.out.println("graph-based...");
