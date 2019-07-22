@@ -17,7 +17,7 @@ import java.util.*;
 
 public class GraphBasedAnalyzer {
     static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir, result_dir;
-    static String myUrl, user, pwd;
+    static String myUrl, user, pwd, token;
     static String myDriver = "com.mysql.jdbc.Driver";
     final int batchSize = 100;
     static int maxAnalyzedForkNum = 100;
@@ -30,24 +30,27 @@ public class GraphBasedAnalyzer {
 
 
     public GraphBasedAnalyzer() {
-        IO_Process io = new IO_Process();
-        current_dir = System.getProperty("user.dir");
-        try {
-            String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
-            working_dir = paramList[0];
-            pr_dir = working_dir + "queryGithub/";
-            output_dir = working_dir + "ForkData/";
-            result_dir = output_dir + "result0821/";
-
-            clone_dir = output_dir + "clones/";
-            graph_dir = output_dir + "ClassifyCommit_new/";
-            myUrl = paramList[1];
-            user = paramList[2];
-            pwd = paramList[3];
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        IO_Process io = new IO_Process();
+//        current_dir = System.getProperty("user.dir");
+//        try {
+//            String[] paramList = io.readResult(current_dir + "/input/dir-param.txt").split("\n");
+//            working_dir = paramList[0];
+//            pr_dir = working_dir + "queryGithub/";
+////            output_dir = working_dir + "ForkData-featureServer/";
+//            output_dir = working_dir + "ForkData/";
+//            result_dir = output_dir + "result0821/";
+//
+//            clone_dir = output_dir + "clones/";
+//            graph_dir = output_dir + "ClassifyCommit_new/";
+//            myUrl = paramList[1];
+//            user =  paramList[2];
+//            pwd = paramList[3];
+//
+//            token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
     public static void main(String[] args) {
@@ -155,7 +158,7 @@ public class GraphBasedAnalyzer {
                     if (!forkURL.trim().equals("")) {
 
                         System.out.println("FORK: " + forkURL);
-                        graphBasedAnalyzer.analyzeCommitHistory(forkURL, projectUrl, getActiveForksFromAPI);
+                        graphBasedAnalyzer.analyzeCommitHistory(forkURL, projectUrl, getActiveForksFromAPI, "",token);
                     }
                 }
             } else {
@@ -173,9 +176,9 @@ public class GraphBasedAnalyzer {
     }
 
 
-    public String analyzeCommitHistory(String forkUrl, String projectURL, boolean getActiveForksFromAPI) {
+    public String analyzeCommitHistory(String forkUrl, String projectURL, boolean getActiveForksFromAPI, String criteria, String token) {
 
-        Date forkingPoint = new GithubRepository().getRepoCreatedDate(forkUrl);
+        Date forkingPoint = new GithubRepository().getRepoCreatedDate(forkUrl, token);
         if (forkingPoint == null) {
             new IO_Process().writeTofile(forkUrl, "/DATA/shurui/ForkData/hardfork/token-broken-commitEvolExp.txt");
             return "403";
@@ -283,7 +286,7 @@ public class GraphBasedAnalyzer {
                     return;
                 }
                 String commitDate = commitInfo.split(",")[1].split("T")[0];
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
                 Date commit_date_format = null;
                 try {
@@ -306,13 +309,13 @@ public class GraphBasedAnalyzer {
                     category = "beforeForking";
                 }
 
-                if (!category.equals("beforeForking") && commit_date_format.before(forkingPoint)) {
+                if (!category.equals("beforeForking") && (commit_date_format.equals(forkingPoint) || commit_date_format.before(forkingPoint))) {
 //                    System.out.println(category + " is wrong, early than forking point");
                     category = "beforeForking";
                 }
 
 //                System.out.println(sha + "," + category + "," + commitInfo);
-                io.writeTofile(sha + "," + category + "," + commitInfo, graph_dir + forkUrl.replace("/", ".") + "_commit_date_category.csv");
+                io.writeTofile(sha + "," + category + "," + commitInfo, graph_dir + criteria + "/" + forkUrl.replace("/", ".") + "_commit_date_category.csv");
 
             }
         });

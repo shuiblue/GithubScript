@@ -28,10 +28,10 @@ public class GenerateHtmlForImages {
     }
 
     public static void main(String[] args) {
-
+        String dir = "hardfork-exploration/EvolutionGraph/Group-0715/hardfork/ForkLiveLonger/StillActiveNow/NoInteraction/FrequentActivity/";
         boolean RANDOM = true;
         boolean SAMPLELIST = false;
-        String outputHTML ="";
+        String outputHTML = "";
         new GenerateHtmlForImages();
         IO_Process io = new IO_Process();
         StringBuilder sb = new StringBuilder();
@@ -43,8 +43,28 @@ public class GenerateHtmlForImages {
             head = new IO_Process().readResult("./input/evol_htmlhead.txt");
             sb.append(head);
 
+
+
+
+            List<String> svgFiles = new ArrayList<>();
+            if (RANDOM) {
+                outputHTML = output_dir +dir+ "evolution.html";
+
+                List<String> finalSvgFiles = svgFiles;
+                Files.newDirectoryStream(Paths.get(output_dir + dir )
+                        , path -> path.toFile().getPath().endsWith("svg"))
+                        .forEach(element -> {
+                                    finalSvgFiles.add(element.getFileName().toString());
+                                }
+                        );
+            } else if (SAMPLELIST) {
+                outputHTML = output_dir + dir + "hardfork-exploration/EvolutionGraph/Visualization0601/evolution-sampled.html";
+                svgFiles = Arrays.asList(io.readResult("./input/selectedSvgFiles.txt").split("\n"));
+            }
+
+
             sb.append("var width = window.innerWidth;\n" +
-                    "      var height =" + max_num_hard * 110 + ";\n" +
+                    "      var height =" + svgFiles.size() * 102+ ";\n" +
                     " \n" +
                     "      var text = new Konva.Text({\n" +
                     "        x: 10,\n" +
@@ -67,29 +87,12 @@ public class GenerateHtmlForImages {
 
             element_code = new IO_Process().readResult("./input/htmlCode.txt");
 
-
-            List<String> svgFiles = new ArrayList<>();
-            if(RANDOM) {
-                outputHTML = output_dir + "hardfork-exploration/EvolutionGraph/Group-FPfirst/evolution.html";
-
-                List<String> finalSvgFiles = svgFiles;
-                Files.newDirectoryStream(Paths.get(output_dir + "hardfork-exploration/EvolutionGraph/Group-FPfirst/hardfork/BothAlive")
-                        , path -> path.toFile().getPath().endsWith("svg"))
-                        .forEach(element -> {
-                                    finalSvgFiles.add(element.getFileName().toString());
-                                }
-                        );
-            }else if(SAMPLELIST){
-                outputHTML = output_dir + "hardfork-exploration/EvolutionGraph/Visualization0601/evolution-sampled.html";
-                svgFiles= Arrays.asList(io.readResult("./input/selectedSvgFiles.txt").split("\n"));
-            }
-
             for (String svg : svgFiles) {
                 int box_width = 0;
                 try {
-                    String svgstr = io.readResult(output_dir + "hardfork-exploration/EvolutionGraph/Group-FPfirst/hardfork/BothAlive/"+svg);
+                    String svgstr = io.readResult(output_dir + dir + svg);
                     box_width = (int) (Integer.valueOf(svgstr.split("\">")[0].split("width=\"")[1]) * 0.6);
-                    if (box_width > 1050) box_width = 1050;
+                    if (box_width > 1350) box_width = 1350;
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -111,7 +114,7 @@ public class GenerateHtmlForImages {
                             "        image" + i[0] + ".image(imageObj" + i[0] + ");\n" +
                             "        layer.draw();\n" +
                             "      };\n" +
-                            "      imageObj" + i[0] + ".src = '" + svg+ "';\n");
+                            "      imageObj" + i[0] + ".src = '" + svg + "';\n");
                 }
                 i[0]++;
                 y[0] += 100;

@@ -202,7 +202,7 @@ public class FindHardFork {
         IO_Process io = new IO_Process();
         String result = io.cloneRepo(repo1, repo2);
         if (result.equals("success")) {
-            new GraphBasedAnalyzer().analyzeCommitHistory(repo1, repo2, false);
+            new GraphBasedAnalyzer().analyzeCommitHistory(repo1, repo2, false,"");
         } else {
             System.out.println("clone repo failed");
         }

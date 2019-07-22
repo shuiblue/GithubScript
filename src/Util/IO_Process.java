@@ -32,22 +32,28 @@ import java.util.regex.Pattern;
 public class IO_Process {
     String token;
     String user, pwd, myUrl, ghtpwd, ghtUrl;
-    static String github_api_repo = "https://api.github.com/repos/";
-    static String github_url = "https://github.com/";
-    String current_dir = System.getProperty("user.dir");
-    static String working_dir, pr_dir, output_dir, clone_dir,graph_dir;
+    public static String github_api_repo = "https://api.github.com/repos/";
+    public static String github_url = "https://github.com/";
+    public String current_dir = System.getProperty("user.dir");
+    public static String working_dir;
+    public static String pr_dir;
+    public static String output_dir;
+    public static String clone_dir;
+    public static String graph_dir;
+    public static String result_dir;
     final int batchSize = 500;
     HashSet<String> stopFileSet = new HashSet<>();
     HashSet<String> nonDevRepoSet = new HashSet<>();
     HashSet<String> sourceCodeSuffix = new HashSet<>();
 
     public IO_Process() {
-
         try {
             String[] paramList = readResult(current_dir + "/input/dir-param.txt").split("\n");
+            token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
             working_dir = paramList[0];
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
+            result_dir = output_dir + "result0821/";
             graph_dir = output_dir + "ClassifyCommit_new/";
             clone_dir = output_dir + "clones/";
             myUrl = paramList[1];
@@ -59,7 +65,6 @@ public class IO_Process {
             stopFileSet.addAll(Arrays.asList(readResult(current_dir + "/input/StopFiles.txt").split("\n")));
             sourceCodeSuffix.addAll(Arrays.asList(readResult(current_dir + "/input/sourceCode.txt").split("\n")));
             nonDevRepoSet.addAll(Arrays.asList(readResult(current_dir + "/input/NonDevelopmentRepo.txt").split("\n")));
-
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -1844,6 +1849,7 @@ public class IO_Process {
         }
         return false;
     }
+
     public boolean isDuplicateComment(String comment) {
         Pattern p1 = Pattern.compile("(dup(licate(d)?|e)?|super(c|s)(ee)?(ded)?(edes)?|obsoleted?|replaced?|redundant|better (implementation|solution)" +
                 "|solved|going|addressed|already)[ ]{1,}(by|in|with|as|of|in favor of|at|since|via)?");
@@ -1944,7 +1950,7 @@ public class IO_Process {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        if(repo_info_json.size()==0){
+        if (repo_info_json.size() == 0) {
             return "";
         }
         if (repo_info_json.size() > 0) {

@@ -116,14 +116,15 @@ public class GithubRepository {
         return repo;
     }
 
-    public Date getRepoCreatedDate(String repoURL) {
+//    public Date getRepoCreatedDate(String repoURL) {
+    public Date getRepoCreatedDate(String repoURL,String token) {
         GithubRepository repo = new GithubRepository();
         String current_dir = System.getProperty("user.dir");
-        try {
-            token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         repo.setRepoUrl(repoURL);
         String api_url = github_api_repo + repoURL + "?access_token=" + token;
@@ -137,7 +138,8 @@ public class GithubRepository {
 //        System.out.println(fork_info_json);
         if (fork_info_json.size() > 0) {
             JSONObject fork_jsonObj = new JSONObject(fork_info_json.get(0));
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+//            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             String date_string = String.valueOf(fork_jsonObj.get("created_at")).split("T")[0];
             Date date = null;
             try {

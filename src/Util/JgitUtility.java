@@ -111,7 +111,7 @@ public class JgitUtility {
             HashSet<String> clonedFork = new HashSet<>();
             if (!clonedFork.contains(forkUrl)) {
                 clonedFork.add(forkUrl);
-                String forkName = io.getForkURL(forkUrl.split("/")[0]);
+                 String forkName = io.getForkURL(forkUrl.split("/")[0]);
                 String cloneForkCmd = "git remote add " + forkName + " " + github_url + forkUrl + ".git";
                String cloneResult =  io.exeCmd(cloneForkCmd.split(" "), clone_dir + projectURL + "/");
                if(cloneResult.equals("")){
