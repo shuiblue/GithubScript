@@ -30,11 +30,11 @@ import java.util.regex.Pattern;
  * Created by shuruiz on 10/19/17.
  */
 public class IO_Process {
-    public String token;
-    String user, pwd, myUrl, ghtpwd, ghtUrl;
+    public static String token;
+    private static String user, pwd, myUrl, ghtpwd, ghtUrl;
     public static String github_api_repo = "https://api.github.com/repos/";
     public static String github_url = "https://github.com/";
-    public String current_dir = System.getProperty("user.dir");
+    public static String current_dir = System.getProperty("user.dir");
     public static String working_dir;
     public static String pr_dir;
     public static String output_dir;

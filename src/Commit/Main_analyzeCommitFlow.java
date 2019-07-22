@@ -10,9 +10,9 @@ public class Main_analyzeCommitFlow {
     static boolean A_FORK_OF = false;
     static boolean UNMERGED_COMMITS = false;
     static boolean EXTERNAL_PR = false;
-    static boolean CHANGENAME = true;
+    static boolean CHANGENAME = false;
     static boolean test_temp = false;
-    static boolean ONEYEAR = false;
+    static boolean ONEYEAR = true;
 
 
     public static void main(String[] args) {
@@ -88,7 +88,7 @@ public class Main_analyzeCommitFlow {
                 /** clone project **/
                 String clondResult = new JgitUtility().clondForkAndUpstream(forkUrl, projectUrl);
                 if (clondResult.equals("clone error")) continue;
-                String result = graphBasedAnalyzer.analyzeCommitHistory(forkUrl, projectUrl, false, criteria,io.token);
+                String result = graphBasedAnalyzer.analyzeCommitHistory(forkUrl, projectUrl, false, criteria, IO_Process.token);
 
 
                 try {
