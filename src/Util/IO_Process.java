@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  * Created by shuruiz on 10/19/17.
  */
 public class IO_Process {
-    String token;
+    public String token;
     String user, pwd, myUrl, ghtpwd, ghtUrl;
     public static String github_api_repo = "https://api.github.com/repos/";
     public static String github_url = "https://github.com/";
@@ -49,7 +49,6 @@ public class IO_Process {
     public IO_Process() {
         try {
             String[] paramList = readResult(current_dir + "/input/dir-param.txt").split("\n");
-            token = new IO_Process().readResult(current_dir + "/input/token.txt").trim();
             working_dir = paramList[0];
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";

@@ -88,16 +88,16 @@ public class Main_analyzeCommitFlow {
                 /** clone project **/
                 String clondResult = new JgitUtility().clondForkAndUpstream(forkUrl, projectUrl);
                 if (clondResult.equals("clone error")) continue;
-                String result = graphBasedAnalyzer.analyzeCommitHistory(forkUrl, projectUrl, false, criteria,graphBasedAnalyzer.token);
+                String result = graphBasedAnalyzer.analyzeCommitHistory(forkUrl, projectUrl, false, criteria,io.token);
 
 
                 try {
-                    io.deleteDir(new File(graphBasedAnalyzer.clone_dir + projectUrl));
+                    io.deleteDir(new File(io.clone_dir + projectUrl));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 if (result.equals("403")) {
-                    io.writeTofile(forkUrl + "," + projectUrl + "\n", graphBasedAnalyzer.current_dir + "/input/403fork-leven-commitEvol.txt");
+                    io.writeTofile(forkUrl + "," + projectUrl + "\n", io.current_dir + "/input/403fork-leven-commitEvol.txt");
                     System.out.println("403,,, sleep 5000");
                     Thread.sleep(5000);
                     continue;
