@@ -36,7 +36,7 @@ public class ParseGhSearchHtml {
     static String analysisDir = "";
     static String isJoined_str, isJoined_str_opposite, activity_str = "";
     boolean isJoined;
-    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir, result_dir,hardfork_dir;
+    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir, result_dir, hardfork_dir;
     static String myUrl, user, pwd;
 
     HashMap<String, HashSet<Integer>> originalClusterMap = new HashMap<>();
@@ -65,7 +65,7 @@ public class ParseGhSearchHtml {
             working_dir = paramList[0];
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
-            hardfork_dir  = output_dir + "hardfork-exploration/";
+            hardfork_dir = output_dir + "hardfork-exploration/";
             result_dir = output_dir + "result0821/";
 
             clone_dir = output_dir + "clones/";
@@ -155,14 +155,15 @@ public class ParseGhSearchHtml {
 
     private List<String> getHardForkInfo(WebClient webClient, Document currentPage) {
         IO_Process io = new IO_Process();
-        io.writeTofile("", hardfork_dir+"hardfork_upstream_pairs_0522.txt");
+        io.writeTofile("", hardfork_dir + "hardfork_upstream_pairs_0522.txt");
         List<String> result = new ArrayList<>();
         Elements repoElements = currentPage.getElementsByClass("repo-list-item");
         for (Element ele : repoElements) {
             String hardfork = ele.getElementsByAttribute("href").get(0).childNode(0).toString().trim();
-            String upstream = ele.getElementsByAttribute("href").get(1).childNode(0).toString().trim();
-            result.add(hardfork + " " + upstream);
-            io.writeTofile(hardfork + "," + upstream + "\n", hardfork_dir+"hardfork_upstream_pairs_0522.txt");
+//            String upstream = ele.getElementsByAttribute("href").get(1).childNode(0).toString().trim();
+//            result.add(hardfork + " " + upstream);
+            result.add(hardfork);
+//            io.writeTofile(hardfork + "," + upstream + "\n", hardfork_dir + "hardfork_upstream_pairs_0522.txt");
 
         }
         System.out.println(result.size());
@@ -173,14 +174,14 @@ public class ParseGhSearchHtml {
      * @param args
      */
     public static void main(String[] args) {
-
+        IO_Process io = new IO_Process();
         ParseGhSearchHtml pgs = new ParseGhSearchHtml();
         List<String> hardfork_upstream_pairs = new ArrayList<>();
 
-//        https://github.com/search?q=%22a+fork+of%22+fork%3Aonly+created%3A2008-03-01..2008-04-01&type=Repositories
+//        https:/github.com/search?q=%22a+fork+of%22+fork%3Aonly+created%3A2008-03-01..2008-04-01&type=Repositories
 //        appears the very first repo
 //        String date_string = "2008-01-01";
-        String date_string = "2017-03-01";
+        String date_string = "2008-03-01";
 
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
@@ -192,14 +193,15 @@ public class ParseGhSearchHtml {
         }
         Calendar c1 = Calendar.getInstance();
         c1.setTime(date);
-        for (int year = 2017; year <= 2020; year++) {
+        for (int year = 2008; year <= 2020; year++) {
             for (int i = 1; i < 12; i++) {
                 String currentMonth = c1.getTime().toInstant().toString().split("T")[0];
                 c1.add(Calendar.MONTH, 1);
                 String nextMonth = c1.getTime().toInstant().toString().split("T")[0];
 
                 System.out.println(currentMonth + "..." + nextMonth);
-                String query = "q=%22a+fork+of%22+fork%3Aonly+created%3A" + currentMonth + ".." + nextMonth + "&type=Repositories";
+//                stars%3A>3+fork%3Atrue
+                String query = "q=%22fork+of%22+stars%3A>3+created%3A" + currentMonth + ".." + nextMonth + "&type=Repositories";
                 for (int page = 1; page <= 100; page++) {
                     String url = "https://github.com/search?l=&p=" + page + "&" + query;
                     try {
@@ -211,7 +213,15 @@ public class ParseGhSearchHtml {
 
                     List<String> result = pgs.getSearchPage(url, "");
                     if (result.size() > 0) {
+
                         hardfork_upstream_pairs.addAll(result);
+                        StringBuilder sb = new StringBuilder();
+                        for (String str : result) {
+                            sb.append(str.replace(" ", ",") + "\n");
+                        }
+                        new IO_Process().writeTofile(sb.toString(), hardfork_dir + "descriptionforkOf_upstream.txt");
+
+
                     } else {
                         System.out.println("0 result between:" + currentMonth + "..." + nextMonth);
                         break;

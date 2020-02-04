@@ -262,12 +262,85 @@ public class InsertHardForkToDB {
     }
 
 
+    public void updateHardFork_commitsGraph() {
+        IO_Process io = new IO_Process();
+        String query = "UPDATE fork.HardFork_withCriteria\n" +
+                "SET  OnlyF = ?, OnlyU=?, F2U = ?, U2F = ?,berforeForking = ? " +
+                "WHERE hardfork_url =? ";
+        final int[] count = {0};
+        try {
+            Files.newDirectoryStream(Paths.get(graph_dir),
+                    path -> path.toString().endsWith("2019.csv"))
+                    .forEach(
+                            filepath -> {
+                                System.out.println(filepath);
+                                List<List<String>> lists = io.readCSV(filepath.toFile());
+                                try (Connection conn = DriverManager.getConnection(myUrl, user, pwd);
+                                     PreparedStatement preparedStmt = conn.prepareStatement(query);
+                                ) {
+                                    for (List<String> row : lists) {
+                                        String fork = row.get(0);
+                                        String upstream = row.get(1);
+//onlyFork.size() + "," + onlyUpstream.size() + "," +    fork2Upstream.size() + "," + upstream2Fork.size()
+                                        int onlyFork = Integer.parseInt(row.get(2));
+                                        int onlyUpstream = Integer.parseInt(row.get(3));
+                                        int fork2Upstream = Integer.parseInt(row.get(4));
+                                        int upstream2Fork = Integer.parseInt(row.get(5));
+                                        int beforeForking_commits = Integer.parseInt(row.get(6));
+
+                                        if (!(onlyFork == 0 && onlyUpstream == 0 & fork2Upstream == 0 & upstream2Fork == 0)) {
+
+
+                                            conn.setAutoCommit(false);
+
+
+                                            preparedStmt.setInt(1, onlyFork);
+                                            preparedStmt.setInt(2, onlyUpstream);
+                                            preparedStmt.setInt(3, fork2Upstream);
+                                            preparedStmt.setInt(4, upstream2Fork);
+                                            preparedStmt.setInt(5, beforeForking_commits);
+                                            preparedStmt.setString(6, fork);
+
+                                            preparedStmt.addBatch();
+                                            if (++count[0] % 100 == 0) {
+                                                io.executeQuery(preparedStmt);
+                                                conn.commit();
+                                                System.out.println(count + " count ");
+                                            }
+
+                                        }
+                                    }
+                                    io.executeQuery(preparedStmt);
+                                    conn.commit();
+                                } catch (SQLException e) {
+
+                                    e.printStackTrace();
+                                }
+                                System.out.println("move file " + filepath);
+                                try {
+                                    io.fileCopy(String.valueOf(filepath), filepath.toString().replace("ClassifyCommit_new", "ClassifyCommit_checked"));
+                                    Files.deleteIfExists(filepath);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+
+                            }
+
+                    );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     public static void main(String[] args) {
         InsertHardForkToDB insertHardForkToDB = new InsertHardForkToDB();
 
 
         /** insert hardfork candidates identified by comparing upstream & fork's commit history **/
 //        insertHardForkToDB.insertHardFork_commitsGraph();
+        insertHardForkToDB.updateHardFork_commitsGraph();
 
         /** insert hardfork candidates identified by 'is a fork of' from repo description **/
 //        insertHardForkToDB.insertHardFork_description();
@@ -275,7 +348,7 @@ public class InsertHardForkToDB {
 
         /**  update fork upstream grandpa contact info and updated info **/
 
-        insertHardForkToDB.updateContact();
+//        insertHardForkToDB.updateContact();
 
 
     }

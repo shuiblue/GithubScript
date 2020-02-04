@@ -11,8 +11,8 @@ public class Main_analyzeCommitFlow {
     static boolean UNMERGED_COMMITS = false;
     static boolean EXTERNAL_PR = false;
     static boolean CHANGENAME = false;
-    static boolean test_temp = false;
-    static boolean ONEYEAR = true;
+    static boolean test_temp = true;
+    static boolean ONEYEAR = false;
 
 
     public static void main(String[] args) {
@@ -20,6 +20,7 @@ public class Main_analyzeCommitFlow {
         GraphBasedAnalyzer graphBasedAnalyzer = new GraphBasedAnalyzer();
 
         IO_Process io = new IO_Process();
+        String token = IO_Process.token;
         String criteria ;
         String inputPath = null;
         if (CHANGENAME) {
@@ -45,10 +46,16 @@ public class Main_analyzeCommitFlow {
             String[] fork_upstream_pairs = io.readResult(inputPath).split("\n");
 
             for (String str : fork_upstream_pairs) {
-                if(str.toLowerCase().contains("linux")){
-                    System.out.println("skip linux project");
-                    continue;
-                }
+//                if(str.toLowerCase().contains("linux")
+//                        || str.toLowerCase().contains("git-for-windows")
+////                        || str.contains("Radarr")
+//                        || str.toLowerCase().contains("hill-a/stable-baselines")
+//                        || str.toLowerCase().contains("ghiden/angucomplete-alt")
+//                        || str.contains("adafruit/RTClib")
+//                        || str.toLowerCase().contains("kernel")){
+//                    System.out.println("skip big project");
+//                    continue;
+//                }
 
                 String forkUrl = "";
                 String projectUrl = "";
@@ -80,26 +87,31 @@ public class Main_analyzeCommitFlow {
                     forkUrl = str.split("\t")[0];
                     projectUrl = str.split("\t")[2];
                 }
-                if(new File(io.graph_dir + criteria + "/" + forkUrl.replace("/", ".") + "_commit_date_category.csv").exists()){
+                if(new File(io.graph_dir + criteria + "/" + forkUrl.replace("/", ".") + "_commit_date_category.csv").exists()
+                        ||new File("/DATA/shurui/ForkData/analyzed_commitHistory_all/" + forkUrl.replace("/", ".") + "_commit_date_category.csv").exists()
+                        ||new File("/DATA/shurui/ForkData/analyzed_commitHistory-0708/" + forkUrl.replace("/", ".") + "_commit_date_category.csv").exists()
+                        ||new File("/DATA/shurui/ForkData/analyzed_commitHistory/" + forkUrl.replace("/", ".") + "_commit_date_category.csv").exists()){
                     System.out.println("analyzed, skip");
                     continue;
                 }
 
                 /** clone project **/
-                String clondResult = new JgitUtility().clondForkAndUpstream(forkUrl, projectUrl);
+                String clondResult = new JgitUtility().cloneForkAndUpstream(forkUrl, projectUrl);
                 if (clondResult.equals("clone error")) continue;
-                String result = graphBasedAnalyzer.analyzeCommitHistory(forkUrl, projectUrl, false, criteria, IO_Process.token);
+                String result = graphBasedAnalyzer.analyzeCommitHistory(forkUrl, projectUrl, false, criteria, token);
 
 
-                try {
-                    io.deleteDir(new File(io.clone_dir + projectUrl));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+//                try {
+//                    io.deleteDir(new File(io.clone_dir + projectUrl));
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
                 if (result.equals("403")) {
                     io.writeTofile(forkUrl + "," + projectUrl + "\n", io.current_dir + "/input/403fork-leven-commitEvol.txt");
                     System.out.println("403,,, sleep 5000");
-                    Thread.sleep(5000);
+                    Thread.sleep(500000);
+                    continue;
+                }else if (result.equals("tooManyBranch")){
                     continue;
                 }
                 Thread.sleep(100);

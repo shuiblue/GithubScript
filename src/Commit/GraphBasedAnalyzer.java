@@ -23,7 +23,7 @@ public class GraphBasedAnalyzer {
     HashSet<String> fork_firstCommit_set = new HashSet<>();
     static boolean getActiveForksFromAPI = false;
     static boolean hasTimeConstraint = true;
-
+    static IO_Process io = new IO_Process();
 
     public GraphBasedAnalyzer() {
 
@@ -33,8 +33,7 @@ public class GraphBasedAnalyzer {
         GraphBasedAnalyzer graphBasedAnalyzer = new GraphBasedAnalyzer();
 
         QueryDataFromGithubAPI queryDataFromGithubAPI = new QueryDataFromGithubAPI();
-        IO_Process io = new IO_Process();
-         io.current_dir = System.getProperty("user.dir");
+        io.current_dir = System.getProperty("user.dir");
 
         String[] repoList = {};
         /** get repo list **/
@@ -156,7 +155,7 @@ public class GraphBasedAnalyzer {
 
         Date forkingPoint = new GithubRepository().getRepoCreatedDate(forkUrl, token);
         if (forkingPoint == null) {
-            new IO_Process().writeTofile(forkUrl, "/DATA/shurui/ForkData/hardfork/token-broken-commitEvolExp.txt");
+            io.writeTofile(forkUrl, "/DATA/shurui/ForkData/hardfork/token-broken-commitEvolExp.txt");
             return "403";
 
         }
@@ -171,11 +170,11 @@ public class GraphBasedAnalyzer {
         all_HistoryMap = new HashMap<>();
         upstream_firstCommit_set = new HashSet<>();
         fork_firstCommit_set = new HashSet<>();
-        IO_Process io = new IO_Process();
+
 
         String classifyCommit_file = "";
         if (getActiveForksFromAPI) {
-            classifyCommit_file =io. graph_dir + projectURL.replace("/", ".") + "_graph_result_allFork.csv";
+            classifyCommit_file = io.graph_dir + projectURL.replace("/", ".") + "_graph_result_allFork.csv";
         } else {
 //            classifyCommit_file = graph_dir + projectURL.replace("/", ".") + "_graph_result.csv";
             classifyCommit_file = io.graph_dir + projectURL.replace("/", ".") + "_graph_result_2019.csv";
@@ -194,6 +193,12 @@ public class GraphBasedAnalyzer {
 //        fork_firstCommit_set = getCommitInBranch(forkUrl, projectURL);
         upstream_firstCommit_set = getCommitInBranch(upstream, upstream, projectURL);
         fork_firstCommit_set = getCommitInBranch(fork, upstream, projectURL);
+
+        if (upstream_firstCommit_set.size() > 100 || fork_firstCommit_set.size() > 100) {
+            System.out.println("too many branches");
+            io.writeTofile(forkUrl + "," + projectURL + "\n", IO_Process.output_dir + "tooManyBranches.txt");
+            return "tooManyBranch";
+        }
 
 
         HashSet<String> allCommits = new HashSet<>();
@@ -252,13 +257,19 @@ public class GraphBasedAnalyzer {
 
         /**  PRINT commits: sha, date, category **/
 
+        System.out.println(distance2Fork_map.keySet().size() +" commits");
+        final int[] count = {0};
         distance2Fork_map.forEach((sha, d) -> {
+            count[0]++;
             if (!mergeCommits.contains(sha)) {
 
                 String cmd = "git show -s --format=\'%cr~%cI\' " + sha;
                 String commitInfo = io.exeCmd(cmd.split(" "), io.clone_dir + projectURL).replace("\'", "").replace(",", " ").replace("~", ",");
                 if (commitInfo.equals("noRepo")) {
                     System.out.println("noRepo");
+                    return;
+                }
+                if (commitInfo.contains("fatal")) {
                     return;
                 }
                 String commitDate = commitInfo.split(",")[1].split("T")[0];

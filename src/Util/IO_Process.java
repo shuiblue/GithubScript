@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  */
 public class IO_Process {
     public static String token;
-    private static String user, pwd, myUrl, ghtpwd, ghtUrl;
+    public static String user, pwd, myUrl, ghtpwd, ghtUrl;
     public static String github_api_repo = "https://api.github.com/repos/";
     public static String github_url = "https://github.com/";
     public static String current_dir = System.getProperty("user.dir");
@@ -41,6 +41,7 @@ public class IO_Process {
     public static String clone_dir;
     public static String graph_dir;
     public static String result_dir;
+    public static String hardfork_dir;
     final int batchSize = 500;
     HashSet<String> stopFileSet = new HashSet<>();
     HashSet<String> nonDevRepoSet = new HashSet<>();
@@ -55,6 +56,7 @@ public class IO_Process {
             result_dir = output_dir + "result0821/";
             graph_dir = output_dir + "ClassifyCommit_new/";
             clone_dir = output_dir + "clones/";
+            hardfork_dir = output_dir+ "hardfork-exploration/";
             myUrl = paramList[1];
             user = paramList[2];
             pwd = paramList[3];

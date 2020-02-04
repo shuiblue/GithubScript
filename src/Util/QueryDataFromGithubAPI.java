@@ -2,8 +2,11 @@ package Util;
 
 import Util.IO_Process;
 import Util.JsonUtility;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -17,7 +20,7 @@ public class QueryDataFromGithubAPI {
     static String github_api_repo = "https://api.github.com/repos/";
     static String github_api_user = "https://api.github.com/users/";
     static String github_api_search = "https://api.github.com/search/";
-    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir, token,result_dir;
+    static String working_dir, pr_dir, output_dir, clone_dir, current_dir, graph_dir, token, result_dir;
     static String myUrl, user, pwd;
     static String myDriver = "com.mysql.jdbc.Driver";
     final int batchSize = 100;
@@ -31,7 +34,7 @@ public class QueryDataFromGithubAPI {
             working_dir = paramList[0];
             pr_dir = working_dir + "queryGithub/";
             output_dir = working_dir + "ForkData/";
-            result_dir = output_dir +"result0821/";
+            result_dir = output_dir + "result0821/";
             clone_dir = output_dir + "clones/";
             graph_dir = output_dir + "Commit.Commit.ClassifyCommit/";
             myUrl = paramList[1];
@@ -55,7 +58,7 @@ public class QueryDataFromGithubAPI {
      *
      * @param repo e.g. 'shuiblue/INFOX'
      */
-    public void getActiveForkList(String repo, boolean hasTimeConstraint,String projectURL) {
+    public void getActiveForkList(String repo, boolean hasTimeConstraint, String projectURL) {
 
         String forkUrl = github_api_repo + repo + "/forks?access_token=" + token + "&page=";
         JsonUtility jsonUtility = new JsonUtility();
@@ -103,14 +106,13 @@ public class QueryDataFromGithubAPI {
             } else {
                 break;
             }
-            new IO_Process().writeTofile(sb.toString(), result_dir+ projectURL + "/all_ActiveForklist.txt");
+            new IO_Process().writeTofile(sb.toString(), result_dir + projectURL + "/all_ActiveForklist.txt");
 
         }
 
         for (String fork : forks_has_forks) {
-             getActiveForkList(fork, hasTimeConstraint,projectURL);
+            getActiveForkList(fork, hasTimeConstraint, projectURL);
         }
-
 
 
     }
@@ -145,9 +147,9 @@ public class QueryDataFromGithubAPI {
 
 
         JSONObject fork_jsonObj = new JSONObject(commitJson.get(0));
-        if(!fork_jsonObj.get("author").toString().equals("null")){
+        if (!fork_jsonObj.get("author").toString().equals("null")) {
             return (String) ((JSONObject) fork_jsonObj.get("author")).get("login");
-        }else{
+        } else {
             return "authorIsNull";
         }
 
@@ -155,9 +157,70 @@ public class QueryDataFromGithubAPI {
     }
 
 
+    public String getLanguage(String projectURL) {
+        JsonUtility jsonReader = new JsonUtility();
+        String commitURL = github_api_repo + projectURL + "?access_token=" + token;
+        ArrayList<String> commitJson = jsonReader.readUrl(commitURL);
+        if(commitJson.size()==0) return "deleted";
+        JSONObject fork_jsonObj = new JSONObject(commitJson.get(0));
+        if (!fork_jsonObj.get("language").toString().equals("null")) {
+            return (String) fork_jsonObj.get("language");
+        } else {
+            return "null";
+        }
+
+
+    }
+
+    public String getUpdatedAt(String projectURL) {
+        JsonUtility jsonReader = new JsonUtility();
+        String commitURL = github_api_repo + projectURL + "?access_token=" + token;
+        ArrayList<String> commitJson = jsonReader.readUrl(commitURL);
+        if(commitJson.size()==0) return "deleted";
+        JSONObject fork_jsonObj = new JSONObject(commitJson.get(0));
+        if (!fork_jsonObj.get("updated_at").toString().equals("null")) {
+            return (String) fork_jsonObj.get("updated_at");
+        } else {
+            return "null";
+        }
+
+
+    }
+
     public static void main(String[] args) {
-        System.out.println(new QueryDataFromGithubAPI().getGithubLoginID( "cbaf7a7b79c78ec7d877f348d12102acde6adfa0","twbs/bootstrap"));
-        System.out.println(new QueryDataFromGithubAPI().getGithubLoginID( "1ea63d131279884ab3729111f22b455205eed6e7","twbs/bootstrap"));
-        System.out.println(new QueryDataFromGithubAPI().getGithubLoginID( "6cd67779434501eed6aea4ae62f2e4499e37702e","twbs/bootstrap"));
+        QueryDataFromGithubAPI queryDataFromGithubAPI = new QueryDataFromGithubAPI();
+        IO_Process io = new IO_Process();
+        LineIterator it = null;
+        String hardfork_dir = io.hardfork_dir;
+        int count = 0;
+        try {
+//            System.out.println(hardfork_dir + "hardfork_language_left.txt");
+            System.out.println(hardfork_dir + "updateAt_fork_upstream.csv");
+//            it = FileUtils.lineIterator(new File(hardfork_dir + "hardfork_language_left.txt"), "UTF-8");
+            it = FileUtils.lineIterator(new File(hardfork_dir + "updateAt_fork_upstream.csv"), "UTF-8");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            while (it.hasNext()) {
+                System.out.println("count: " + count++);
+                String line = it.nextLine();
+                if (!line.contains("hardfork_url")) {
+                    String fork = line.split(",")[0];
+                    String upstream = line.split(",")[1];
+                    String fork_updatedAt = queryDataFromGithubAPI.getUpdatedAt(fork);
+                    String upstream_updatedAt = queryDataFromGithubAPI.getUpdatedAt(upstream);
+                    System.out.println(line+"，"+fork_updatedAt+","+upstream_updatedAt);
+                    io.writeTofile(fork+","+upstream + ","  +fork_updatedAt+","+upstream_updatedAt + "\n", hardfork_dir + "updateAt_ghapi.txt");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(e.toString());
+
+        } finally {
+            LineIterator.closeQuietly(it);
+        }
+
+
     }
 }
