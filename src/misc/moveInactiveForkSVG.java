@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class moveInactiveForkSVG {
-    static String working_dir, output_dir, evolutionVisual_dir;
+    static String working_dir, evolutionVisual_dir, output_dir;
     static IO_Process io = new IO_Process();
     static String current_dir = System.getProperty("user.dir");
 
