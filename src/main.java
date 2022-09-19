@@ -10,9 +10,10 @@ import java.util.*;
  * Created by shuruiz on 12/8/17.
  */
 public class main {
-    static String tmpDirPath,current_dir;
-    static int maxAnalyzedForkNum = 100;
     static boolean hasTimeConstraint = false;
+    static String tmpDirPath, current_dir;
+    static int maxAnalyzedForkNum = 100;
+    
 
     public static void main(String[] args) {
         Commit.GraphBasedClassifier graphBasedClassifier = new Commit.GraphBasedClassifier();
